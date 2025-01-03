@@ -1,12 +1,13 @@
 // netlify/functions/chatgpt.js
 // This function is invoked by your frontend (chat.js) to keep the OpenAI API key hidden.
 
-const fetch = require('node-fetch'); // If you're using Node 18+ you might not need this import
+const fetch = require('node-fetch'); // Ensure node-fetch version 2.x is installed
 
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Method Not Allowed' }),
     };
   }
@@ -16,6 +17,7 @@ exports.handler = async (event, context) => {
     if (!question) {
       return {
         statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'No question provided.' }),
       };
     }
@@ -25,6 +27,7 @@ exports.handler = async (event, context) => {
     if (!OPENAI_API_KEY) {
       return {
         statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Missing OpenAI API key in environment.' }),
       };
     }
@@ -37,7 +40,7 @@ exports.handler = async (event, context) => {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-mini-2024-07-18', // Corrected model name
         messages: [
           { role: 'system', content: 'You are a helpful assistant.' },
           { role: 'user', content: question }
@@ -49,9 +52,11 @@ exports.handler = async (event, context) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
       return {
         statusCode: response.status,
-        body: JSON.stringify({ error: errorText }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Error from OpenAI API.' }),
       };
     }
 
@@ -64,12 +69,14 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ assistantResponse: assistantMessage }),
     };
   } catch (error) {
-    console.error(error);
+    console.error('Internal Server Error:', error);
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Internal Server Error' }),
     };
   }
