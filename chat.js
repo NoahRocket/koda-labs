@@ -1,12 +1,35 @@
-// chat.js
-// This file handles the request to ChatGPT.
+// netlify/functions/chatgpt.js
+// This function is invoked by your frontend (chat.js) to keep the OpenAI API key hidden.
 
-const OPENAI_API_KEY = localStorage.getItem('OPENAI_API_KEY') || 'YOUR_LOCAL_ENV_API_KEY_HERE';
-// Alternatively, you could read from Netlify environment variables at build time, 
-// but that typically requires a serverless function or bundling step.
+const fetch = require('node-fetch'); // If you're using Node 18+ you might not need this import
 
-async function fetchChatGPTResponse(question) {
+exports.handler = async (event, context) => {
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Method Not Allowed' }),
+    };
+  }
+
   try {
+    const { question } = JSON.parse(event.body || '{}');
+    if (!question) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'No question provided.' }),
+      };
+    }
+
+    // Grab API Key from Netlify environment variable
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    if (!OPENAI_API_KEY) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Missing OpenAI API key in environment.' }),
+      };
+    }
+
+    // Forward request to OpenAI ChatGPT
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -20,18 +43,34 @@ async function fetchChatGPTResponse(question) {
           { role: 'user', content: question }
         ],
         max_tokens: 150,
-        temperature: 0.7
+        temperature: 0.7,
       }),
     });
 
-    const data = await response.json();
-    if (data.choices && data.choices.length > 0) {
-      return data.choices[0].message.content.trim();
-    } else {
-      return 'Sorry, I could not find a suitable response. Please try again.';
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({ error: errorText }),
+      };
     }
+
+    const data = await response.json();
+    let assistantMessage = 'Sorry, I could not find a suitable response.';
+
+    if (data.choices && data.choices.length > 0) {
+      assistantMessage = data.choices[0].message.content.trim();
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ assistantResponse: assistantMessage }),
+    };
   } catch (error) {
-    console.error('Error fetching data from ChatGPT:', error);
-    return 'Oops! Something went wrong.';
+    console.error(error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Internal Server Error' }),
+    };
   }
-}
+};
