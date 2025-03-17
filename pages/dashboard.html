@@ -13,42 +13,54 @@
     <button type="submit">Add Bookmark</button>
   </form>
   <div id="topics"></div>
-  <script type="module">
-    import { supabase } from '../db/db.js';
-
+  <script>
     async function loadDashboard() {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user) return alert('Please log in.');
-      const { data: topics } = await supabase.from('topics').select('*').eq('user_id', user.user.id);
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        alert('Please log in first.');
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const response = await fetch('/.netlify/functions/dashboard', {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const { topics, bookmarks } = await response.json();
       const topicsDiv = document.getElementById('topics');
       topicsDiv.innerHTML = '';
-      if (topics) {
-        topics.forEach(async topic => {
-          const { data: bookmarks } = await supabase.from('bookmarks').select('url').eq('topic_id', topic.id);
-          const topicElem = document.createElement('div');
-          topicElem.innerHTML = `<h2>${topic.name}</h2><ul>${bookmarks ? bookmarks.map(b => `<li><a href="${b.url}">${b.url}</a></li>`).join('') : ''}</ul>`;
-          topicsDiv.appendChild(topicElem);
-        });
-      }
+      topics.forEach(topic => {
+        const topicBookmarks = bookmarks.filter(b => b.topic_id === topic.id);
+        const topicElem = document.createElement('div');
+        topicElem.innerHTML = `<h2>${topic.name}</h2><ul>${topicBookmarks.map(b => `<li><a href="${b.url}">${b.url}</a></li>`).join('')}</ul>`;
+        topicsDiv.appendChild(topicElem);
+      });
     }
 
     const addForm = document.getElementById('addBookmarkForm');
     addForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        alert('Please log in first.');
+        window.location.href = 'login.html';
+        return;
+      }
       const topicName = document.getElementById('topic').value;
       const bookmarkUrl = document.getElementById('bookmark').value;
-      const { data: user } = await supabase.auth.getUser();
-      
-      // Check if topic exists, else create it
-      let { data: topic } = await supabase.from('topics').select('*').eq('name', topicName).eq('user_id', user.user.id);
-      if (!topic || topic.length === 0) {
-        const { data: newTopic } = await supabase.from('topics').insert({ name: topicName, user_id: user.user.id }).select();
-        topic = newTopic;
+      const response = await fetch('/.netlify/functions/dashboard', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'add', userId, topicName, bookmarkUrl }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        document.getElementById('topic').value = '';
+        document.getElementById('bookmark').value = '';
+        loadDashboard(); // Refresh dashboard
+      } else {
+        alert('Failed to add bookmark');
       }
-      
-      // Add bookmark
-      await supabase.from('bookmarks').insert({ topic_id: topic[0].id, url: bookmarkUrl });
-      loadDashboard(); // Refresh dashboard
     });
 
     loadDashboard();
