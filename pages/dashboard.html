@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+  <h1>Your Topics</h1>
+  <form id="addBookmarkForm">
+    <input type="text" id="topic" placeholder="Topic Name" required>
+    <input type="url" id="bookmark" placeholder="X Thread URL" required>
+    <button type="submit">Add Bookmark</button>
+  </form>
+  <div id="topics"></div>
+  <script type="module">
+    import { supabase } from '../db/db.js';
+
+    async function loadDashboard() {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user) return alert('Please log in.');
+      const { data: topics } = await supabase.from('topics').select('*').eq('user_id', user.user.id);
+      const topicsDiv = document.getElementById('topics');
+      topicsDiv.innerHTML = '';
+      if (topics) {
+        topics.forEach(async topic => {
+          const { data: bookmarks } = await supabase.from('bookmarks').select('url').eq('topic_id', topic.id);
+          const topicElem = document.createElement('div');
+          topicElem.innerHTML = `<h2>${topic.name}</h2><ul>${bookmarks ? bookmarks.map(b => `<li><a href="${b.url}">${b.url}</a></li>`).join('') : ''}</ul>`;
+          topicsDiv.appendChild(topicElem);
+        });
+      }
+    }
+
+    const addForm = document.getElementById('addBookmarkForm');
+    addForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const topicName = document.getElementById('topic').value;
+      const bookmarkUrl = document.getElementById('bookmark').value;
+      const { data: user } = await supabase.auth.getUser();
+      
+      // Check if topic exists, else create it
+      let { data: topic } = await supabase.from('topics').select('*').eq('name', topicName).eq('user_id', user.user.id);
+      if (!topic || topic.length === 0) {
+        const { data: newTopic } = await supabase.from('topics').insert({ name: topicName, user_id: user.user.id }).select();
+        topic = newTopic;
+      }
+      
+      // Add bookmark
+      await supabase.from('bookmarks').insert({ topic_id: topic[0].id, url: bookmarkUrl });
+      loadDashboard(); // Refresh dashboard
+    });
+
+    loadDashboard();
+  </script>
+</body>
+</html>
