@@ -2,26 +2,94 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard</title>
+  <title>Dashboard - Koda Compass</title>
   <link rel="stylesheet" href="../styles/main.css">
 </head>
 <body>
-  <h1>Your Topics</h1>
-  <form id="addBookmarkForm">
-    <input type="text" id="topic" placeholder="Topic Name" required>
-    <input type="url" id="bookmark" placeholder="X Thread URL" required>
-    <button type="submit">Add Bookmark</button>
-  </form>
-  <div id="topics"></div>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/pages/dashboard.html" class="active">Dashboard</a>
+    <a href="/pages/chat.html">Chat</a>
+    <a href="#" id="logout">Log Out</a>
+  </nav>
+  <div class="main-content">
+    <h1>Your Dashboard</h1>
+    <!-- Chat Section -->
+    <div class="greeting">Good Evening!<br/>How can I help you today?</div>
+    <div class="search-container">
+      <input type="text" id="userQuestion" placeholder="What would you like to learn about?" />
+      <button id="askButton">Ask</button>
+    </div>
+    <div class="suggested-questions">
+      <div class="question-box" data-question="What are IOPoints?">What are IOPoints?</div>
+      <div class="question-box" data-question="Who is John Galt?">Who is John Galt?</div>
+      <div class="question-box" data-question="Why do bees fly?">Why do bees fly?</div>
+    </div>
+    <div class="chat-container" id="chatContainer"></div>
+    <!-- Bookmark Section -->
+    <h2>Your Topics</h2>
+    <form id="addBookmarkForm">
+      <input type="text" id="topic" placeholder="Topic Name" required>
+      <input type="url" id="bookmark" placeholder="X Thread URL" required>
+      <button type="submit">Add Bookmark</button>
+    </form>
+    <div id="topics"></div>
+  </div>
+  <script src="../chat.js"></script>
   <script>
+    // Check if logged in
+    if (!localStorage.getItem('userId')) {
+      alert('Please log in first.');
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // Chat Logic
+    const userQuestionInput = document.getElementById('userQuestion');
+    const askButton = document.getElementById('askButton');
+    const chatContainer = document.getElementById('chatContainer');
+    const questionBoxes = document.querySelectorAll('.question-box');
+
+    function appendMessage(content, sender = 'assistant') {
+      const msg = document.createElement('div');
+      msg.classList.add('message');
+      if (sender === 'user') msg.classList.add('user-message');
+      else msg.classList.add('assistant-message');
+      msg.textContent = content;
+      chatContainer.appendChild(msg);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    async function handleUserQuestion(question) {
+      if (!question) return;
+      appendMessage(question, 'user');
+      userQuestionInput.value = '';
+      const assistantResponse = await fetchChatGPTResponse(question);
+      appendMessage(assistantResponse, 'assistant');
+    }
+
+    askButton.addEventListener('click', () => {
+      const question = userQuestionInput.value.trim();
+      handleUserQuestion(question);
+    });
+
+    userQuestionInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        askButton.click();
+      }
+    });
+
+    questionBoxes.forEach(box => {
+      box.addEventListener('click', () => {
+        const question = box.getAttribute('data-question');
+        handleUserQuestion(question);
+      });
+    });
+
+    // Bookmark Logic
     async function loadDashboard() {
       const userId = localStorage.getItem('userId');
-      if (!userId) {
-        alert('Please log in first.');
-        window.location.href = 'login.html';
-        return;
-      }
-
       const response = await fetch('/.netlify/functions/dashboard', {
         method: 'POST',
         body: JSON.stringify({ userId }),
@@ -42,11 +110,6 @@
     addForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const userId = localStorage.getItem('userId');
-      if (!userId) {
-        alert('Please log in first.');
-        window.location.href = 'login.html';
-        return;
-      }
       const topicName = document.getElementById('topic').value;
       const bookmarkUrl = document.getElementById('bookmark').value;
       const response = await fetch('/.netlify/functions/dashboard', {
@@ -57,13 +120,19 @@
       if (response.ok) {
         document.getElementById('topic').value = '';
         document.getElementById('bookmark').value = '';
-        loadDashboard(); // Refresh dashboard
+        loadDashboard();
       } else {
         alert('Failed to add bookmark');
       }
     });
 
     loadDashboard();
+
+    // Log out
+    document.getElementById('logout').addEventListener('click', () => {
+      localStorage.removeItem('userId');
+      window.location.href = '/';
+    });
   </script>
 </body>
 </html>
