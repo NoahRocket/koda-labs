@@ -61,7 +61,7 @@
         const { topics, bookmarks } = await response.json();
         console.log('Received data:', { topics, bookmarks });
         const topicsDiv = document.getElementById('topics');
-        topicsDiv.innerHTML = '<h2>Topics from Bookmarks</h2>';
+        topicsDiv.innerHTML = '<div class="topic-section"><h2>Topics from Bookmarks</h2></div>';
         if (topics && topics.length > 0) {
           topics.forEach(topic => {
             const topicBookmarks = bookmarks.filter(b => b.topic_id === topic.id);
@@ -75,16 +75,17 @@
               }
             });
             const topicElem = document.createElement('div');
+            topicElem.className = 'topic-card';
             topicElem.innerHTML = `<h3>${topic.name}</h3><ul>${uniqueBookmarks.map(b => `<li><a href="${b.url}" target="_blank">${b.url}</a></li>`).join('')}</ul>`;
             topicsDiv.appendChild(topicElem);
           });
         } else {
-          topicsDiv.innerHTML += '<p>No topics or bookmarks yet.</p>';
+          topicsDiv.innerHTML += '<div class="topic-section"><p>No topics or bookmarks yet.</p></div>';
         }
-        topicsDiv.innerHTML += '<h2>Topics from Conversations</h2><p>Coming soon: Topics based on your chat history.</p>';
+        topicsDiv.innerHTML += '<div class="topic-section"><h2>Topics from Conversations</h2><p>Coming soon: Topics based on your chat history.</p></div>';
       } catch (error) {
         console.error('Error loading dashboard:', error);
-        document.getElementById('topics').innerHTML = `<p>Error loading topics: ${error.message}</p>`;
+        document.getElementById('topics').innerHTML = `<div class="topic-section"><p>Error loading topics: ${error.message}</p></div>`;
       }
     }
 
