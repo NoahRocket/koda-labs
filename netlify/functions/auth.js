@@ -13,19 +13,16 @@ exports.handler = async (event, context) => {
 
   try {
     if (action === 'signup') {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ user: data.user }) };
     } else if (action === 'login') {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ user: data.user }) };
+    } else if (action === 'verify') {
+      const { data: { user } } = await supabase.auth.getUser();
+      return { statusCode: 200, body: JSON.stringify({ user }) };
     } else {
       return { statusCode: 400, body: 'Invalid action' };
     }
