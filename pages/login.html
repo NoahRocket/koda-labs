@@ -2,17 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login</title>
+  <title>Login - Koda Compass</title>
   <link rel="stylesheet" href="../styles/main.css">
 </head>
 <body>
-  <h1>Login</h1>
-  <form id="loginForm">
-    <input type="email" id="email" placeholder="Email" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button type="submit">Login</button>
-  </form>
-  <p>Need an account? <a href="signup.html">Sign up</a></p>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/pages/login.html" class="active">Login</a>
+    <a href="/pages/signup.html">Sign Up</a>
+  </nav>
+  <div class="main-content">
+    <h1>Login</h1>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+    <p>Need an account? <a href="signup.html">Sign up</a></p>
+  </div>
   <script>
     const form = document.getElementById('loginForm');
     form.addEventListener('submit', async (e) => {
@@ -26,7 +33,7 @@
       });
       const result = await response.json();
       if (response.ok) {
-        localStorage.setItem('userId', result.user.id); // Save user ID
+        localStorage.setItem('userId', result.user.id);
         window.location.href = 'dashboard.html';
       } else {
         alert('Login failed: ' + result.error);
