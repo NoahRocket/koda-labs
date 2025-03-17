@@ -13,69 +13,16 @@
     <a href="#" id="logout">Log Out</a>
   </nav>
   <div class="main-content">
-    <h1>Your Dashboard</h1>
-    <div class="greeting">Good Evening!<br/>How can I help you today?</div>
-    <div class="search-container">
-      <input type="text" id="userQuestion" placeholder="What would you like to learn about?" />
-      <button id="askButton">Ask</button>
-    </div>
-    <div class="suggested-questions">
-      <div class="question-box" data-question="What are IOPoints?">What are IOPoints?</div>
-      <div class="question-box" data-question="Who is John Galt?">Who is John Galt?</div>
-      <div class="question-box" data-question="Why do bees fly?">Why do bees fly?</div>
-    </div>
-    <div class="chat-container" id="chatContainer"></div>
-    <h2>Your Topics</h2>
-    <form id="addBookmarkForm">
-      <input type="text" id="topic" placeholder="Topic Name" required>
-      <input type="url" id="bookmark" placeholder="X Thread URL" required>
-      <button type="submit">Add Bookmark</button>
-    </form>
+    <h1>Your Topics</h1>
     <div id="topics"></div>
   </div>
-  <script src="../chat.js"></script>
   <script>
     if (!localStorage.getItem('userId')) {
       alert('Please log in first.');
       window.location.href = 'login.html';
       return;
     }
-    const userQuestionInput = document.getElementById('userQuestion');
-    const askButton = document.getElementById('askButton');
-    const chatContainer = document.getElementById('chatContainer');
-    const questionBoxes = document.querySelectorAll('.question-box');
-    function appendMessage(content, sender = 'assistant') {
-      const msg = document.createElement('div');
-      msg.classList.add('message');
-      if (sender === 'user') msg.classList.add('user-message');
-      else msg.classList.add('assistant-message');
-      msg.textContent = content;
-      chatContainer.appendChild(msg);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-    async function handleUserQuestion(question) {
-      if (!question) return;
-      appendMessage(question, 'user');
-      userQuestionInput.value = '';
-      const assistantResponse = await fetchChatGPTResponse(question);
-      appendMessage(assistantResponse, 'assistant');
-    }
-    askButton.addEventListener('click', () => {
-      const question = userQuestionInput.value.trim();
-      handleUserQuestion(question);
-    });
-    userQuestionInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        askButton.click();
-      }
-    });
-    questionBoxes.forEach(box => {
-      box.addEventListener('click', () => {
-        const question = box.getAttribute('data-question');
-        handleUserQuestion(question);
-      });
-    });
+
     async function loadDashboard() {
       const userId = localStorage.getItem('userId');
       const response = await fetch('/.netlify/functions/dashboard', {
@@ -85,34 +32,23 @@
       });
       const { topics, bookmarks } = await response.json();
       const topicsDiv = document.getElementById('topics');
-      topicsDiv.innerHTML = '';
-      topics.forEach(topic => {
-        const topicBookmarks = bookmarks.filter(b => b.topic_id === topic.id);
-        const topicElem = document.createElement('div');
-        topicElem.innerHTML = `<h2>${topic.name}</h2><ul>${topicBookmarks.map(b => `<li><a href="${b.url}">${b.url}</a></li>`).join('')}</ul>`;
-        topicsDiv.appendChild(topicElem);
-      });
-    }
-    const addForm = document.getElementById('addBookmarkForm');
-    addForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const userId = localStorage.getItem('userId');
-      const topicName = document.getElementById('topic').value;
-      const bookmarkUrl = document.getElementById('bookmark').value;
-      const response = await fetch('/.netlify/functions/dashboard', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'add', userId, topicName, bookmarkUrl }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (response.ok) {
-        document.getElementById('topic').value = '';
-        document.getElementById('bookmark').value = '';
-        loadDashboard();
+      topicsDiv.innerHTML = '<h2>Topics from Bookmarks</h2>';
+      if (topics && topics.length > 0) {
+        topics.forEach(topic => {
+          const topicBookmarks = bookmarks.filter(b => b.topic_id === topic.id);
+          const topicElem = document.createElement('div');
+          topicElem.innerHTML = `<h3>${topic.name}</h3><ul>${topicBookmarks.map(b => `<li><a href="${b.url}" target="_blank">${b.url}</a></li>`).join('')}</ul>`;
+          topicsDiv.appendChild(topicElem);
+        });
       } else {
-        alert('Failed to add bookmark');
+        topicsDiv.innerHTML += '<p>No topics or bookmarks yet.</p>';
       }
-    });
+      // Placeholder for conversation topics (to be enhanced later)
+      topicsDiv.innerHTML += '<h2>Topics from Conversations</h2><p>Coming soon: Topics based on your chat history.</p>';
+    }
+
     loadDashboard();
+
     document.getElementById('logout').addEventListener('click', () => {
       localStorage.removeItem('userId');
       window.location.href = '/';
