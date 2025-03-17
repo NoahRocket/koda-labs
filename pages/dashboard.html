@@ -8,8 +8,8 @@
 <body>
   <nav>
     <a href="/">Home</a>
-    <a href="/pages/dashboard.html" class="active">Dashboard</a>
-    <a href="/pages/chat.html">Chat</a>
+    <a class='active' href='/pages/dashboard'>Dashboard</a>
+    <a href='/pages/chat'>Chat</a>
     <a href="#" id="logout">Log Out</a>
   </nav>
   <div class="main-content">
@@ -17,26 +17,37 @@
     <div id="topics"></div>
   </div>
   <script>
-    if (!localStorage.getItem('userId')) {
-      alert('Please log in first.');
-      window.location.href = 'login.html';
-      return;
-}
-    console.log('Stored userId:', localStorage.getItem('userId'));
-// Fetch current user to verify (optional, requires session)
-    const verifyResponse = await fetch('/.netlify/functions/auth', {
-      method: 'POST',
-      body: JSON.stringify({ action: 'verify' }), // Add verify action to auth.js
-      headers: { 'Content-Type': 'application/json' }
-});
-    const verifyResult = await verifyResponse.json();
-    console.log('Verified user:', verifyResult);
-    
-    if (!localStorage.getItem('userId')) {
-      alert('Please log in first.');
-      window.location.href = 'login.html';
-      return;
+    // Function to check if user is logged in
+    function checkLogin() {
+      if (!localStorage.getItem('userId')) {
+        alert('Please log in first.');
+        window.location.href = 'login.html';
+        // No need for return here; redirect will handle navigation
+      }
     }
+
+    // Run login check when the page loads
+    checkLogin();
+
+    console.log('Stored userId:', localStorage.getItem('userId'));
+
+    // Fetch current user to verify (optional, requires session)
+    async function verifyUser() {
+      try {
+        const verifyResponse = await fetch('/.netlify/functions/auth', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'verify' }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const verifyResult = await verifyResponse.json();
+        console.log('Verified user:', verifyResult);
+      } catch (error) {
+        console.error('Error verifying user:', error);
+      }
+    }
+
+    // Call verifyUser function
+    verifyUser();
 
     async function loadDashboard() {
       const userId = localStorage.getItem('userId');
