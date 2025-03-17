@@ -31,6 +31,7 @@ nav a {
   display: block;
   text-align: center;
   transition: background-color 0.2s ease-in-out;
+  width: 100%;
 }
 
 nav a:hover {
@@ -148,6 +149,50 @@ button:hover {
   align-self: flex-start;
 }
 
+/* Enhanced Topic Display Styles */
+.topic-section {
+  margin-bottom: 20px;
+}
+
+.topic-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.topic-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.topic-card h3 {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.topic-card ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.topic-card li {
+  margin-bottom: 5px;
+}
+
+.topic-card a {
+  color: #6a0dad;
+  text-decoration: none;
+  word-break: break-all; /* Ensures long URLs wrap */
+}
+
+.topic-card a:hover {
+  text-decoration: underline;
+}
+
 /* Additional styles for consistency */
 h1, h2 {
   margin-bottom: 20px;
@@ -162,4 +207,5 @@ form {
 
 p {
   margin-top: 10px;
+  color: #666;
 }
