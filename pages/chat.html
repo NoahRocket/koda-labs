@@ -27,17 +27,14 @@
   </div>
   <script src="../chat.js"></script>
   <script>
-    // Check if logged in
     if (!localStorage.getItem('userId')) {
       alert('Please log in to use the chat.');
       window.location.href = 'login.html';
     }
-
     const userQuestionInput = document.getElementById('userQuestion');
     const askButton = document.getElementById('askButton');
     const chatContainer = document.getElementById('chatContainer');
     const questionBoxes = document.querySelectorAll('.question-box');
-
     function appendMessage(content, sender = 'assistant') {
       const msg = document.createElement('div');
       msg.classList.add('message');
@@ -47,7 +44,6 @@
       chatContainer.appendChild(msg);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
-
     async function handleUserQuestion(question) {
       if (!question) return;
       appendMessage(question, 'user');
@@ -55,27 +51,22 @@
       const assistantResponse = await fetchChatGPTResponse(question);
       appendMessage(assistantResponse, 'assistant');
     }
-
     askButton.addEventListener('click', () => {
       const question = userQuestionInput.value.trim();
       handleUserQuestion(question);
     });
-
     userQuestionInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         askButton.click();
       }
     });
-
     questionBoxes.forEach(box => {
       box.addEventListener('click', () => {
         const question = box.getAttribute('data-question');
         handleUserQuestion(question);
       });
     });
-
-    // Log out
     document.getElementById('logout').addEventListener('click', () => {
       localStorage.removeItem('userId');
       window.location.href = '/';
