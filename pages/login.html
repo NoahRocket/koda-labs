@@ -25,8 +25,12 @@
         headers: { 'Content-Type': 'application/json' }
       });
       const result = await response.json();
-      if (response.ok) window.location.href = 'dashboard.html';
-      else alert('Login failed: ' + result.error);
+      if (response.ok) {
+        localStorage.setItem('userId', result.user.id); // Save user ID
+        window.location.href = 'dashboard.html';
+      } else {
+        alert('Login failed: ' + result.error);
+      }
     });
   </script>
 </body>
