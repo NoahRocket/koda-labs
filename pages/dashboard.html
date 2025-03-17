@@ -21,6 +21,21 @@
       alert('Please log in first.');
       window.location.href = 'login.html';
       return;
+}
+    console.log('Stored userId:', localStorage.getItem('userId'));
+// Fetch current user to verify (optional, requires session)
+    const verifyResponse = await fetch('/.netlify/functions/auth', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'verify' }), // Add verify action to auth.js
+      headers: { 'Content-Type': 'application/json' }
+});
+    const verifyResult = await verifyResponse.json();
+    console.log('Verified user:', verifyResult);
+    
+    if (!localStorage.getItem('userId')) {
+      alert('Please log in first.');
+      window.location.href = 'login.html';
+      return;
     }
 
     async function loadDashboard() {
