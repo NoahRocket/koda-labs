@@ -12,8 +12,6 @@ exports.handler = async (event, context) => {
   const { action, userId, topicName, bookmarkUrl } = JSON.parse(event.body || '{}');
   console.log('Received request:', { action, userId, topicName, bookmarkUrl });
 
-  if (!userId) return { statusCode: 400, body: 'Missing user ID' };
-
   try {
     if (action === 'add') {
       console.log('Adding bookmark for userId:', userId, 'topic:', topicName, 'url:', bookmarkUrl);
@@ -34,14 +32,14 @@ exports.handler = async (event, context) => {
         .insert({ topic_id: topic[0].id, url: bookmarkUrl });
       return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark added' }) };
     } else {
+      // Simplified: Fetch all topics and bookmarks (no userId filter for now)
       const { data: topics } = await supabase
         .from('topics')
-        .select('*')
-        .eq('user_id', userId);
+        .select('*');
       const { data: bookmarks } = await supabase
         .from('bookmarks')
         .select('*');
-      console.log('Fetched topics:', topics, 'bookmarks:', bookmarks);
+      console.log('Fetched all topics:', topics, 'bookmarks:', bookmarks);
       return {
         statusCode: 200,
         body: JSON.stringify({ topics, bookmarks })
