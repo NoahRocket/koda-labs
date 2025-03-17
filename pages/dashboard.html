@@ -25,26 +25,33 @@
 
     async function loadDashboard() {
       const userId = localStorage.getItem('userId');
-      const response = await fetch('/.netlify/functions/dashboard', {
-        method: 'POST',
-        body: JSON.stringify({ userId }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const { topics, bookmarks } = await response.json();
-      const topicsDiv = document.getElementById('topics');
-      topicsDiv.innerHTML = '<h2>Topics from Bookmarks</h2>';
-      if (topics && topics.length > 0) {
-        topics.forEach(topic => {
-          const topicBookmarks = bookmarks.filter(b => b.topic_id === topic.id);
-          const topicElem = document.createElement('div');
-          topicElem.innerHTML = `<h3>${topic.name}</h3><ul>${topicBookmarks.map(b => `<li><a href="${b.url}" target="_blank">${b.url}</a></li>`).join('')}</ul>`;
-          topicsDiv.appendChild(topicElem);
+      console.log('Loading dashboard for userId:', userId);
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({ userId }),
+          headers: { 'Content-Type': 'application/json' }
         });
-      } else {
-        topicsDiv.innerHTML += '<p>No topics or bookmarks yet.</p>';
+        if (!response.ok) throw new Error('Network response was not ok');
+        const { topics, bookmarks } = await response.json();
+        console.log('Received data:', { topics, bookmarks });
+        const topicsDiv = document.getElementById('topics');
+        topicsDiv.innerHTML = '<h2>Topics from Bookmarks</h2>';
+        if (topics && topics.length > 0) {
+          topics.forEach(topic => {
+            const topicBookmarks = bookmarks.filter(b => b.topic_id === topic.id);
+            const topicElem = document.createElement('div');
+            topicElem.innerHTML = `<h3>${topic.name}</h3><ul>${topicBookmarks.map(b => `<li><a href="${b.url}" target="_blank">${b.url}</a></li>`).join('')}</ul>`;
+            topicsDiv.appendChild(topicElem);
+          });
+        } else {
+          topicsDiv.innerHTML += '<p>No topics or bookmarks yet.</p>';
+        }
+        topicsDiv.innerHTML += '<h2>Topics from Conversations</h2><p>Coming soon: Topics based on your chat history.</p>';
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+        document.getElementById('topics').innerHTML = `<p>Error loading topics: ${error.message}</p>`;
       }
-      // Placeholder for conversation topics (to be enhanced later)
-      topicsDiv.innerHTML += '<h2>Topics from Conversations</h2><p>Coming soon: Topics based on your chat history.</p>';
     }
 
     loadDashboard();
