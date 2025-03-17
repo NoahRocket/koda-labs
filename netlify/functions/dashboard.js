@@ -10,6 +10,8 @@ exports.handler = async (event, context) => {
   }
 
   const { action, userId, topicName, bookmarkUrl } = JSON.parse(event.body || '{}');
+  console.log('Received request:', { action, userId, topicName, bookmarkUrl });
+
   if (!userId) return { statusCode: 400, body: 'Missing user ID' };
 
   try {
