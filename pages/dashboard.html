@@ -22,7 +22,6 @@
       if (!localStorage.getItem('userId')) {
         alert('Please log in first.');
         window.location.href = 'login.html';
-        // No need for return here; redirect will handle navigation
       }
     }
 
@@ -66,8 +65,17 @@
         if (topics && topics.length > 0) {
           topics.forEach(topic => {
             const topicBookmarks = bookmarks.filter(b => b.topic_id === topic.id);
+            // Deduplicate bookmarks by URL
+            const uniqueBookmarks = [];
+            const seenUrls = new Set();
+            topicBookmarks.forEach(bookmark => {
+              if (!seenUrls.has(bookmark.url)) {
+                seenUrls.add(bookmark.url);
+                uniqueBookmarks.push(bookmark);
+              }
+            });
             const topicElem = document.createElement('div');
-            topicElem.innerHTML = `<h3>${topic.name}</h3><ul>${topicBookmarks.map(b => `<li><a href="${b.url}" target="_blank">${b.url}</a></li>`).join('')}</ul>`;
+            topicElem.innerHTML = `<h3>${topic.name}</h3><ul>${uniqueBookmarks.map(b => `<li><a href="${b.url}" target="_blank">${b.url}</a></li>`).join('')}</ul>`;
             topicsDiv.appendChild(topicElem);
           });
         } else {
