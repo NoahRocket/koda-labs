@@ -9,24 +9,46 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const { action, email, password } = JSON.parse(event.body || '{}');
+  const { action, userId, topicName, bookmarkUrl } = JSON.parse(event.body || '{}');
+  console.log('Received request:', { action, userId, topicName, bookmarkUrl });
+
+  if (!userId) return { statusCode: 400, body: 'Missing user ID' };
 
   try {
-    if (action === 'signup') {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
-      return { statusCode: 200, body: JSON.stringify({ user: data.user }) };
-    } else if (action === 'login') {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      return { statusCode: 200, body: JSON.stringify({ user: data.user }) };
-    } else if (action === 'verify') {
-      const { data: { user } } = await supabase.auth.getUser();
-      return { statusCode: 200, body: JSON.stringify({ user }) };
+    if (action === 'add') {
+      console.log('Adding bookmark for userId:', userId, 'topic:', topicName, 'url:', bookmarkUrl);
+      let { data: topic } = await supabase
+        .from('topics')
+        .select('*')
+        .eq('name', topicName)
+        .eq('user_id', userId);
+      if (!topic || topic.length === 0) {
+        const { data: newTopic } = await supabase
+          .from('topics')
+          .insert({ name: topicName, user_id: userId })
+          .select();
+        topic = newTopic;
+      }
+      await supabase
+        .from('bookmarks')
+        .insert({ topic_id: topic[0].id, url: bookmarkUrl });
+      return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark added' }) };
     } else {
-      return { statusCode: 400, body: 'Invalid action' };
+      const { data: topics } = await supabase
+        .from('topics')
+        .select('*')
+        .eq('user_id', userId);
+      const { data: bookmarks } = await supabase
+        .from('bookmarks')
+        .select('*');
+      console.log('Fetched topics:', topics, 'bookmarks:', bookmarks);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ topics, bookmarks })
+      };
     }
   } catch (error) {
-    return { statusCode: 400, body: JSON.stringify({ error: error.message }) };
+    console.error('Error:', error.message);
+    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
   }
 };
