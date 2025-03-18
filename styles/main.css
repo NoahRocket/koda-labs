@@ -269,3 +269,55 @@ p {
   margin-top: 10px;
   color: #666;
 }
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  nav {
+    width: 60px;
+  }
+  .main-content {
+    padding: 20px;
+  }
+  .search-container {
+    flex-direction: column;
+  }
+  .search-container input,
+  .search-container button {
+    width: 100%;
+  }
+  .suggested-questions {
+    flex-direction: column;
+  }
+  .question-box {
+    width: 100%;
+  }
+  .chat-container {
+    max-height: 300px;
+  }
+  .topic-card {
+    padding: 10px;
+  }
+  .topic-card h3 {
+    font-size: 1.1rem;
+  }
+  .topic-card ul {
+    padding-left: 0;
+  }
+  .topic-card li {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  nav {
+    width: 50px;
+  }
+  .main-content {
+    padding: 10px;
+  }
+  h1 {
+    font-size: 1.5rem;
+  }
+  h2 {
+    font-size: 1.2rem;
+  }
+}
