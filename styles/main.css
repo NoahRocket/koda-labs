@@ -172,6 +172,9 @@ button:hover {
   font-size: 1.2rem;
   color: #333;
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .topic-card ul {
@@ -181,6 +184,9 @@ button:hover {
 
 .topic-card li {
   margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .topic-card a {
@@ -191,6 +197,60 @@ button:hover {
 
 .topic-card a:hover {
   text-decoration: underline;
+}
+
+.topic-card i {
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  nav {
+    width: 60px; /* Slimmer sidebar on mobile */
+  }
+
+  .main-content {
+    padding: 20px; /* Less padding on mobile */
+  }
+
+  h1 {
+    font-size: 1.2rem; /* Smaller heading on mobile */
+  }
+
+  h2 {
+    font-size: 1rem; /* Smaller subheadings */
+  }
+
+  .topic-card {
+    padding: 10px; /* Less padding in cards */
+  }
+
+  .topic-card h3 {
+    font-size: 1rem; /* Smaller topic titles */
+  }
+
+  .topic-card a {
+    font-size: 0.9rem; /* Smaller URLs */
+  }
+
+  .topic-card i {
+    font-size: 0.9rem; /* Smaller icons */
+  }
+}
+
+@media (max-width: 480px) {
+  nav {
+    width: 50px; /* Even slimmer on very small screens */
+  }
+
+  .main-content {
+    padding: 10px; /* Minimal padding on very small screens */
+  }
+
+  .topic-card {
+    margin-bottom: 5px; /* Less space between cards */
+  }
 }
 
 /* Additional styles for consistency */
