@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Manage Topics - Koda Compass</title>
+  <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/pages/dashboard.html">Dashboard</a>
+    <a href="/pages/chat.html">Chat</a>
+    <a href="/pages/topics.html" class="active">Topics</a>
+    <a href="#" id="logout">Log Out</a>
+  </nav>
+  <div class="main-content">
+    <h1>Manage Your Topics</h1>
+    <div id="topicsList"></div>
+    <form id="addTopicForm">
+      <input type="text" id="newTopic" placeholder="New Topic Name" required>
+      <button type="submit">Add Topic</button>
+    </form>
+  </div>
+  <script>
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('Please log in to manage topics.');
+      window.location.href = 'login.html';
+    }
+
+    async function loadTopics() {
+      const response = await fetch('/.netlify/functions/dashboard', {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const { topics } = await response.json();
+      const topicsList = document.getElementById('topicsList');
+      topicsList.innerHTML = '';
+      topics.forEach(topic => {
+        const topicElem = document.createElement('div');
+        topicElem.innerHTML = `<h3>${topic.name}</h3><button onclick="deleteTopic('${topic.id}')">Delete</button>`;
+        topicsList.appendChild(topicElem);
+      });
+    }
+
+    async function addTopic(name) {
+      const response = await fetch('/.netlify/functions/dashboard', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'addTopic', userId, topicName: name }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        loadTopics();
+      } else {
+        alert('Failed to add topic');
+      }
+    }
+
+    async function deleteTopic(topicId) {
+      const response = await fetch('/.netlify/functions/dashboard', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'deleteTopic', userId, topicId }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        loadTopics();
+      } else {
+        alert('Failed to delete topic');
+      }
+    }
+
+    document.getElementById('addTopicForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('newTopic').value;
+      addTopic(name);
+      document.getElementById('newTopic').value = '';
+    });
+
+    loadTopics();
+
+    document.getElementById('logout').addEventListener('click', () => {
+      localStorage.removeItem('userId');
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>
