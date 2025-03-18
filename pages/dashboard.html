@@ -76,7 +76,7 @@
               <h3><i class="fas fa-bookmark"></i> ${topic.name}</h3>
               <ul>${uniqueBookmarks.map(b => `<li><i class="fas fa-link"></i> <a href="${b}" target="_blank">${b}</a></li>`).join('')}</ul>
               <button class="generate-summary">Generate Summary</button>
-              <div class="summary"></div>
+              <div class="summary" style="margin-top: 10px;"></div>
             `;
             topicsContainer.appendChild(topicElem);
           });
@@ -93,8 +93,12 @@
               body: JSON.stringify({ userId, topicId }),
               headers: { 'Content-Type': 'application/json' }
             });
-            const { summary } = await response.json();
-            button.nextElementSibling.textContent = summary;
+            if (response.ok) {
+              const { summary } = await response.json();
+              button.nextElementSibling.textContent = summary || 'No summary generated.';
+            } else {
+              button.nextElementSibling.textContent = 'Error generating summary.';
+            }
           });
         });
       } catch (error) {
