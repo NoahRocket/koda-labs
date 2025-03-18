@@ -9,46 +9,45 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const { action, userId, topicName, bookmarkUrl } = JSON.parse(event.body || '{}');
-  console.log('Received request:', { action, userId, topicName, bookmarkUrl });
+  const { action, userId, topicName, topicId, bookmarkUrl, chatHistory } = JSON.parse(event.body || '{}');
 
   if (!userId) return { statusCode: 400, body: 'Missing user ID' };
 
   try {
-    if (action === 'add') {
-      console.log('Adding bookmark for userId:', userId, 'topic:', topicName, 'url:', bookmarkUrl);
-      let { data: topic } = await supabase
+    if (action === 'addTopic') {
+      const { data: newTopic } = await supabase
         .from('topics')
-        .select('*')
-        .eq('name', topicName)
-        .eq('user_id', userId);
-      if (!topic || topic.length === 0) {
-        const { data: newTopic } = await supabase
-          .from('topics')
-          .insert({ name: topicName, user_id: userId })
-          .select();
-        topic = newTopic;
-      }
-      await supabase
-        .from('bookmarks')
-        .insert({ topic_id: topic[0].id, url: bookmarkUrl });
-      return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark added' }) };
+        .insert({ name: topicName, user_id: userId })
+        .select();
+      return { statusCode: 200, body: JSON.stringify({ topicId: newTopic[0].id }) };
+    } else if (action === 'deleteTopic') {
+      await supabase.from('bookmarks').delete().eq('topic_id', topicId);
+      await supabase.from('conversations').delete().eq('topic_id', topicId);
+      await supabase.from('topics').delete().eq('id', topicId);
+      return { statusCode: 200, body: 'Topic deleted' };
+    } else if (action === 'addBookmark') {
+      await supabase.from('bookmarks').insert({ topic_id: topicId, url: bookmarkUrl });
+      return { statusCode: 200, body: 'Bookmark added' };
+    } else if (action === 'saveConversation') {
+      await supabase.from('conversations').insert({ topic_id: topicId, content: chatHistory });
+      return { statusCode: 200, body: 'Conversation saved' };
     } else {
-      // Fetch only the user's topics
       const { data: topics } = await supabase
         .from('topics')
         .select('*')
         .eq('user_id', userId);
-      // Fetch bookmarks only for the user's topics
       const topicIds = topics ? topics.map(t => t.id) : [];
       const { data: bookmarks } = await supabase
         .from('bookmarks')
         .select('*')
-        .in('topic_id', topicIds); // Filter bookmarks by topic_id
-      console.log('Fetched user topics:', topics, 'bookmarks:', bookmarks);
+        .in('topic_id', topicIds);
+      const { data: conversations } = await supabase
+        .from('conversations')
+        .select('*')
+        .in('topic_id', topicIds);
       return {
         statusCode: 200,
-        body: JSON.stringify({ topics, bookmarks })
+        body: JSON.stringify({ topics, bookmarks, conversations })
       };
     }
   } catch (error) {
