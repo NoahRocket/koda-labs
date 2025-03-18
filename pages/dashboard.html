@@ -9,13 +9,14 @@
 <body>
   <nav>
     <a href="/">Home</a>
-    <a class='active' href='/pages/dashboard'>Dashboard</a>
-    <a href='/pages/chat'>Chat</a>
+    <a class='active' href='/pages/dashboard.html'>Dashboard</a>
+    <a href='/pages/chat.html'>Chat</a>
+    <a href="/pages/topics.html">Topics</a>
     <a href="#" id="logout">Log Out</a>
   </nav>
   <div class="main-content">
     <h1>Your Topics</h1>
-    <div id="topics"></div>
+    <div id="topicsContainer"></div>
   </div>
   <script>
     // Function to check if user is logged in
@@ -61,32 +62,43 @@
         if (!response.ok) throw new Error('Network response was not ok');
         const { topics, bookmarks } = await response.json();
         console.log('Received data:', { topics, bookmarks });
-        const topicsDiv = document.getElementById('topics');
-        topicsDiv.innerHTML = '<div class="topic-section"><h2>Topics from Bookmarks</h2></div>';
+        const topicsContainer = document.getElementById('topicsContainer');
+        topicsContainer.innerHTML = '';
         if (topics && topics.length > 0) {
           topics.forEach(topic => {
             const topicBookmarks = bookmarks.filter(b => b.topic_id === topic.id);
-            // Deduplicate bookmarks by URL
-            const uniqueBookmarks = [];
-            const seenUrls = new Set();
-            topicBookmarks.forEach(bookmark => {
-              if (!seenUrls.has(bookmark.url)) {
-                seenUrls.add(bookmark.url);
-                uniqueBookmarks.push(bookmark);
-              }
-            });
+            const uniqueBookmarks = [...new Set(topicBookmarks.map(b => b.url))];
             const topicElem = document.createElement('div');
             topicElem.className = 'topic-card';
-            topicElem.innerHTML = `<h3><i class="fas fa-bookmark"></i> ${topic.name}</h3><ul>${uniqueBookmarks.map(b => `<li><i class="fas fa-link"></i> <a href="${b.url}" target="_blank">${b.url}</a></li>`).join('')}</ul>`;
-            topicsDiv.appendChild(topicElem);
+            topicElem.setAttribute('data-topic-id', topic.id);
+            topicElem.innerHTML = `
+              <h3><i class="fas fa-bookmark"></i> ${topic.name}</h3>
+              <ul>${uniqueBookmarks.map(b => `<li><i class="fas fa-link"></i> <a href="${b}" target="_blank">${b}</a></li>`).join('')}</ul>
+              <button class="generate-summary">Generate Summary</button>
+              <div class="summary"></div>
+            `;
+            topicsContainer.appendChild(topicElem);
           });
         } else {
-          topicsDiv.innerHTML += '<div class="topic-section"><p>No topics or bookmarks yet.</p></div>';
+          topicsContainer.innerHTML = '<div class="topic-section"><p>No topics or bookmarks yet.</p></div>';
         }
-        topicsDiv.innerHTML += '<div class="topic-section"><h2>Topics from Conversations</h2><p>Coming soon: Topics based on your chat history.</p></div>';
+
+        // Add event listeners for summary buttons
+        document.querySelectorAll('.generate-summary').forEach(button => {
+          button.addEventListener('click', async () => {
+            const topicId = button.parentElement.getAttribute('data-topic-id');
+            const response = await fetch('/.netlify/functions/summary', {
+              method: 'POST',
+              body: JSON.stringify({ userId, topicId }),
+              headers: { 'Content-Type': 'application/json' }
+            });
+            const { summary } = await response.json();
+            button.nextElementSibling.textContent = summary;
+          });
+        });
       } catch (error) {
         console.error('Error loading dashboard:', error);
-        document.getElementById('topics').innerHTML = `<div class="topic-section"><p>Error loading topics: ${error.message}</p></div>`;
+        document.getElementById('topicsContainer').innerHTML = `<div class="topic-section"><p>Error loading topics: ${error.message}</p></div>`;
       }
     }
 
