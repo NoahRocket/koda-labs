@@ -9,7 +9,7 @@
   <nav>
     <a href="/">Home</a>
     <a href="/pages/dashboard.html">Dashboard</a>
-    <a href="/pages/chat.html">Chat</a>
+    <a href="/pages/chat.html" class="active">Chat</a>
     <a href="/pages/bookmarks.html">Bookmarks</a>
     <a href="/pages/topics.html">Topics</a>
     <a href="#" id="logout">Log Out</a>
@@ -26,91 +26,88 @@
       <div class="question-box" data-question="Why do bees fly?">Why do bees fly?</div>
     </div>
     <div class="chat-container" id="chatContainer"></div>
-    <h2>Add Bookmark</h2>
-<form id="addBookmarkForm">
-  <select id="topicSelect" required>
-    <option value="">Select Topic</option>
-    <!-- Options populated dynamically -->
-  </select>
-  <input type="text" id="newTopic" placeholder="Or enter new topic" style="display:none;">
-  <input type="url" id="bookmark" placeholder="X Thread URL" required>
-  <button type="submit">Add Bookmark</button>
-</form>
+    <select id="conversationTopic" style="margin-top: 20px;">
+      <option value="">Select Topic for Conversation</option>
+    </select>
+    <button id="saveConversation">Save Conversation</button>
+  </div>
+  <script src="../chat.js"></script>
+  <script>
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('Please log in to use the chat.');
+      window.location.href = '/login.html';
+    }
+    const userQuestionInput = document.getElementById('userQuestion');
+    const askButton = document.getElementById('askButton');
+    const chatContainer = document.getElementById('chatContainer');
+    const questionBoxes = document.querySelectorAll('.question-box');
 
-<!-- Add after <div id="chatContainer"> -->
-<button id="saveConversation">Save Conversation</button>
+    function appendMessage(content, sender = 'assistant') {
+      const msg = document.createElement('div');
+      msg.classList.add('message');
+      if (sender === 'user') msg.classList.add('user-message');
+      else msg.classList.add('assistant-message');
+      msg.textContent = content;
+      chatContainer.appendChild(msg);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
 
-<script>
-  // ... (keep your existing code above the bookmark form) ...
+    async function handleUserQuestion(question) {
+      if (!question) return;
+      appendMessage(question, 'user');
+      userQuestionInput.value = '';
+      const assistantResponse = await fetchChatGPTResponse(question);
+      appendMessage(assistantResponse, 'assistant');
+    }
 
-  async function loadTopicOptions() {
-    const response = await fetch('/.netlify/functions/dashboard', {
-      method: 'POST',
-      body: JSON.stringify({ userId }),
-      headers: { 'Content-Type': 'application/json' }
+    askButton.addEventListener('click', () => {
+      const question = userQuestionInput.value.trim();
+      handleUserQuestion(question);
     });
-    const { topics } = await response.json();
-    const select = document.getElementById('topicSelect');
-    select.innerHTML = '<option value="">Select Topic</option>';
-    topics.forEach(topic => {
-      const option = document.createElement('option');
-      option.value = topic.id;
-      option.textContent = topic.name;
-      select.appendChild(option);
-    });
-    select.addEventListener('change', () => {
-      const newTopicInput = document.getElementById('newTopic');
-      if (select.value === 'new') {
-        newTopicInput.style.display = 'block';
-      } else {
-        newTopicInput.style.display = 'none';
+
+    userQuestionInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        askButton.click();
       }
     });
-  }
 
-  loadTopicOptions();
+    questionBoxes.forEach(box => {
+      box.addEventListener('click', () => {
+        const question = box.getAttribute('data-question');
+        handleUserQuestion(question);
+      });
+    });
 
-  const addForm = document.getElementById('addBookmarkForm');
-  addForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const select = document.getElementById('topicSelect');
-    let topicId = select.value;
-    let topicName = '';
-    if (select.value === 'new') {
-      topicName = document.getElementById('newTopic').value;
-      if (!topicName) {
-        alert('Please enter a new topic name');
-        return;
-      }
-      const addResponse = await fetch('/.netlify/functions/dashboard', {
+    async function loadTopicOptions() {
+      const response = await fetch('/.netlify/functions/dashboard', {
         method: 'POST',
-        body: JSON.stringify({ action: 'addTopic', userId, topicName }),
+        body: JSON.stringify({ userId }),
         headers: { 'Content-Type': 'application/json' }
       });
-      const addResult = await addResponse.json();
-      topicId = addResult.topicId;
+      const { topics } = await response.json();
+      const select = document.getElementById('conversationTopic');
+      select.innerHTML = '<option value="">Select Topic for Conversation</option>';
+      topics.forEach(topic => {
+        const option = document.createElement('option');
+        option.value = topic.id;
+        option.textContent = topic.name;
+        select.appendChild(option);
+      });
     }
-    const bookmarkUrl = document.getElementById('bookmark').value;
-    const response = await fetch('/.netlify/functions/dashboard', {
-      method: 'POST',
-      body: JSON.stringify({ action: 'addBookmark', userId, topicId, bookmarkUrl }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-    if (response.ok) {
-      document.getElementById('bookmark').value = '';
-      document.getElementById('newTopic').value = '';
-      document.getElementById('newTopic').style.display = 'none';
-      select.value = '';
-      alert('Bookmark added!');
-    } else {
-      alert('Failed to add bookmark');
-    }
-  });
 
-  document.getElementById('saveConversation').addEventListener('click', async () => {
-    const chatHistory = Array.from(document.querySelectorAll('.message')).map(msg => msg.textContent).join('\n');
-    const topicId = prompt('Enter topic ID to save conversation to:'); // Replace with dropdown later
-    if (topicId) {
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTopicOptions();
+    });
+
+    document.getElementById('saveConversation').addEventListener('click', async () => {
+      const topicId = document.getElementById('conversationTopic').value;
+      if (!topicId) {
+        alert('Please select a topic');
+        return;
+      }
+      const chatHistory = Array.from(document.querySelectorAll('.message')).map(msg => msg.textContent).join('\n');
       const response = await fetch('/.netlify/functions/dashboard', {
         method: 'POST',
         body: JSON.stringify({ action: 'saveConversation', userId, topicId, chatHistory }),
@@ -121,71 +118,8 @@
       } else {
         alert('Failed to save conversation');
       }
-    }
-  });
-</script>
-  </div>
-  <script src="../chat.js"></script>
-  <script>
-    if (!localStorage.getItem('userId')) {
-      alert('Please log in to use the chat.');
-      window.location.href = 'login.html';
-    }
-    const userQuestionInput = document.getElementById('userQuestion');
-    const askButton = document.getElementById('askButton');
-    const chatContainer = document.getElementById('chatContainer');
-    const questionBoxes = document.querySelectorAll('.question-box');
-    function appendMessage(content, sender = 'assistant') {
-      const msg = document.createElement('div');
-      msg.classList.add('message');
-      if (sender === 'user') msg.classList.add('user-message');
-      else msg.classList.add('assistant-message');
-      msg.textContent = content;
-      chatContainer.appendChild(msg);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-    async function handleUserQuestion(question) {
-      if (!question) return;
-      appendMessage(question, 'user');
-      userQuestionInput.value = '';
-      const assistantResponse = await fetchChatGPTResponse(question);
-      appendMessage(assistantResponse, 'assistant');
-    }
-    askButton.addEventListener('click', () => {
-      const question = userQuestionInput.value.trim();
-      handleUserQuestion(question);
     });
-    userQuestionInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        askButton.click();
-      }
-    });
-    questionBoxes.forEach(box => {
-      box.addEventListener('click', () => {
-        const question = box.getAttribute('data-question');
-        handleUserQuestion(question);
-      });
-    });
-    const addForm = document.getElementById('addBookmarkForm');
-    addForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const userId = localStorage.getItem('userId');
-      const topicName = document.getElementById('topic').value;
-      const bookmarkUrl = document.getElementById('bookmark').value;
-      const response = await fetch('/.netlify/functions/dashboard', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'add', userId, topicName, bookmarkUrl }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (response.ok) {
-        document.getElementById('topic').value = '';
-        document.getElementById('bookmark').value = '';
-        alert('Bookmark added!');
-      } else {
-        alert('Failed to add bookmark');
-      }
-    });
+
     document.getElementById('logout').addEventListener('click', () => {
       localStorage.removeItem('userId');
       window.location.href = '/';
