@@ -5,8 +5,8 @@
     "build": "echo 'No build step yet'"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0", 
-    "node-fetch": "^2.6.7"
+    "@supabase/supabase-js": "^2.39.0",
+    "node-fetch": "^2.6.7",
     "url-metadata": "^2.2.0"
   }
 }
