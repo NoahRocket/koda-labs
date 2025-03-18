@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
+const urlMetadata = require('url-metadata');
 
 exports.handler = async (event, context) => {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -23,23 +24,15 @@ exports.handler = async (event, context) => {
       .select('content')
       .eq('topic_id', topicId);
 
-    // Attempt to fetch title/content from bookmark URLs
+    // Fetch metadata from bookmark URLs
     let bookmarkContent = '';
     if (bookmarks && bookmarks.length > 0) {
       for (const bookmark of bookmarks) {
         try {
-          const response = await fetch(bookmark.url);
-          if (response.ok) {
-            const text = await response.text();
-            // Extract title as a simple proxy for content (basic HTML parsing)
-            const titleMatch = text.match(/<title>(.*?)<\/title>/i);
-            const title = titleMatch ? titleMatch[1] : 'No title available';
-            bookmarkContent += `URL: ${bookmark.url} - Title: ${title}\n`;
-          } else {
-            bookmarkContent += `URL: ${bookmark.url} - Failed to fetch content\n`;
-          }
+          const metadata = await urlMetadata(bookmark.url, { requestOptions: { timeout: 5000 } });
+          bookmarkContent += `URL: ${bookmark.url} - Title: ${metadata.title || 'No title'} - Description: ${metadata.description || 'No description'}\n`;
         } catch (error) {
-          bookmarkContent += `URL: ${bookmark.url} - Error fetching: ${error.message}\n`;
+          bookmarkContent += `URL: ${bookmark.url} - Error fetching metadata: ${error.message} (e.g., inaccessible like X threads)\n`;
         }
       }
     } else {
@@ -63,7 +56,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini-2024-07-18',
         messages: [
-          { role: 'system', content: 'You are a helpful assistant that summarizes information. Provide key facts and takeaways in 2-3 sentences.' },
+          { role: 'system', content: 'You are a helpful assistant that summarizes information. Provide key facts and takeaways in 2-3 sentences, even with limited data.' },
           { role: 'user', content: `Please summarize the key facts and takeaways from the following content:\n\n${combinedContent}` }
         ],
         max_tokens: 300,
