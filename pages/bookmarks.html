@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bookmarks - Koda Compass</title>
+  <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/pages/dashboard.html">Dashboard</a>
+    <a href="/pages/chat.html">Chat</a>
+    <a href="/pages/bookmarks.html" class="active">Bookmarks</a>
+    <a href="/pages/topics.html">Topics</a>
+    <a href="#" id="logout">Log Out</a>
+  </nav>
+  <div class="main-content">
+    <h1>Add Bookmark</h1>
+    <form id="addBookmarkForm">
+      <select id="topicSelect" required>
+        <option value="">Select Topic</option>
+      </select>
+      <input type="url" id="bookmark" placeholder="X Thread URL" required>
+      <button type="submit">Add Bookmark</button>
+    </form>
+  </div>
+  <script>
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('Please log in to add bookmarks.');
+      window.location.href = '/login.html';
+    }
+
+    async function loadTopicOptions() {
+      const response = await fetch('/.netlify/functions/dashboard', {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const { topics } = await response.json();
+      const select = document.getElementById('topicSelect');
+      select.innerHTML = '<option value="">Select Topic</option>';
+      topics.forEach(topic => {
+        const option = document.createElement('option');
+        option.value = topic.id;
+        option.textContent = topic.name;
+        select.appendChild(option);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTopicOptions();
+    });
+
+    const addForm = document.getElementById('addBookmarkForm');
+    addForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const topicId = document.getElementById('topicSelect').value;
+      const bookmarkUrl = document.getElementById('bookmark').value;
+      const response = await fetch('/.netlify/functions/dashboard', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'addBookmark', userId, topicId, bookmarkUrl }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        document.getElementById('bookmark').value = '';
+        alert('Bookmark added!');
+      } else {
+        alert('Failed to add bookmark');
+      }
+    });
+
+    document.getElementById('logout').addEventListener('click', () => {
+      localStorage.removeItem('userId');
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>
