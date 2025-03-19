@@ -5,7 +5,32 @@ const urlMetadata = require('url-metadata');
 exports.handler = async (event, context) => {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_KEY;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
+  // Extract the JWT token from the Authorization header (case-insensitive)
+  const headers = Object.fromEntries(
+    Object.entries(event.headers).map(([key, value]) => [key.toLowerCase(), value])
+  );
+  const authHeader = headers['authorization'];
+  const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+  console.log('Access Token from header:', accessToken);
+
+  if (!accessToken) {
+    console.error('No access token provided');
+    return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided' }) };
+  }
+
+  // Initialize Supabase client with the anon key and pass the JWT token in headers
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
+  });
 
   const { userId, topicId } = JSON.parse(event.body || '{}');
 
