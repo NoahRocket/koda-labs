@@ -6,8 +6,15 @@
   <link rel="stylesheet" href="../styles/main.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
+
 <body>
+  <div class="hamburger">
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+  </div>
   <nav>
+    <span class="close-btn">&times;</span>
     <a href="/" data-icon="home">Home</a>
     <a class="active" href="/pages/dashboard.html" data-icon="dashboard">Dashboard</a>
     <a href="/pages/chat.html" data-icon="chat">Chat</a>
@@ -20,7 +27,20 @@
     <div id="topicsContainer"></div>
   </div>
   <script>
-    // Function to check if user is logged in
+    // Hamburger menu toggle
+    const hamburger = document.querySelector('.hamburger');
+    const nav = document.querySelector('nav');
+    const closeBtn = document.querySelector('.close-btn');
+
+    hamburger.addEventListener('click', () => {
+      nav.classList.toggle('active');
+    });
+
+    closeBtn.addEventListener('click', () => {
+      nav.classList.remove('active');
+    });
+
+    // Existing Dashboard functionality
     function checkLogin() {
       if (!localStorage.getItem('userId') || !localStorage.getItem('accessToken')) {
         alert('Please log in first.');
@@ -28,7 +48,6 @@
       }
     }
 
-    // Run login check when the page loads
     checkLogin();
 
     const userId = localStorage.getItem('userId');
@@ -36,7 +55,6 @@
     console.log('User ID from localStorage:', userId);
     console.log('Access Token from localStorage:', accessToken);
 
-    // Fetch current user to verify (optional, requires session)
     async function verifyUser() {
       try {
         const verifyResponse = await fetch('/.netlify/functions/auth', {
@@ -54,7 +72,6 @@
       }
     }
 
-    // Call verifyUser function
     verifyUser();
 
     async function loadDashboard() {
@@ -94,7 +111,6 @@
           topicsContainer.innerHTML = '<div class="topic-section"><p>No topics or bookmarks yet.</p></div>';
         }
 
-        // Add event listeners for summary buttons
         document.querySelectorAll('.generate-summary').forEach(button => {
           button.addEventListener('click', async () => {
             const topicId = button.parentElement.getAttribute('data-topic-id');
