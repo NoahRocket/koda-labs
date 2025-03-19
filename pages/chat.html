@@ -33,11 +33,11 @@
   </div>
   <script src="../chat.js"></script>
   <script>
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
+    if (!localStorage.getItem('userId')) {
       alert('Please log in to use the chat.');
-      window.location.href = '/login.html';
+      window.location.href = 'login.html';
     }
+
     const userQuestionInput = document.getElementById('userQuestion');
     const askButton = document.getElementById('askButton');
     const chatContainer = document.getElementById('chatContainer');
@@ -80,13 +80,19 @@
       });
     });
 
+    const userId = localStorage.getItem('userId');
     async function loadTopicOptions() {
       const response = await fetch('/.netlify/functions/dashboard', {
         method: 'POST',
         body: JSON.stringify({ userId }),
         headers: { 'Content-Type': 'application/json' }
       });
+      if (!response.ok) {
+        console.error('Failed to fetch topics:', response.statusText);
+        return;
+      }
       const { topics } = await response.json();
+      console.log('Topics loaded:', topics);
       const select = document.getElementById('conversationTopic');
       select.innerHTML = '<option value="">Select Topic for Conversation</option>';
       topics.forEach(topic => {
@@ -108,15 +114,24 @@
         return;
       }
       const chatHistory = Array.from(document.querySelectorAll('.message')).map(msg => msg.textContent).join('\n');
+      if (!chatHistory.trim()) {
+        alert('No conversation history to save. Please ask a question first.');
+        return;
+      }
+      console.log('Saving conversation:', { userId, topicId, chatHistory });
       const response = await fetch('/.netlify/functions/dashboard', {
         method: 'POST',
         body: JSON.stringify({ action: 'saveConversation', userId, topicId, chatHistory }),
         headers: { 'Content-Type': 'application/json' }
       });
       if (response.ok) {
-        alert('Conversation saved!');
+        const result = await response.json();
+        alert('Conversation saved! Check Supabase or Dashboard.');
+        console.log('Save result:', result);
       } else {
-        alert('Failed to save conversation');
+        const errorText = await response.text();
+        alert('Failed to save conversation: ' + errorText);
+        console.error('Save error:', errorText);
       }
     });
 
