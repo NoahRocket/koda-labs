@@ -10,6 +10,10 @@
     <a href="/">Home</a>
     <a href="/pages/login.html">Login</a>
     <a href="/pages/signup.html" class="active">Sign Up</a>
+    <a href="/pages/dashboard.html">Dashboard</a>
+    <a href="/pages/chat.html">Chat</a>
+    <a href="/pages/bookmarks.html">Bookmarks</a>
+    <a href="/pages/topics.html">Topics</a>
   </nav>
   <div class="main-content">
     <h1>Sign Up</h1>
@@ -34,6 +38,7 @@
       const result = await response.json();
       if (response.ok) {
         localStorage.setItem('userId', result.user.id);
+        localStorage.setItem('accessToken', result.session.access_token); // Store the JWT token
         window.location.href = 'dashboard.html';
       } else {
         alert('Sign-up failed: ' + result.error);
