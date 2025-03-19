@@ -13,6 +13,11 @@ exports.handler = async (event, context) => {
 
   if (!userId) return { statusCode: 400, body: 'Missing user ID' };
 
+  // Log the incoming userId and the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  const authUserId = user?.id;
+  console.log('Incoming userId:', userId, 'Authenticated userId:', authUserId);
+
   try {
     if (action === 'addTopic') {
       const { data: newTopic } = await supabase
@@ -30,6 +35,19 @@ exports.handler = async (event, context) => {
       return { statusCode: 200, body: 'Bookmark added' };
     } else if (action === 'saveConversation') {
       console.log('Saving conversation:', { userId, topicId, chatHistory });
+      // Verify the topic belongs to the user
+      const { data: topic } = await supabase
+        .from('topics')
+        .select('user_id')
+        .eq('id', topicId)
+        .single();
+      if (!topic) {
+        throw new Error('Topic not found');
+      }
+      console.log('Topic user_id:', topic.user_id);
+      if (topic.user_id !== userId) {
+        throw new Error('Topic does not belong to this user');
+      }
       const { data, error } = await supabase.from('conversations').insert({
         topic_id: topicId,
         content: chatHistory,
