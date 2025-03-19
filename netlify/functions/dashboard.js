@@ -3,23 +3,26 @@ const { createClient } = require('@supabase/supabase-js');
 exports.handler = async (event, context) => {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_KEY;
-  const supabase = createClient( supabaseUrl, supabaseKey);
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  // Extract the JWT token from the Authorization header
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+  // Extract the JWT token from the Authorization header (case-insensitive)
+  const headers = Object.fromEntries(
+    Object.entries(event.headers).map(([key, value]) => [key.toLowerCase(), value])
+  );
+  const authHeader = headers['authorization'];
   const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
   console.log('Access Token from header:', accessToken);
 
-  // Set the session with the JWT token
+  // Set the session with the JWT token if provided
   if (accessToken) {
     const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken });
     if (sessionError) {
       console.error('Error setting session:', sessionError.message);
-      return { statusCode: 401, body: JSON.stringify({ error: 'Failed to set session' }) };
+      return { statusCode: 401, body: JSON.stringify({ error: 'Failed to set session', details: sessionError.message }) };
     }
   } else {
     console.error('No access token provided');
