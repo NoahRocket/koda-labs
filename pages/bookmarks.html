@@ -6,7 +6,13 @@
   <link rel="stylesheet" href="../styles/main.css">
 </head>
 <body>
+  <div class="hamburger">
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+  </div>
   <nav>
+    <span class="close-btn">&times;</span>
     <a href="/" data-icon="home">Home</a>
     <a href="/pages/dashboard.html" data-icon="dashboard">Dashboard</a>
     <a href="/pages/chat.html" data-icon="chat">Chat</a>
@@ -25,6 +31,20 @@
     </form>
   </div>
   <script>
+    // Hamburger menu toggle
+    const hamburger = document.querySelector('.hamburger');
+    const nav = document.querySelector('nav');
+    const closeBtn = document.querySelector('.close-btn');
+
+    hamburger.addEventListener('click', () => {
+      nav.classList.toggle('active');
+    });
+
+    closeBtn.addEventListener('click', () => {
+      nav.classList.remove('active');
+    });
+
+    // Existing Bookmarks functionality
     const userId = localStorage.getItem('userId');
     const accessToken = localStorage.getItem('accessToken');
     if (!userId || !accessToken) {
