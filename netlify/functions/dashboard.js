@@ -3,10 +3,27 @@ const { createClient } = require('@supabase/supabase-js');
 exports.handler = async (event, context) => {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_KEY;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient( supabaseUrl, supabaseKey);
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
+  // Extract the JWT token from the Authorization header
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+  console.log('Access Token from header:', accessToken);
+
+  // Set the session with the JWT token
+  if (accessToken) {
+    const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken });
+    if (sessionError) {
+      console.error('Error setting session:', sessionError.message);
+      return { statusCode: 401, body: JSON.stringify({ error: 'Failed to set session' }) };
+    }
+  } else {
+    console.error('No access token provided');
+    return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided' }) };
   }
 
   const { action, userId, topicName, topicId, bookmarkUrl, chatHistory } = JSON.parse(event.body || '{}');
@@ -14,9 +31,9 @@ exports.handler = async (event, context) => {
   if (!userId) return { statusCode: 400, body: 'Missing user ID' };
 
   // Log the incoming userId and the authenticated user
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
   const authUserId = user?.id;
-  console.log('Incoming userId:', userId, 'Authenticated userId:', authUserId);
+  console.log('Incoming userId:', userId, 'Authenticated userId:', authUserId, 'Auth error:', authError?.message);
 
   try {
     if (action === 'addTopic') {
