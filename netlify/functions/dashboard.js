@@ -29,8 +29,14 @@ exports.handler = async (event, context) => {
       await supabase.from('bookmarks').insert({ topic_id: topicId, url: bookmarkUrl });
       return { statusCode: 200, body: 'Bookmark added' };
     } else if (action === 'saveConversation') {
-      await supabase.from('conversations').insert({ topic_id: topicId, content: chatHistory });
-      return { statusCode: 200, body: 'Conversation saved' };
+      console.log('Saving conversation:', { userId, topicId, chatHistory });
+      const { data, error } = await supabase.from('conversations').insert({
+        topic_id: topicId,
+        content: chatHistory,
+        created_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      return { statusCode: 200, body: JSON.stringify({ message: 'Conversation saved', data }) };
     } else {
       const { data: topics } = await supabase
         .from('topics')
