@@ -7,13 +7,13 @@
 </head>
 <body>
   <nav>
-    <a href="/">Home</a>
-    <a href="/pages/login.html" class="active">Login</a>
-    <a href="/pages/signup.html">Sign Up</a>
-    <a href="/pages/dashboard.html">Dashboard</a>
-    <a href="/pages/chat.html">Chat</a>
-    <a href="/pages/bookmarks.html">Bookmarks</a>
-    <a href="/pages/topics.html">Topics</a>
+    <a href="/" data-icon="home">Home</a>
+    <a href="/pages/login.html" class="active" data-icon="login">Login</a>
+    <a href="/pages/signup.html" data-icon="signup">Sign Up</a>
+    <a href="/pages/dashboard.html" data-icon="dashboard">Dashboard</a>
+    <a href="/pages/chat.html" data-icon="chat">Chat</a>
+    <a href="/pages/bookmarks.html" data-icon="bookmarks">Bookmarks</a>
+    <a href="/pages/topics.html" data-icon="topics">Topics</a>
   </nav>
   <div class="main-content">
     <h1>Login</h1>
@@ -38,7 +38,7 @@
       const result = await response.json();
       if (response.ok) {
         localStorage.setItem('userId', result.user.id);
-        localStorage.setItem('accessToken', result.session.access_token); // Store the JWT token
+        localStorage.setItem('accessToken', result.session.access_token);
         window.location.href = 'dashboard.html';
       } else {
         alert('Login failed: ' + result.error);
