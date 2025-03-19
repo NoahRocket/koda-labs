@@ -13,25 +13,60 @@
 body {
   display: flex;
   height: 100vh;
-  background-color: #f9f9f9;
+  background-color: #f5f7fa; /* Softer gray background */
 }
 
 /* Sidebar container */
 nav {
   width: 80px;
-  background: linear-gradient(180deg, #e6f0fa 0%, #d4e4f6 100%); /* Subtle gradient */
+  background: linear-gradient(180deg, #e9f1fa 0%, #d9e4f5 100%); /* Softer blue gradient */
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 20px;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-  transition: width 0.3s ease; /* Smooth transition for mobile */
+  transition: width 0.3s ease, transform 0.3s ease; /* Smooth transition for mobile */
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 1000;
+}
+
+/* Hamburger menu icon (hidden by default) */
+.hamburger {
+  display: none;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1001;
+  cursor: pointer;
+}
+
+.hamburger .bar {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background-color: #333;
+  margin: 5px 0;
+  transition: all 0.3s ease;
+}
+
+/* Close button (hidden by default) */
+.close-btn {
+  display: none;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 1.5rem;
+  color: #333;
+  cursor: pointer;
 }
 
 /* Sidebar links */
 nav a {
   text-decoration: none;
-  color: #333;
+  color: #333333; /* Dark gray text */
   padding: 10px;
   margin: 5px 0;
   border-radius: 8px;
@@ -105,23 +140,27 @@ nav a[data-icon="signup"]::before {
 /* Main content area */
 .main-content {
   flex: 1;
-  padding: 40px;
+  padding: 50px; /* Increased padding for a breathable layout */
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 30px; /* More space between elements */
   overflow-y: auto;
+  margin-left: 80px; /* Adjust for sidebar width */
 }
 
+/* Greeting */
 .greeting {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
+  font-size: 2rem; /* Larger heading */
+  line-height: 1.3;
+  margin-bottom: 15px;
+  color: #333333; /* Dark gray text */
 }
 
 /* Search bar container */
 .search-container {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 15px; /* Increased gap */
 }
 
 .search-container input,
@@ -130,27 +169,32 @@ input[type="email"],
 input[type="password"],
 input[type="url"] {
   flex: 1;
-  padding: 10px;
+  padding: 12px; /* Slightly larger padding */
   border-radius: 20px;
   border: 1px solid #ccc;
   outline: none;
-  font-size: 1rem;
+  font-size: 1.1rem; /* Larger font size */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
+/* Buttons */
 .search-container button,
 button {
-  padding: 10px 20px;
+  padding: 12px 24px; /* Larger padding for touch-friendliness */
   border: none;
   border-radius: 20px;
-  background-color: #b3daff;
+  background-color: #4a90e2; /* Muted teal */
+  color: #ffffff; /* White text */
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.2s;
+  font-size: 1.1rem;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); /* Subtle shadow */
 }
 
 .search-container button:hover,
 button:hover {
-  background-color: #a0cfff;
+  background-color: #3a80d2; /* Darker teal on hover */
+  transform: translateY(-1px); /* Slight lift on hover */
 }
 
 /* Suggested questions */
@@ -167,35 +211,39 @@ button:hover {
   padding: 20px;
   text-align: center;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .question-box:hover {
   background-color: #e3fcbf;
+  transform: translateY(-2px);
 }
 
 /* Chat container */
 .chat-container {
   background-color: #ffffff;
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 25px;
   margin-top: 20px;
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   max-height: 400px;
-  border: 1px solid #ddd;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .message {
   margin-bottom: 15px;
   display: inline-block;
-  padding: 10px 15px;
+  padding: 12px 18px;
   border-radius: 12px;
   max-width: 70%;
-  line-height: 1.4;
+  line-height: 1.5;
   white-space: pre-wrap;
+  font-size: 1.1rem;
 }
 
 .user-message {
@@ -210,27 +258,28 @@ button:hover {
 
 /* Enhanced Topic Display Styles */
 .topic-section {
-  margin-bottom: 20px;
+  margin-bottom: 30px; /* Increased spacing */
 }
 
 .topic-card {
   background-color: #ffffff;
   border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-  transition: transform 0.2s, box-shadow 0.2s;
+  padding: 20px; /* Increased padding */
+  margin-bottom: 20px; /* More space between cards */
+  border: 1px solid #e0e0e0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .topic-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .topic-card h3 {
-  font-size: 1.2rem;
-  color: #333;
-  margin-bottom: 10px;
+  font-size: 1.5rem; /* Larger heading */
+  color: #333333;
+  margin-bottom: 15px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -242,10 +291,11 @@ button:hover {
 }
 
 .topic-card li {
-  margin-bottom: 5px;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 1.1rem;
 }
 
 .topic-card a {
@@ -259,48 +309,78 @@ button:hover {
 }
 
 .topic-card i {
-  color: #666;
+  color: #666666; /* Lighter gray for icons */
   font-size: 1rem;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  nav {
-    width: 60px; /* Slimmer sidebar on mobile */
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    z-index: 1000;
+  /* Show hamburger menu on mobile */
+  .hamburger {
+    display: block;
   }
 
+  /* Hide sidebar by default on mobile */
+  nav {
+    transform: translateX(-100%);
+    width: 200px; /* Wider sidebar when open */
+  }
+
+  /* Show sidebar when active */
+  nav.active {
+    transform: translateX(0);
+  }
+
+  /* Hamburger menu animation to X */
+  nav.active + .hamburger .bar:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+
+  nav.active + .hamburger .bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  nav.active + .hamburger .bar:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+  }
+
+  /* Show close button when sidebar is active */
+  nav.active .close-btn {
+    display: block;
+  }
+
+  /* Adjust main content */
   .main-content {
-    padding: 20px; /* Less padding on mobile */
-    margin-left: 60px; /* Adjust for sidebar width */
+    padding: 20px;
+    margin-left: 0; /* No sidebar margin by default */
   }
 
   h1 {
-    font-size: 1.2rem; /* Smaller heading on mobile */
+    font-size: 1.5rem; /* Smaller heading on mobile */
   }
 
   h2 {
-    font-size: 1rem; /* Smaller subheadings */
+    font-size: 1.2rem; /* Smaller subheadings */
+  }
+
+  .greeting {
+    font-size: 1.5rem;
   }
 
   .topic-card {
-    padding: 10px; /* Less padding in cards */
+    padding: 15px;
   }
 
   .topic-card h3 {
-    font-size: 1rem; /* Smaller topic titles */
+    font-size: 1.2rem;
   }
 
   .topic-card a {
-    font-size: 0.9rem; /* Smaller URLs */
+    font-size: 1rem;
   }
 
   .topic-card i {
-    font-size: 0.9rem; /* Smaller icons */
+    font-size: 0.9rem;
   }
 
   .search-container {
@@ -310,6 +390,7 @@ button:hover {
   .search-container input,
   .search-container button {
     width: 100%;
+    padding: 10px;
   }
 
   .suggested-questions {
@@ -322,37 +403,39 @@ button:hover {
 
   .chat-container {
     max-height: 300px;
+    padding: 15px;
+  }
+
+  .message {
+    font-size: 1rem;
   }
 }
 
 @media (max-width: 480px) {
-  nav {
-    width: 50px; /* Even slimmer on very small screens */
-  }
-
   .main-content {
-    padding: 10px; /* Minimal padding on very small screens */
-    margin-left: 50px;
+    padding: 15px;
   }
 
   .topic-card {
-    margin-bottom: 5px; /* Less space between cards */
+    margin-bottom: 10px;
   }
 }
 
 /* Additional styles for consistency */
 h1, h2 {
   margin-bottom: 20px;
+  color: #333333;
 }
 
 form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
   max-width: 400px;
 }
 
 p {
   margin-top: 10px;
-  color: #666;
+  color: #666666;
+  font-size: 1.1rem;
 }
