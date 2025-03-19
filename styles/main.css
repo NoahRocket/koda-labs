@@ -1,46 +1,97 @@
+/* Import EB Garamond from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;700&display=swap');
+
 /* Basic reset */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: sans-serif;
+  font-family: 'EB Garamond', serif; /* Apply EB Garamond globally */
 }
 
+/* Body styling */
 body {
   display: flex;
   height: 100vh;
   background-color: #f9f9f9;
 }
 
-/* Left navbar container */
+/* Sidebar container */
 nav {
   width: 80px;
-  background-color: #b3daff; /* Light blue-ish color */
+  background: linear-gradient(180deg, #e6f0fa 0%, #d4e4f6 100%); /* Subtle gradient */
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 20px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  transition: width 0.3s ease; /* Smooth transition for mobile */
 }
 
+/* Sidebar links */
 nav a {
   text-decoration: none;
   color: #333;
-  padding: 15px;
-  margin: 10px 0;
+  padding: 10px;
+  margin: 5px 0;
   border-radius: 8px;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  transition: background-color 0.2s ease-in-out;
+  transition: background-color 0.3s ease, transform 0.2s ease;
   width: 100%;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
+/* Hover effect */
 nav a:hover {
-  background-color: #a0cfff;
+  background-color: #c3d9f5;
+  transform: scale(1.05); /* Slight scale for interactivity */
 }
 
+/* Active link styling */
 nav a.active {
-  background-color: #94c7ff;
-  font-weight: bold;
+  background-color: #a0c4ff;
+  font-weight: 700;
+}
+
+/* Icon styling */
+nav a::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin-bottom: 5px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Add icons for each link */
+nav a[href="/"]::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>');
+}
+
+nav a[href="/pages/dashboard.html"]::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>');
+}
+
+nav a[href="/pages/chat.html"]::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>');
+}
+
+nav a[href="/pages/bookmarks.html"]::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>');
+}
+
+nav a[href="/pages/topics.html"]::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>');
+}
+
+nav a#logout::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>');
 }
 
 /* Main content area */
@@ -208,10 +259,16 @@ button:hover {
 @media (max-width: 768px) {
   nav {
     width: 60px; /* Slimmer sidebar on mobile */
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 1000;
   }
 
   .main-content {
     padding: 20px; /* Less padding on mobile */
+    margin-left: 60px; /* Adjust for sidebar width */
   }
 
   h1 {
@@ -237,6 +294,27 @@ button:hover {
   .topic-card i {
     font-size: 0.9rem; /* Smaller icons */
   }
+
+  .search-container {
+    flex-direction: column;
+  }
+
+  .search-container input,
+  .search-container button {
+    width: 100%;
+  }
+
+  .suggested-questions {
+    flex-direction: column;
+  }
+
+  .question-box {
+    width: 100%;
+  }
+
+  .chat-container {
+    max-height: 300px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -246,6 +324,7 @@ button:hover {
 
   .main-content {
     padding: 10px; /* Minimal padding on very small screens */
+    margin-left: 50px;
   }
 
   .topic-card {
@@ -268,56 +347,4 @@ form {
 p {
   margin-top: 10px;
   color: #666;
-}
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  nav {
-    width: 60px;
-  }
-  .main-content {
-    padding: 20px;
-  }
-  .search-container {
-    flex-direction: column;
-  }
-  .search-container input,
-  .search-container button {
-    width: 100%;
-  }
-  .suggested-questions {
-    flex-direction: column;
-  }
-  .question-box {
-    width: 100%;
-  }
-  .chat-container {
-    max-height: 300px;
-  }
-  .topic-card {
-    padding: 10px;
-  }
-  .topic-card h3 {
-    font-size: 1.1rem;
-  }
-  .topic-card ul {
-    padding-left: 0;
-  }
-  .topic-card li {
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 480px) {
-  nav {
-    width: 50px;
-  }
-  .main-content {
-    padding: 10px;
-  }
-  h1 {
-    font-size: 1.5rem;
-  }
-  h2 {
-    font-size: 1.2rem;
-  }
 }
