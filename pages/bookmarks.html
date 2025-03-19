@@ -26,7 +26,8 @@
   </div>
   <script>
     const userId = localStorage.getItem('userId');
-    if (!userId) {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!userId || !accessToken) {
       alert('Please log in to add bookmarks.');
       window.location.href = '/login.html';
     }
@@ -35,9 +36,17 @@
       const response = await fetch('/.netlify/functions/dashboard', {
         method: 'POST',
         body: JSON.stringify({ userId }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
       });
+      if (!response.ok) {
+        console.error('Failed to fetch topics:', response.statusText);
+        return;
+      }
       const { topics } = await response.json();
+      console.log('Topics loaded:', topics);
       const select = document.getElementById('topicSelect');
       select.innerHTML = '<option value="">Select Topic</option>';
       topics.forEach(topic => {
@@ -60,18 +69,23 @@
       const response = await fetch('/.netlify/functions/dashboard', {
         method: 'POST',
         body: JSON.stringify({ action: 'addBookmark', userId, topicId, bookmarkUrl }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
       });
       if (response.ok) {
         document.getElementById('bookmark').value = '';
         alert('Bookmark added!');
       } else {
-        alert('Failed to add bookmark');
+        const errorText = await response.text();
+        alert('Failed to add bookmark: ' + errorText);
       }
     });
 
     document.getElementById('logout').addEventListener('click', () => {
       localStorage.removeItem('userId');
+      localStorage.removeItem('accessToken');
       window.location.href = '/';
     });
   </script>
