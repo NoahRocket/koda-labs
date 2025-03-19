@@ -3,7 +3,6 @@ const { createClient } = require('@supabase/supabase-js');
 exports.handler = async (event, context) => {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_KEY;
-  const supabase = createClient(supabaseUrl, supabaseKey);
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -17,23 +16,25 @@ exports.handler = async (event, context) => {
   const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
   console.log('Access Token from header:', accessToken);
 
-  // Set the session with the JWT token if provided
-  if (accessToken) {
-    const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken });
-    if (sessionError) {
-      console.error('Error setting session:', sessionError.message);
-      return { statusCode: 401, body: JSON.stringify({ error: 'Failed to set session', details: sessionError.message }) };
-    }
-  } else {
+  if (!accessToken) {
     console.error('No access token provided');
     return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided' }) };
   }
+
+  // Initialize Supabase client with the anon key and pass the JWT token in headers
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
+  });
 
   const { action, userId, topicName, topicId, bookmarkUrl, chatHistory } = JSON.parse(event.body || '{}');
 
   if (!userId) return { statusCode: 400, body: 'Missing user ID' };
 
-  // Log the incoming userId and the authenticated user
+  // Log the authenticated user
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   const authUserId = user?.id;
   console.log('Incoming userId:', userId, 'Authenticated userId:', authUserId, 'Auth error:', authError?.message);
@@ -52,7 +53,7 @@ exports.handler = async (event, context) => {
       return { statusCode: 200, body: 'Topic deleted' };
     } else if (action === 'addBookmark') {
       await supabase.from('bookmarks').insert({ topic_id: topicId, url: bookmarkUrl });
-      return { statusCode: 200, body: 'Bookmark added' };
+      return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark added' }) };
     } else if (action === 'saveConversation') {
       console.log('Saving conversation:', { userId, topicId, chatHistory });
       // Verify the topic belongs to the user
