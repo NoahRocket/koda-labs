@@ -40,12 +40,12 @@ exports.handler = async (event, context) => {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini-2024-07-18', // Corrected model name
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: 'You are a helpful assistant.' },
           { role: 'user', content: question }
         ],
-        max_tokens: 150,
+        max_tokens: 1000,
         temperature: 0.7,
       }),
     });

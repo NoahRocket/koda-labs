@@ -5,6 +5,296 @@
   <title>Dashboard - Koda Compass</title>
   <link rel="stylesheet" href="../styles/main.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .main-content {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: calc(100vh - 4rem);
+    }
+
+    .dashboard-header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .dashboard-header h1 {
+      font-size: 2.5rem;
+      color: #333;
+      margin-bottom: 0.5rem;
+    }
+
+    .dashboard-header p {
+      color: #666;
+      font-size: 1.1rem;
+    }
+
+    .topics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .topic-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .topic-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-color: #32CD32;
+    }
+
+    .topic-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 0 3rem 3rem 0;
+      border-color: transparent #32CD32 transparent transparent;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .topic-card:hover::after {
+      opacity: 0.1;
+    }
+
+    .topic-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.5rem;
+    }
+
+    .topic-stats {
+      display: flex;
+      gap: 1rem;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stat i {
+      color: #32CD32;
+    }
+
+    /* Topic Details Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+
+    .modal.active {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: #333;
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #666;
+      padding: 0.5rem;
+      transition: color 0.2s;
+    }
+
+    .close-modal:hover {
+      color: #333;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .topic-section {
+      margin-bottom: 2rem;
+    }
+
+    .topic-section h3 {
+      font-size: 1.2rem;
+      color: #333;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .topic-section h3 i {
+      color: #32CD32;
+    }
+
+    .conversation-item, .link-item {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .conversation-item:last-child, .link-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .conversation-text {
+      color: #333;
+      line-height: 1.5;
+      margin-bottom: 0.5rem;
+    }
+
+    .conversation-time {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .link-url {
+      color: #32CD32;
+      text-decoration: none;
+      word-break: break-all;
+      transition: color 0.2s;
+    }
+
+    .link-url:hover {
+      color: #28a745;
+    }
+
+    .generate-summary-btn {
+      background-color: #32CD32;
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 1.5rem;
+      transition: all 0.2s;
+    }
+
+    .generate-summary-btn:hover {
+      background-color: #28a745;
+      transform: translateY(-1px);
+    }
+
+    .summary-section {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .summary-section.active {
+      display: block;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+      display: none;
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    .loading i {
+      animation: spin 1s linear infinite;
+      font-size: 2rem;
+      color: #32CD32;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-content {
+        padding: 1rem;
+      }
+
+      .dashboard-header h1 {
+        font-size: 2rem;
+      }
+
+      .topics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-content {
+        width: 95%;
+        margin: 1rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -15,18 +305,62 @@
   </div>
   <nav>
     <span class="close-btn">&times;</span>
-    <a href="/" data-icon="home">Home</a>
-    <a class="active" href="/pages/dashboard.html" data-icon="dashboard">Dashboard</a>
+    <a href="/pages/dashboard.html" class="active" data-icon="home">Home</a>
     <a href="/pages/chat.html" data-icon="chat">Chat</a>
     <a href="/pages/bookmarks.html" data-icon="bookmarks">Bookmarks</a>
-    <a href="/pages/topics.html" data-icon="topics">Topics</a>
+    <a href="/pages/settings.html" data-icon="topics">Settings</a>
     <a href="#" id="logout" data-icon="logout">Log Out</a>
   </nav>
   <div class="main-content">
-    <h1>Your Topics</h1>
-    <div id="topicsContainer"></div>
+    <div class="dashboard-header">
+      <h1>Welcome Back!</h1>
+      <p>Here are your conversation topics</p>
+    </div>
+    <div class="topics-grid" id="topicsGrid">
+      <!-- Topics will be loaded here -->
+    </div>
   </div>
+
+  <!-- Topic Details Modal -->
+  <div class="modal" id="topicModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTopicName"></h2>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="topic-section">
+          <h3><i class="fas fa-comments"></i> Conversations</h3>
+          <div id="conversationsList"></div>
+        </div>
+        <div class="topic-section">
+          <h3><i class="fas fa-link"></i> Bookmarks</h3>
+          <div id="bookmarksList"></div>
+        </div>
+        <button class="generate-summary-btn" id="generateSummaryBtn">
+          <i class="fas fa-magic"></i> Generate Summary
+        </button>
+        <div class="loading" id="summaryLoading">
+          <i class="fas fa-spinner"></i>
+          <p>Generating summary...</p>
+        </div>
+        <div class="summary-section" id="summarySection">
+          <h3><i class="fas fa-lightbulb"></i> Summary</h3>
+          <div id="summaryContent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // Check login status
+    if (!localStorage.getItem('userId') || !localStorage.getItem('accessToken')) {
+      window.location.href = 'login.html';
+    }
+
+    const userId = localStorage.getItem('userId');
+    const accessToken = localStorage.getItem('accessToken');
+
     // Hamburger menu toggle
     const hamburger = document.querySelector('.hamburger');
     const nav = document.querySelector('nav');
@@ -40,104 +374,169 @@
       nav.classList.remove('active');
     });
 
-    // Existing Dashboard functionality
-    function checkLogin() {
-      if (!localStorage.getItem('userId') || !localStorage.getItem('accessToken')) {
-        alert('Please log in first.');
-        window.location.href = 'login.html';
+    // Modal functionality
+    const modal = document.getElementById('topicModal');
+    const closeModal = document.querySelector('.close-modal');
+    let currentTopicId = null;
+
+    closeModal.addEventListener('click', () => {
+      modal.classList.remove('active');
+    });
+
+    window.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('active');
       }
-    }
+    });
 
-    checkLogin();
-
-    const userId = localStorage.getItem('userId');
-    const accessToken = localStorage.getItem('accessToken');
-    console.log('User ID from localStorage:', userId);
-    console.log('Access Token from localStorage:', accessToken);
-
-    async function verifyUser() {
-      try {
-        const verifyResponse = await fetch('/.netlify/functions/auth', {
-          method: 'POST',
-          body: JSON.stringify({ action: 'verify' }),
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        const verifyResult = await verifyResponse.json();
-        console.log('Verified user:', verifyResult);
-      } catch (error) {
-        console.error('Error verifying user:', error);
-      }
-    }
-
-    verifyUser();
-
-    async function loadDashboard() {
+    // Load topics
+    async function loadTopics() {
       try {
         const response = await fetch('/.netlify/functions/dashboard', {
           method: 'POST',
           body: JSON.stringify({ userId }),
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`
           }
         });
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Network response was not ok: ${errorText}`);
-        }
-        const { topics, bookmarks } = await response.json();
-        console.log('Received data:', { topics, bookmarks });
-        const topicsContainer = document.getElementById('topicsContainer');
-        topicsContainer.innerHTML = '';
+
+        if (!response.ok) throw new Error('Failed to load topics');
+
+        const { topics } = await response.json();
+        const topicsGrid = document.getElementById('topicsGrid');
+        
         if (topics && topics.length > 0) {
-          topics.forEach(topic => {
-            const topicBookmarks = bookmarks.filter(b => b.topic_id === topic.id);
-            const uniqueBookmarks = [...new Set(topicBookmarks.map(b => b.url))];
-            const topicElem = document.createElement('div');
-            topicElem.className = 'topic-card';
-            topicElem.setAttribute('data-topic-id', topic.id);
-            topicElem.innerHTML = `
-              <h3><i class="fas fa-bookmark"></i> ${topic.name}</h3>
-              <ul>${uniqueBookmarks.map(b => `<li><i class="fas fa-link"></i> <a href="${b}" target="_blank">${b}</a></li>`).join('')}</ul>
-              <button class="generate-summary">Generate Summary</button>
-              <div class="summary" style="margin-top: 10px;"></div>
-            `;
-            topicsContainer.appendChild(topicElem);
+          topicsGrid.innerHTML = topics.map(topic => `
+            <div class="topic-card" data-topic-id="${topic.id}">
+              <div class="topic-name">${topic.name}</div>
+              <div class="topic-stats">
+                <div class="stat">
+                  <i class="fas fa-comments"></i>
+                  <span>${topic.conversation_count || 0} conversations</span>
+                </div>
+                <div class="stat">
+                  <i class="fas fa-link"></i>
+                  <span>${topic.bookmark_count || 0} bookmarks</span>
+                </div>
+              </div>
+            </div>
+          `).join('');
+
+          // Add click handlers to cards
+          document.querySelectorAll('.topic-card').forEach(card => {
+            card.addEventListener('click', () => {
+              const topicId = card.dataset.topicId;
+              const topicName = card.querySelector('.topic-name').textContent;
+              openTopicDetails(topicId, topicName);
+            });
           });
         } else {
-          topicsContainer.innerHTML = '<div class="topic-section"><p>No topics or bookmarks yet.</p></div>';
+          topicsGrid.innerHTML = '<p>No topics yet. Create one in Settings!</p>';
         }
-
-        document.querySelectorAll('.generate-summary').forEach(button => {
-          button.addEventListener('click', async () => {
-            const topicId = button.parentElement.getAttribute('data-topic-id');
-            const response = await fetch('/.netlify/functions/summary', {
-              method: 'POST',
-              body: JSON.stringify({ userId, topicId }),
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-              }
-            });
-            if (response.ok) {
-              const { summary } = await response.json();
-              button.nextElementSibling.textContent = summary || 'No summary generated.';
-            } else {
-              button.nextElementSibling.textContent = 'Error generating summary.';
-            }
-          });
-        });
       } catch (error) {
-        console.error('Error loading dashboard:', error);
-        document.getElementById('topicsContainer').innerHTML = `<div class="topic-section"><p>Error loading topics: ${error.message}</p></div>`;
+        console.error('Error loading topics:', error);
+        alert('Failed to load topics. Please try again.');
       }
     }
 
-    loadDashboard();
+    async function openTopicDetails(topicId, topicName) {
+      currentTopicId = topicId;
+      document.getElementById('modalTopicName').textContent = topicName;
+      document.getElementById('summarySection').classList.remove('active');
+      document.getElementById('summaryLoading').classList.remove('active');
+      modal.classList.add('active');
 
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'getTopicDetails',
+            userId,
+            topicId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to load topic details');
+
+        const { conversations, bookmarks } = await response.json();
+        
+        // Display conversations
+        const conversationsList = document.getElementById('conversationsList');
+        if (conversations && conversations.length > 0) {
+          conversationsList.innerHTML = conversations.map(conv => `
+            <div class="conversation-item">
+              <div class="conversation-text">${conv.content}</div>
+              <div class="conversation-time">${new Date(conv.created_at).toLocaleString()}</div>
+            </div>
+          `).join('');
+        } else {
+          conversationsList.innerHTML = '<p>No conversations yet.</p>';
+        }
+
+        // Display bookmarks
+        const bookmarksList = document.getElementById('bookmarksList');
+        if (bookmarks && bookmarks.length > 0) {
+          bookmarksList.innerHTML = bookmarks.map(bookmark => `
+            <div class="link-item">
+              <a href="${bookmark.url}" class="link-url" target="_blank">${bookmark.url}</a>
+            </div>
+          `).join('');
+        } else {
+          bookmarksList.innerHTML = '<p>No bookmarks yet.</p>';
+        }
+      } catch (error) {
+        console.error('Error loading topic details:', error);
+        alert('Failed to load topic details. Please try again.');
+      }
+    }
+
+    // Generate summary functionality
+    document.getElementById('generateSummaryBtn').addEventListener('click', async () => {
+      if (!currentTopicId) return;
+
+      const loadingEl = document.getElementById('summaryLoading');
+      const summarySection = document.getElementById('summarySection');
+      const summaryContent = document.getElementById('summaryContent');
+
+      loadingEl.classList.add('active');
+      summarySection.classList.remove('active');
+
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'generateSummary',
+            userId,
+            topicId: currentTopicId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to generate summary');
+
+        const { summary } = await response.json();
+        summaryContent.textContent = summary;
+        summarySection.classList.add('active');
+      } catch (error) {
+        console.error('Error generating summary:', error);
+        alert('Failed to generate summary. Please try again.');
+      } finally {
+        loadingEl.classList.remove('active');
+      }
+    });
+
+    // Load topics on page load
+    document.addEventListener('DOMContentLoaded', loadTopics);
+
+    // Logout functionality
     document.getElementById('logout').addEventListener('click', () => {
       localStorage.removeItem('userId');
       localStorage.removeItem('accessToken');
