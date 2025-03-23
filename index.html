@@ -1,9 +1,353 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Koda Compass</title>
+  <meta charset="UTF-8">
+  <title>Koda Compass - Your Personal Knowledge Companion</title>
   <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    body {
+      background-color: #f8f9fa;
+      margin: 0;
+      font-family: 'EB Garamond', serif;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 80px;
+      height: 100vh;
+      background: linear-gradient(180deg, #e9f1fa 0%, #d9e4f5 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 0;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+    }
+
+    .nav-items {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: #333333;
+      font-size: 0.8rem;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      width: 70px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    nav a i {
+      font-size: 1.2rem;
+      margin-bottom: 0.25rem;
+    }
+
+    nav a:hover {
+      background-color: #c3d9f5;
+      transform: scale(1.05);
+    }
+
+    nav a.active {
+      background-color: #a0c4ff;
+      font-weight: 700;
+    }
+
+    .main-content {
+      margin-left: 80px;
+      padding: 0;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9f1fa 100%);
+      padding: 8rem 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="1" fill="%23a0c4ff33"/></svg>') repeat;
+      opacity: 0.5;
+      z-index: 0;
+    }
+
+    .hero-content {
+      max-width: 800px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      padding: 2rem;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      color: #1a1a1a;
+      margin-bottom: 1.5rem;
+      line-height: 1.2;
+      word-wrap: break-word;
+      hyphens: auto;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: #4a4a4a;
+      margin-bottom: 2rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 3rem;
+    }
+
+    .cta-button {
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .cta-button:first-child {
+      background: #32CD32;
+      color: white;
+      box-shadow: 0 4px 15px rgba(50, 205, 50, 0.2);
+    }
+
+    .cta-button:first-child:hover {
+      background: #28a745;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(50, 205, 50, 0.3);
+    }
+
+    .cta-button.secondary {
+      background: white;
+      color: #32CD32;
+      border: 2px solid #32CD32;
+    }
+
+    .cta-button.secondary:hover {
+      background: #f8fff8;
+      transform: translateY(-2px);
+    }
+
+    .features {
+      padding: 5rem 2rem;
+      background: white;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .feature {
+      text-align: center;
+      padding: 2rem;
+      border-radius: 12px;
+      background: #f8f9fa;
+      transition: all 0.3s ease;
+    }
+
+    .feature:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .feature-icon {
+      font-size: 2.5rem;
+      color: #32CD32;
+      margin-bottom: 1.5rem;
+    }
+
+    .feature h2 {
+      font-size: 1.5rem;
+      color: #1a1a1a;
+      margin-bottom: 1rem;
+    }
+
+    .feature p {
+      color: #666;
+      font-size: 1.1rem;
+    }
+
+    .how-it-works {
+      padding: 5rem 2rem;
+      background: #f8f9fa;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      color: #1a1a1a;
+      margin-bottom: 3rem;
+    }
+
+    .steps {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+
+    .step {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      background: #32CD32;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin: 0 auto 1rem;
+    }
+
+    .step h3 {
+      font-size: 1.3rem;
+      color: #1a1a1a;
+      margin-bottom: 1rem;
+    }
+
+    .step p {
+      color: #666;
+    }
+
+    .testimonials {
+      padding: 5rem 2rem;
+      background: white;
+    }
+
+    .testimonial-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .testimonial {
+      background: #f8f9fa;
+      padding: 2rem;
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .testimonial-text {
+      font-style: italic;
+      margin-bottom: 1.5rem;
+    }
+
+    .testimonial-author {
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .testimonial-role {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        width: 250px;
+      }
+
+      nav.active {
+        transform: translateX(0);
+      }
+
+      .nav-items {
+        align-items: flex-start;
+        padding: 0 1rem;
+      }
+
+      nav a {
+        flex-direction: row;
+        width: 100%;
+        justify-content: flex-start;
+        padding: 0.75rem 1rem;
+      }
+
+      nav a i {
+        margin-bottom: 0;
+        margin-right: 0.5rem;
+        width: 24px;
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
+      .hero {
+        padding: 6rem 1rem;
+        min-height: auto;
+      }
+
+      .hero h1 {
+        font-size: 2.5rem;
+        padding: 0 1rem;
+      }
+
+      .hero p {
+        font-size: 1.1rem;
+        padding: 0 1rem;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+        padding: 0 1rem;
+      }
+
+      .cta-button {
+        width: 100%;
+        max-width: 300px;
+        text-align: center;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="hamburger">
@@ -13,20 +357,112 @@
   </div>
   <nav>
     <span class="close-btn">&times;</span>
-    <a href="/" class="active" data-icon="home">Home</a>
-    <a href="/pages/login.html" data-icon="login">Login</a>
-    <a href="/pages/signup.html" data-icon="signup">Sign Up</a>
-    <a href="/pages/dashboard.html" data-icon="dashboard">Dashboard</a>
-    <a href="/pages/chat.html" data-icon="chat">Chat</a>
-    <a href="/pages/bookmarks.html" data-icon="bookmarks">Bookmarks</a>
-    <a href="/pages/topics.html" data-icon="topics">Topics</a>
+    <div class="nav-items" id="loggedInNav" style="display: none;">
+      <a href="/pages/dashboard.html"><i class="fas fa-home"></i>Home</a>
+      <a href="/pages/chat.html"><i class="fas fa-comments"></i>Chat</a>
+      <a href="/pages/bookmarks.html"><i class="fas fa-bookmark"></i>Bookmarks</a>
+      <a href="/pages/settings.html"><i class="fas fa-cog"></i>Settings</a>
+      <a href="#" id="logout"><i class="fas fa-sign-out-alt"></i>Log Out</a>
+    </div>
+    <div class="nav-items" id="loggedOutNav">
+      <a href="/" class="active"><i class="fas fa-home"></i>Home</a>
+      <a href="/pages/login.html"><i class="fas fa-sign-in-alt"></i>Log In</a>
+      <a href="/pages/signup.html"><i class="fas fa-user-plus"></i>Sign Up</a>
+    </div>
   </nav>
   <div class="main-content">
-    <h1>Welcome to Koda Compass</h1>
-    <p>A smarter way to learn and revisit knowledge. Ask questions, save insights from X threads, and build your personal knowledge base with ease.</p>
-    <p>Sign up or log in to start your learning journey!</p>
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Transform How You Learn and Remember</h1>
+        <p>Your personal AI knowledge companion that organizes conversations, bookmarks, and insights into an intuitive learning system. Never lose valuable information again.</p>
+        <div class="cta-buttons">
+          <a href="pages/signup.html" class="cta-button">Start Your Learning Journey</a>
+          <a href="pages/login.html" class="cta-button secondary">Sign In</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="features-grid">
+        <div class="feature">
+          <i class="fas fa-brain feature-icon"></i>
+          <h2>Smart Organization</h2>
+          <p>Automatically categorize conversations and bookmarks into topic-based folders for easy access and review.</p>
+        </div>
+        <div class="feature">
+          <i class="fas fa-lightbulb feature-icon"></i>
+          <h2>AI-Powered Insights</h2>
+          <p>Generate concise summaries and key takeaways from your learning sessions and saved content.</p>
+        </div>
+        <div class="feature">
+          <i class="fas fa-sync feature-icon"></i>
+          <h2>Active Recall</h2>
+          <p>Engage with your knowledge through spaced repetition and interactive quizzes for better retention.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="how-it-works">
+      <h2 class="section-title">How It Works</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Ask & Learn</h3>
+          <p>Start conversations, ask questions, and explore topics with our AI assistant.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Save & Organize</h3>
+          <p>Save important threads and bookmarks, automatically categorized by topic.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>Review & Master</h3>
+          <p>Access summaries, review key insights, and strengthen your understanding over time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="testimonials">
+      <h2 class="section-title">What Our Users Say</h2>
+      <div class="testimonial-grid">
+        <div class="testimonial">
+          <p class="testimonial-text">"Finally, a tool that helps me make sense of all the information I consume. The organization is intuitive, and the summaries are incredibly helpful."</p>
+          <div class="testimonial-author">Sarah Chen</div>
+          <div class="testimonial-role">Software Engineer</div>
+        </div>
+        <div class="testimonial">
+          <p class="testimonial-text">"The spaced repetition feature has transformed how I retain information. It's like having a personal learning coach."</p>
+          <div class="testimonial-author">Michael Rodriguez</div>
+          <div class="testimonial-role">Medical Student</div>
+        </div>
+        <div class="testimonial">
+          <p class="testimonial-text">"I love how it automatically organizes everything by topic. It's made my research and learning process so much more efficient."</p>
+          <div class="testimonial-author">Emma Thompson</div>
+          <div class="testimonial-role">Content Creator</div>
+        </div>
+      </div>
+    </section>
   </div>
+
   <script>
+    // Check login status and update navigation
+    function updateNavigation() {
+      const isLoggedIn = localStorage.getItem('userId') && localStorage.getItem('accessToken');
+      const loggedInNav = document.getElementById('loggedInNav');
+      const loggedOutNav = document.getElementById('loggedOutNav');
+      
+      if (isLoggedIn) {
+        window.location.href = '/pages/dashboard.html';
+      } else {
+        loggedInNav.style.display = 'none';
+        loggedOutNav.style.display = 'block';
+      }
+    }
+
+    // Call updateNavigation on page load
+    document.addEventListener('DOMContentLoaded', updateNavigation);
+
     // Hamburger menu toggle
     const hamburger = document.querySelector('.hamburger');
     const nav = document.querySelector('nav');
@@ -38,6 +474,13 @@
 
     closeBtn.addEventListener('click', () => {
       nav.classList.remove('active');
+    });
+
+    // Add logout functionality
+    document.getElementById('logout')?.addEventListener('click', () => {
+      localStorage.removeItem('userId');
+      localStorage.removeItem('accessToken');
+      window.location.href = '/';
     });
   </script>
 </body>
