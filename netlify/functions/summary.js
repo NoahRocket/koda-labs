@@ -32,22 +32,28 @@ exports.handler = async (event, context) => {
     }
   });
 
-  const { userId, topicId } = JSON.parse(event.body || '{}');
+  const { userId, topicId, timestamp } = JSON.parse(event.body || '{}');
 
   if (!userId || !topicId) return { statusCode: 400, body: 'Missing user ID or topic ID' };
 
   try {
+    console.log(`[Summary] Processing request for userId: ${userId}, topicId: ${topicId}, timestamp: ${timestamp || 'none'}`);
+    
     // Fetch bookmarks for the topic
     const { data: bookmarks } = await supabase
       .from('bookmarks')
       .select('url')
       .eq('topic_id', topicId);
 
+    console.log(`[Summary] Found ${bookmarks?.length || 0} bookmarks for topic ${topicId}`);
+
     // Fetch all conversations for the topic
     const { data: conversations } = await supabase
       .from('conversations')
       .select('content')
       .eq('topic_id', topicId);
+      
+    console.log(`[Summary] Found ${conversations?.length || 0} conversations for topic ${topicId}`);
 
     // Fetch metadata from bookmark URLs
     let bookmarkContent = '';
@@ -72,6 +78,20 @@ exports.handler = async (event, context) => {
     const combinedContent = `Bookmarks:\n${bookmarkContent}\nConversations:\n${conversationContent}`;
 
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    if (!OPENAI_API_KEY) {
+      console.error('OpenAI API key is missing');
+      return {
+        statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'OpenAI API key is not configured' })
+      };
+    }
+
+    const systemPrompt = 'Generate a concise summary of key takeaways from the content provided, related to a user topic. Focus on the most important insights, facts, or concepts, and present them in a short list (2-3 bullet points). Keep it simple, clear, and useful for a general audience, even if the data is sparse or incomplete. Avoid repetition and overly technical terms unless essential.';
+    
+    const userPrompt = `Summarize the key takeaways from this content in 2-3 bullet points:\n\n${combinedContent}`;
+    
+    console.log('[Summary] Making request to OpenAI API');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -81,8 +101,14 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini-2024-07-18',
         messages: [
-          { role: 'system', content: 'You are a helpful assistant that summarizes information. Provide key facts and takeaways in 2-3 sentences, even with limited data.' },
-          { role: 'user', content: `Please summarize the key facts and takeaways from the following content:\n\n${combinedContent}` }
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
         ],
         max_tokens: 300,
         temperature: 0.5,
@@ -91,24 +117,51 @@ exports.handler = async (event, context) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
+      console.error('[Summary] OpenAI API error:', errorText);
+      console.error('[Summary] Status:', response.status);
+      console.error('[Summary] Headers:', JSON.stringify(Object.fromEntries([...response.headers])));
+      
       return {
         statusCode: response.status,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Error from OpenAI API' }),
+        body: JSON.stringify({ 
+          error: `OpenAI API error: ${errorText}`,
+          status: response.status
+        })
       };
     }
 
+    console.log('[Summary] OpenAI API response received');
     const data = await response.json();
+    console.log('[Summary] Response parsed successfully');
+    
+    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('[Summary] Invalid response structure from OpenAI:', JSON.stringify(data));
+      return {
+        statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Invalid response from OpenAI' })
+      };
+    }
+    
     const summary = data.choices[0].message.content.trim();
+    console.log('[Summary] Summary generated successfully');
 
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ summary }),
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+      body: JSON.stringify({ summary })
     };
   } catch (error) {
-    console.error('Error generating summary:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate summary' }) };
+    console.error('[Summary] Error generating summary:', error);
+    return { 
+      statusCode: 500, 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        error: 'Failed to generate summary',
+        message: error.message,
+        stack: error.stack
+      }) 
+    };
   }
 };

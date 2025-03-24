@@ -10,6 +10,9 @@
       background-color: #f8f9fa;
       display: flex;
       min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
     }
 
     nav {
@@ -24,6 +27,7 @@
       align-items: center;
       padding: 2rem 0;
       box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      z-index: 10;
     }
 
     .nav-items {
@@ -65,84 +69,63 @@
 
     .main-content {
       flex: 1;
-      padding: 2rem;
-      margin-left: 100px;
-      max-width: 1000px;
-      margin: 0 auto 0 100px;
-      min-height: calc(100vh - 4rem);
+      margin-left: 80px;
+      height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+      background-color: #f8f9fa;
+      padding: 1.25rem;
+    }
+
+    .chat-wrapper {
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 1.25rem 1.5rem;
+      background-color: white;
+      z-index: 5;
+      border-bottom: 1px solid #f0f0f0;
     }
 
     .greeting {
-      font-size: 2rem;
+      font-size: 1.8rem;
       color: #333;
-      margin-bottom: 1.5rem;
-      text-align: center;
+      margin: 0;
       font-weight: 500;
     }
 
-    .search-container {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-      background: white;
-      padding: 0.75rem;
-      border-radius: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-
-    .search-container input {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: all 0.2s;
-    }
-
-    .search-container input:focus {
-      outline: none;
-      border-color: #32CD32;
-      box-shadow: 0 0 0 2px rgba(50, 205, 50, 0.1);
-    }
-
-    .search-container button {
-      background-color: #32CD32;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: all 0.2s;
-      min-width: 80px;
-    }
-
-    .search-container button:hover {
-      background-color: #28a745;
-      transform: translateY(-1px);
+    .chat-subheader {
+      color: #666;
+      margin: 0.5rem 0 0 0;
     }
 
     .suggested-questions {
       display: flex;
       gap: 0.75rem;
-      margin-bottom: 1.5rem;
+      padding: 1rem 1.5rem;
       flex-wrap: wrap;
-      justify-content: center;
+      background-color: white;
+      border-bottom: 1px solid #f0f0f0;
     }
 
     .question-box {
-      background: white;
+      background: #f8f9fa;
       padding: 0.75rem 1.25rem;
-      border-radius: 8px;
+      border-radius: 30px;
       cursor: pointer;
       transition: all 0.2s;
       font-size: 0.9rem;
       color: #333;
-      border: 1px solid #e0e0e0;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      border: 1px solid #e6e6e6;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
 
     .question-box:hover {
@@ -151,60 +134,140 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    .chat-container {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
+    .chat-interface {
       flex: 1;
-      overflow-y: auto;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       display: flex;
       flex-direction: column;
-      gap: 1rem;
-      min-height: 400px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      background-color: white;
     }
 
     .message {
-      padding: 1rem 1.25rem;
-      border-radius: 12px;
-      max-width: 85%;
+      padding: 0.15rem 0;
+      max-width: 80%;
       word-wrap: break-word;
-      line-height: 1.5;
+      line-height: 1.2;
       position: relative;
+      margin-bottom: 0.1rem;
+      border-radius: 0;
+      box-shadow: none;
     }
 
     .user-message {
-      background: #32CD32;
-      color: white;
-      margin-left: auto;
-      border-bottom-right-radius: 4px;
+      background: transparent;
+      color: #000000;
+      align-self: flex-end;
+      text-align: right;
     }
 
-    .assistant-message {
-      background: #f8f9fa;
-      color: #333;
-      border-bottom-left-radius: 4px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    .user-message .message-time {
+      text-align: right;
+    }
+
+    .ai-message {
+      background: transparent;
+      color: #003366;
+      align-self: flex-start;
+      text-align: left;
+      font-weight: 400;
+    }
+
+    .ai-message .message-time {
+      text-align: left;
+    }
+
+    .message-content {
+      margin-bottom: 0.05rem;
+      font-size: 0.95rem;
+    }
+
+    .message-time {
+      font-size: 0.65rem;
+      opacity: 0.5;
+      line-height: 1;
+    }
+
+    .chat-input-container {
+      padding: 1rem 1.5rem 1.25rem;
+      background-color: white;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      z-index: 5;
+    }
+
+    .chat-controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      background-color: white;
+      border-radius: 30px;
+      border: 1px solid #32CD32;
+      padding: 0 1rem;
+      transition: all 0.2s;
+    }
+
+    .input-wrapper:focus-within {
+      box-shadow: 0 0 0 2px rgba(50, 205, 50, 0.1);
+    }
+
+    #questionInput {
+      flex: 1;
+      padding: 0.6rem 0;
+      border: none;
+      background: transparent;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    #askButton {
+      background-color: #32CD32;
+      color: white;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      min-width: auto;
+    }
+
+    #askButton:hover {
+      background-color: #28a745;
+      transform: translateY(-1px);
     }
 
     .conversation-controls {
       display: flex;
       gap: 0.75rem;
       align-items: center;
-      background: white;
-      padding: 0.75rem;
-      border-radius: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
     .conversation-controls select {
       flex: 1;
-      padding: 0.75rem;
-      border: 1px solid #e0e0e0;
+      padding: 0.75rem 1rem;
+      border: 1px solid #e6e6e6;
       border-radius: 8px;
       font-size: 0.9rem;
-      min-width: 200px;
       background-color: #fff;
       transition: all 0.2s;
     }
@@ -215,7 +278,7 @@
       box-shadow: 0 0 0 2px rgba(50, 205, 50, 0.1);
     }
 
-    .conversation-controls button {
+    #saveConversation {
       background-color: #32CD32;
       color: white;
       border: none;
@@ -225,12 +288,122 @@
       font-size: 0.9rem;
       font-weight: 600;
       transition: all 0.2s;
-      min-width: 140px;
+      min-width: auto;
+      white-space: nowrap;
     }
 
-    .conversation-controls button:hover {
+    #saveConversation:hover {
       background-color: #28a745;
       transform: translateY(-1px);
+    }
+
+    .empty-chat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #666;
+      font-size: 0.95rem;
+      text-align: center;
+      padding: 2rem;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      margin: 1rem;
+    }
+
+    .empty-chat i {
+      font-size: 2.5rem;
+      color: #32CD32;
+      margin-bottom: 1rem;
+      opacity: 0.7;
+    }
+
+    .empty-chat p {
+      line-height: 1.4;
+    }
+
+    /* Thinking animation */
+    .thinking {
+      padding: 0.3rem 0;
+      background-color: transparent;
+      align-self: flex-start;
+      text-align: left;
+      border-radius: 0;
+    }
+    
+    .thinking-dots {
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0;
+    }
+    
+    .dot {
+      width: 5px;
+      height: 5px;
+      background: #003366;
+      border-radius: 50%;
+      animation: dot-pulse 1.5s infinite;
+    }
+    
+    .dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    .dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    
+    @keyframes dot-pulse {
+      0% { transform: scale(0.5); opacity: 0.5; }
+      50% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(0.5); opacity: 0.5; }
+    }
+
+    /* Message animations */
+    .message {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s, transform 0.5s;
+    }
+    
+    .message.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 1rem 1.5rem;
+      background-color: #333;
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      animation: toast-in 0.3s forwards, toast-out 0.3s forwards 3s;
+    }
+    
+    .toast-success {
+      background-color: #28a745;
+    }
+    
+    .toast-error {
+      background-color: #dc3545;
+    }
+    
+    @keyframes toast-in {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes toast-out {
+      from { transform: translateY(0); opacity: 1; }
+      to { transform: translateY(100%); opacity: 0; }
     }
 
     @media (max-width: 768px) {
@@ -238,7 +411,6 @@
         transform: translateX(-100%);
         transition: transform 0.3s ease;
         width: 250px;
-        z-index: 1000;
       }
 
       nav.active {
@@ -265,170 +437,95 @@
 
       .main-content {
         margin-left: 0;
-        padding: 1rem;
+        padding: 0.75rem;
       }
 
-      .hamburger {
-        display: block;
+      .chat-header {
+        padding: 1rem 1.25rem;
       }
 
-      .close-btn {
-        display: block;
+      .suggested-questions {
+        padding: 0.75rem 1.25rem;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .question-box {
+        white-space: nowrap;
+        padding: 0.6rem 1rem;
+      }
+
+      .chat-container {
+        padding: 1.25rem;
+      }
+
+      .empty-chat {
+        margin: 0.75rem;
+        padding: 1.5rem;
+      }
+
+      .message {
+        max-width: 85%;
+      }
+
+      .chat-input-container {
+        padding: 0.75rem 1.25rem 1rem;
+      }
+
+      .chat-controls {
+        flex-direction: row;
+      }
+
+      .conversation-controls {
+        flex-direction: column;
+      }
+
+      #saveConversation {
+        width: 100%;
+        margin-top: 0.25rem;
       }
     }
 
-    /* Message animations */
-    .message {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.5s, transform 0.5s;
-    }
-    
-    .message.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    
-    .user-message {
-      align-self: flex-end;
-      animation-duration: 0.3s;
-    }
-    
-    .ai-message {
-      align-self: flex-start;
-      animation-duration: 0.3s;
-    }
-    
-    /* Thinking animation */
-    .thinking {
-      padding: 1rem;
-      border-radius: 1rem;
-      background-color: #f1f1f1;
-      max-width: 80%;
-      margin-bottom: 0.5rem;
-    }
-    
-    .thinking-dots {
-      display: flex;
-      gap: 0.3rem;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .dot {
-      width: 8px;
-      height: 8px;
-      background: #32CD32;
-      border-radius: 50%;
-      animation: dot-pulse 1.5s infinite;
-    }
-    
-    .dot:nth-child(2) {
-      animation-delay: 0.2s;
-    }
-    
-    .dot:nth-child(3) {
-      animation-delay: 0.4s;
-    }
-    
-    @keyframes dot-pulse {
-      0% { transform: scale(0.5); opacity: 0.5; }
-      50% { transform: scale(1); opacity: 1; }
-      100% { transform: scale(0.5); opacity: 0.5; }
-    }
-    
-    /* Question box hover effects */
-    .question-box {
-      transition: all 0.3s ease;
+    .hamburger {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 20;
+      background: none;
+      border: none;
       cursor: pointer;
-      position: relative;
-      overflow: hidden;
     }
-    
-    .question-box:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+
+    .bar {
+      display: block;
+      width: 25px;
+      height: 3px;
+      margin: 5px auto;
+      background-color: #333;
+      transition: all 0.3s ease-in-out;
     }
-    
-    .question-box::after {
-      content: '';
+
+    .close-btn {
+      display: none;
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
-      transform: translateX(-100%);
-      transition: transform 0.6s;
+      top: 1rem;
+      right: 1rem;
+      font-size: 1.5rem;
+      cursor: pointer;
     }
-    
-    .question-box:hover::after {
-      transform: translateX(100%);
-    }
-    
-    /* Input animation */
-    #questionInput {
-      transition: all 0.3s ease;
-    }
-    
-    #questionInput:focus {
-      box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.3);
-      transform: scale(1.02);
-    }
-    
-    /* Button animations */
-    #askButton, #saveConversation {
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    #askButton:hover, #saveConversation:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-    
-    #askButton:active, #saveConversation:active {
-      transform: translateY(1px);
-    }
-    
-    #askButton::after, #saveConversation::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 5px;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.5);
-      opacity: 0;
-      border-radius: 100%;
-      transform: scale(1, 1) translate(-50%);
-      transform-origin: 50% 50%;
-    }
-    
-    #askButton:focus:not(:active)::after, #saveConversation:focus:not(:active)::after {
-      animation: ripple 1s ease-out;
-    }
-    
-    @keyframes ripple {
-      0% {
-        transform: scale(0, 0);
-        opacity: 0.5;
-      }
-      20% {
-        transform: scale(25, 25);
-        opacity: 0.3;
-      }
-      100% {
-        opacity: 0;
-        transform: scale(40, 40);
+
+    @media (max-width: 768px) {
+      .hamburger, .close-btn {
+        display: block;
       }
     }
-    
+
     /* Success state */
     .success {
       background-color: #28a745 !important;
-      color: white !important;
     }
     
     /* Error shake animation */
@@ -440,6 +537,372 @@
     
     .animate-shake {
       animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    /* Animation keyframes and classes */
+    @keyframes slideDown {
+      from { 
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-slide-down {
+      animation: slideDown 0.5s ease forwards;
+    }
+
+    .hidden-before-animation {
+      opacity: 0;
+    }
+
+    /* Notes Panel Styles */
+    .notes-panel {
+      position: fixed;
+      right: -400px;
+      top: 0;
+      width: 380px;
+      height: 100vh;
+      background: white;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      transition: right 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #eaeaea;
+    }
+
+    .notes-panel.active {
+      right: 0;
+    }
+
+    .notes-header {
+      padding: 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eaeaea;
+      background-color: #f8f9fa;
+    }
+
+    .notes-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .notes-header h2 i {
+      color: #ffc107;
+    }
+
+    .close-notes {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #666;
+      padding: 0;
+      transition: color 0.2s;
+    }
+
+    .close-notes:hover {
+      color: #333;
+    }
+
+    .notes-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .notes-form {
+      padding: 1.25rem;
+      border-bottom: 1px solid #eaeaea;
+    }
+
+    .notes-form textarea {
+      width: 100%;
+      height: 100px;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      resize: none;
+      margin-bottom: 1rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    .notes-form textarea:focus {
+      outline: none;
+      border-color: #ffc107;
+      box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+    }
+
+    .notes-controls {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .notes-controls select {
+      flex: 1;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background-color: white;
+      transition: border-color 0.2s;
+    }
+
+    .notes-controls select:focus {
+      outline: none;
+      border-color: #ffc107;
+    }
+
+    .save-note-btn {
+      background-color: #ffc107;
+      color: #333;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+
+    .save-note-btn:hover {
+      background-color: #e0a800;
+      transform: translateY(-1px);
+    }
+
+    .save-note-btn.success {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .notes-list-header {
+      padding: 1rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eaeaea;
+    }
+
+    .notes-list-header h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: #333;
+    }
+
+    .notes-list-header select {
+      padding: 0.4rem 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      background-color: white;
+    }
+
+    .notes-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.25rem;
+    }
+
+    .note-item {
+      background-color: #fff9e6;
+      border-left: 3px solid #ffc107;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      transition: all 0.2s;
+      position: relative;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      opacity: 0;
+      transform: translateY(10px);
+      animation: note-fade-in 0.3s forwards;
+    }
+
+    @keyframes note-fade-in {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .note-item:hover {
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .note-content {
+      margin-bottom: 0.5rem;
+      color: #333;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .note-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .note-topic {
+      background-color: #f1f1f1;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+
+    .note-date {
+      white-space: nowrap;
+    }
+
+    .note-actions {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .note-item:hover .note-actions {
+      opacity: 1;
+    }
+
+    .delete-note {
+      background: none;
+      border: none;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: #dc3545;
+      padding: 0.25rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .delete-note:hover {
+      background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    .empty-notes {
+      text-align: center;
+      color: #666;
+      padding: 2rem 1rem;
+    }
+
+    .empty-notes i {
+      font-size: 2.5rem;
+      color: #ffc107;
+      margin-bottom: 1rem;
+      opacity: 0.7;
+    }
+
+    .loading-notes {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .loading-notes .spinner {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 1rem;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #ffc107;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      min-width: 250px;
+      max-width: 350px;
+      background-color: white;
+      color: #333;
+      border-radius: 8px;
+      padding: 12px 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s;
+      animation: slideInRight 0.3s forwards;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .toast.toast-closing {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    .toast.success {
+      border-left: 4px solid #28a745;
+    }
+
+    .toast.error {
+      border-left: 4px solid #dc3545;
+    }
+
+    .toast-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toast-content i {
+      font-size: 1.2rem;
+    }
+
+    .toast.success i {
+      color: #28a745;
+    }
+
+    .toast.error i {
+      color: #dc3545;
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: #aaa;
+      transition: color 0.2s;
+    }
+
+    .toast-close:hover {
+      color: #333;
     }
   </style>
 </head>
@@ -454,38 +917,89 @@
     <div class="nav-items" id="loggedInNav" style="display: none;">
       <a href="/pages/dashboard.html"><i class="fas fa-home"></i>Home</a>
       <a href="/pages/chat.html" class="active"><i class="fas fa-comments"></i>Chat</a>
+      <a href="#" id="notesToggle"><i class="fas fa-sticky-note"></i>Notes</a>
       <a href="/pages/bookmarks.html"><i class="fas fa-bookmark"></i>Bookmarks</a>
       <a href="/pages/settings.html"><i class="fas fa-cog"></i>Settings</a>
       <a href="#" id="logout"><i class="fas fa-sign-out-alt"></i>Log Out</a>
     </div>
     <div class="nav-items" id="loggedOutNav">
-      <a href="/" data-icon="home">Home</a>
-      <a href="/pages/login.html" data-icon="login">Log In</a>
-      <a href="/pages/signup.html" data-icon="user-plus">Sign Up</a>
+      <a href="/"><i class="fas fa-home"></i>Home</a>
+      <a href="/pages/login.html"><i class="fas fa-sign-in-alt"></i>Log In</a>
+      <a href="/pages/signup.html"><i class="fas fa-user-plus"></i>Sign Up</a>
     </div>
   </nav>
   <div class="main-content">
-    <h1>Good Evening!</h1>
-    <p>How can I help you today?</p>
-    <div class="search-container">
-      <input type="text" id="questionInput" placeholder="Ask a question here...">
-      <button id="askButton">Ask</button>
+    <div class="chat-wrapper">
+      <div class="chat-header">
+        <h1 class="greeting">Good Evening!</h1>
+        <p class="chat-subheader">How can I help you today?</p>
     </div>
     <div class="suggested-questions">
-      <div class="question-box">What are IOPoints?</div>
-      <div class="question-box">Who is John Galt?</div>
-      <div class="question-box">Why do bees fly?</div>
+        <div class="question-box">What are IOPoints?</div>
+        <div class="question-box">Who is John Galt?</div>
+        <div class="question-box">Why do bees fly?</div>
     </div>
-    <div class="chat-container" id="chatContainer">
-      <!-- Chat messages will appear here -->
-    </div>
-    <div class="conversation-controls">
-      <select id="conversationTopic">
-        <option value="">Select Topic for Conversation</option>
-      </select>
-      <button id="saveConversation">Save Conversation</button>
+      <div class="chat-interface">
+        <div class="chat-container" id="chatContainer">
+          <div class="empty-chat" id="emptyChat">
+            <i class="fas fa-comments"></i>
+            <p>Your conversation will appear here.<br>Ask me anything to get started!</p>
+          </div>
+          <!-- Chat messages will appear here -->
+        </div>
+        <div class="chat-input-container">
+          <div class="chat-controls">
+            <div class="input-wrapper">
+              <input type="text" id="questionInput" placeholder="Ask a question here...">
+            </div>
+            <button id="askButton">
+              <i class="fas fa-paper-plane"></i> Send
+            </button>
+          </div>
+          <div class="conversation-controls">
+            <select id="conversationTopic">
+      <option value="">Select Topic for Conversation</option>
+    </select>
+    <button id="saveConversation">Save Conversation</button>
+  </div>
+        </div>
+      </div>
     </div>
   </div>
+  
+  <!-- Notes Panel -->
+  <div id="notesPanel" class="notes-panel">
+    <div class="notes-header">
+      <h2><i class="fas fa-sticky-note"></i> Quick Notes</h2>
+      <button class="close-notes">&times;</button>
+    </div>
+    <div class="notes-content">
+      <div class="notes-form">
+        <textarea id="noteText" placeholder="Jot down a thought..."></textarea>
+        <div class="notes-controls">
+          <select id="noteTopic">
+            <option value="">Untagged</option>
+            <!-- Topics will be loaded here -->
+          </select>
+          <button id="saveNote" class="save-note-btn">
+            <i class="fas fa-save"></i> Save
+          </button>
+        </div>
+      </div>
+      <div class="notes-list-header">
+        <h3>Saved Notes</h3>
+        <select id="noteFilter">
+          <option value="all">All Notes</option>
+          <option value="untagged">Untagged</option>
+          <!-- Topics will be loaded here -->
+        </select>
+      </div>
+      <div id="notesList" class="notes-list">
+        <!-- Notes will be loaded here -->
+      </div>
+    </div>
+  </div>
+
   <script src="../chat.js"></script>
   <script>
     // Get user credentials
@@ -530,7 +1044,7 @@
     closeBtn.addEventListener('click', () => {
       nav.classList.remove('active');
     });
-    
+
     // Load conversation topics
     async function loadConversationTopics() {
       try {
@@ -585,23 +1099,51 @@
     // Animated greeting based on time of day
     function updateGreeting() {
       const hour = new Date().getHours();
-      const greeting = document.querySelector('h1');
-      let greetingText = 'Good ';
+      const greeting = document.querySelector('.greeting');
+      const subheader = document.querySelector('.chat-subheader');
+      let greetingText = '';
       
+      // Make sure the element exists
+      if (!greeting) return;
+      
+      // Ensure element is hidden before any content changes
+      greeting.style.opacity = '0';
+      greeting.style.transform = 'translateY(-20px)';
+      
+      // Set greeting based on time of day with more casual options
       if (hour >= 5 && hour < 12) {
-        greetingText += 'Morning';
+        // Morning options
+        const morningGreetings = ["Good Morning!", "Rise and shine!", "Hello, early bird!"];
+        greetingText = morningGreetings[Math.floor(Math.random() * morningGreetings.length)];
       } else if (hour >= 12 && hour < 18) {
-        greetingText += 'Afternoon';
+        // Afternoon options
+        const afternoonGreetings = ["Good Afternoon!", "Hey there!", "Hello!"];
+        greetingText = afternoonGreetings[Math.floor(Math.random() * afternoonGreetings.length)];
       } else {
-        greetingText += 'Evening';
+        // Evening options
+        const eveningGreetings = ["Good Evening!", "Hey there!", "Hi, night owl!"];
+        greetingText = eveningGreetings[Math.floor(Math.random() * eveningGreetings.length)];
       }
       
-      greeting.textContent = greetingText + '!';
-      greeting.classList.add('animate-slide-down');
+      // Set content while still hidden
+      greeting.textContent = greetingText;
+      
+      // Use requestAnimationFrame to ensure the browser has rendered the hidden state
+      requestAnimationFrame(() => {
+        // Remove inline styles to allow CSS animations to take effect
+        setTimeout(() => {
+          greeting.style.opacity = '';
+          greeting.style.transform = '';
+          greeting.classList.add('animate-slide-down');
+        }, 50);
+      });
     }
     
-    // Call greeting on load
-    document.addEventListener('DOMContentLoaded', updateGreeting);
+    // Call greeting on load with a slight delay to ensure DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      // Small delay to ensure everything is rendered
+      setTimeout(updateGreeting, 100);
+    });
     
     // Chat message animation
     function animateChatMessage(message, isUser = false) {
@@ -615,7 +1157,7 @@
     async function fetchChatResponse(question) {
       const response = await fetch('/.netlify/functions/chat', {
         method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
@@ -640,6 +1182,12 @@
       
       if (!question) return;
       
+      // Hide empty chat message if this is the first message
+      const emptyChat = document.getElementById('emptyChat');
+      if (emptyChat) {
+        emptyChat.style.display = 'none';
+      }
+      
       // Clear input with animation
       questionInput.value = '';
       questionInput.classList.add('animate-pulse');
@@ -653,7 +1201,7 @@
       userMessageElement.className = 'message user-message';
       userMessageElement.innerHTML = `
         <div class="message-content">${question}</div>
-        <div class="message-time">${new Date().toLocaleTimeString()}</div>
+        <div class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
       `;
       chatContainer.appendChild(userMessageElement);
       animateChatMessage(userMessageElement, true);
@@ -701,7 +1249,7 @@
         
         aiMessageElement.innerHTML = `
           <div class="message-content">${formattedResponse}</div>
-          <div class="message-time">${new Date().toLocaleTimeString()}</div>
+          <div class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
         `;
         chatContainer.appendChild(aiMessageElement);
         
@@ -721,10 +1269,10 @@
         
         // Add error message
         const errorMessageElement = document.createElement('div');
-        errorMessageElement.className = 'message error-message';
+        errorMessageElement.className = 'message ai-message';
         errorMessageElement.innerHTML = `
           <div class="message-content">Network error. Please check your connection and try again.</div>
-          <div class="message-time">${new Date().toLocaleTimeString()}</div>
+          <div class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
         `;
         chatContainer.appendChild(errorMessageElement);
         animateChatMessage(errorMessageElement, false);
@@ -804,19 +1352,19 @@
       saveButton.disabled = true;
       
       try {
-        const response = await fetch('/.netlify/functions/dashboard', {
-          method: 'POST',
+      const response = await fetch('/.netlify/functions/dashboard', {
+        method: 'POST',
           body: JSON.stringify({
             action: 'saveConversation',
             userId,
             topicId,
             chatHistory: content
           }),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
         
         const result = await response.json();
         
@@ -832,7 +1380,7 @@
             saveButton.classList.remove('success');
             saveButton.disabled = false;
           }, 2000);
-        } else {
+      } else {
           saveButton.textContent = originalText;
           saveButton.disabled = false;
           showToast('Failed to save conversation: ' + result.error, 'error');
@@ -872,22 +1420,6 @@
       }, 3300);
     }
     
-    // Animate on scroll
-    document.addEventListener('DOMContentLoaded', () => {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('animate-fade-in');
-            observer.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.1 });
-      
-      document.querySelectorAll('.question-box').forEach(box => {
-        observer.observe(box);
-      });
-    });
-    
     // Add logout functionality
     document.getElementById('logout')?.addEventListener('click', () => {
       // Add animation
@@ -895,11 +1427,314 @@
       icon.classList.add('animate-rotate');
       
       setTimeout(() => {
-        localStorage.removeItem('userId');
-        localStorage.removeItem('accessToken');
-        window.location.href = '/';
+      localStorage.removeItem('userId');
+      localStorage.removeItem('accessToken');
+      window.location.href = '/';
       }, 500);
     });
+
+    // Notes toggle functionality
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set up notes toggle functionality
+      const notesToggle = document.getElementById('notesToggle');
+      const notesPanel = document.getElementById('notesPanel');
+      const closeNotes = document.querySelector('.close-notes');
+      
+      if (notesToggle && notesPanel && closeNotes) {
+        notesToggle.addEventListener('click', (e) => {
+          e.preventDefault();
+          notesPanel.classList.toggle('active');
+          if (notesPanel.classList.contains('active')) {
+            loadNotesTopics();
+            loadNotes();
+          }
+        });
+        
+        closeNotes.addEventListener('click', () => {
+          notesPanel.classList.remove('active');
+        });
+      }
+      
+      // Set up save note functionality
+      const saveNoteBtn = document.getElementById('saveNote');
+      if (saveNoteBtn) {
+        saveNoteBtn.addEventListener('click', saveNote);
+      }
+      
+      // Set up note filter change event
+      const noteFilter = document.getElementById('noteFilter');
+      if (noteFilter) {
+        noteFilter.addEventListener('change', loadNotes);
+      }
+    });
+    
+    // Load topics for notes dropdown
+    async function loadNotesTopics() {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      
+      try {
+        const noteTopicSelect = document.getElementById('noteTopic');
+        const noteFilterSelect = document.getElementById('noteFilter');
+        
+        // Don't overwrite initial options
+        const defaultNoteTopicOption = noteTopicSelect.options[0];
+        const defaultFilterOptions = Array.from(noteFilterSelect.options).slice(0, 2); // Keep "All" and "Untagged"
+        
+        // Show loading state
+        noteTopicSelect.innerHTML = '';
+        noteTopicSelect.appendChild(defaultNoteTopicOption);
+        noteTopicSelect.disabled = true;
+        
+        noteFilterSelect.innerHTML = '';
+        defaultFilterOptions.forEach(option => noteFilterSelect.appendChild(option));
+        noteFilterSelect.disabled = true;
+        
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'getTopics',
+            userId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        // Re-enable selects
+        noteTopicSelect.disabled = false;
+        noteFilterSelect.disabled = false;
+        
+        if (response.ok && result.topics && result.topics.length > 0) {
+          // Add topics to the note select
+          result.topics.forEach(topic => {
+            // Add to noteTopic select
+            const topicOption = document.createElement('option');
+            topicOption.value = topic.id;
+            topicOption.textContent = topic.name;
+            noteTopicSelect.appendChild(topicOption);
+            
+            // Add to filter select
+            const filterOption = document.createElement('option');
+            filterOption.value = topic.id;
+            filterOption.textContent = topic.name;
+            noteFilterSelect.appendChild(filterOption);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading topics for notes:', error);
+        showToast('Error loading topics. Please try again.', 'error');
+      }
+    }
+    
+    // Save a new note
+    async function saveNote() {
+      const noteText = document.getElementById('noteText').value.trim();
+      const topicId = document.getElementById('noteTopic').value;
+      const saveButton = document.getElementById('saveNote');
+      
+      if (!noteText) {
+        // Animate textarea to show error
+        const textarea = document.getElementById('noteText');
+        textarea.classList.add('animate-shake');
+        setTimeout(() => textarea.classList.remove('animate-shake'), 500);
+        return;
+      }
+      
+      // Show loading state
+      const originalButtonText = saveButton.innerHTML;
+      saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+      saveButton.disabled = true;
+      
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'saveNote',
+            userId,
+            content: noteText,
+            topicId: topicId || null // Handle untagged case
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Show success state
+          saveButton.innerHTML = '<i class="fas fa-check"></i> Saved!';
+          saveButton.classList.add('success');
+          
+          // Clear input
+          document.getElementById('noteText').value = '';
+          
+          // Reset button after delay
+          setTimeout(() => {
+            saveButton.innerHTML = originalButtonText;
+            saveButton.classList.remove('success');
+            saveButton.disabled = false;
+          }, 1500);
+          
+          // Reload notes list
+          loadNotes();
+          
+          // Show success toast
+          showToast('Note saved successfully!', 'success');
+        } else {
+          // Show error state
+          saveButton.innerHTML = originalButtonText;
+          saveButton.disabled = false;
+          
+          showToast('Error saving note: ' + (result.error || 'Unknown error'), 'error');
+        }
+      } catch (error) {
+        console.error('Error saving note:', error);
+        saveButton.innerHTML = originalButtonText;
+        saveButton.disabled = false;
+        showToast('Error connecting to server. Please try again.', 'error');
+      }
+    }
+    
+    // Load notes for the notes panel
+    async function loadNotes() {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      const filterValue = document.getElementById('noteFilter').value;
+      
+      const notesList = document.getElementById('notesList');
+      
+      // Show loading state
+      notesList.innerHTML = `
+        <div class="loading-notes">
+          <div class="spinner"></div>
+          <p>Loading notes...</p>
+        </div>
+      `;
+      
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'getNotes',
+            userId,
+            topicId: filterValue === 'all' ? null : (filterValue === 'untagged' ? 'untagged' : filterValue)
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          notesList.innerHTML = '';
+          
+          if (result.notes && result.notes.length > 0) {
+            result.notes.forEach((note, index) => {
+              const noteItem = document.createElement('div');
+              noteItem.className = 'note-item';
+              
+              const date = new Date(note.created_at);
+              const formattedDate = `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+              
+              // Add delay for staggered animation effect
+              noteItem.style.animationDelay = `${index * 0.05}s`;
+              
+              noteItem.innerHTML = `
+                <div class="note-content">${note.content}</div>
+                <div class="note-meta">
+                  <div class="note-topic">${note.topic_name || 'Untagged'}</div>
+                  <div class="note-date">${formattedDate}</div>
+                </div>
+                <div class="note-actions">
+                  <button class="delete-note" data-note-id="${note.id}">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              `;
+              
+              notesList.appendChild(noteItem);
+            });
+            
+            // Add event listeners for delete buttons
+            document.querySelectorAll('.delete-note').forEach(button => {
+              button.addEventListener('click', async (e) => {
+                const noteId = e.currentTarget.dataset.noteId;
+                await deleteNote(noteId);
+              });
+            });
+          } else {
+            notesList.innerHTML = `
+              <div class="empty-notes">
+                <i class="fas fa-sticky-note"></i>
+                <p>No notes found</p>
+              </div>
+            `;
+          }
+        } else {
+          notesList.innerHTML = `
+            <div class="empty-notes">
+              <p class="error-message">Failed to load notes: ${result.error || 'Unknown error'}</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Error loading notes:', error);
+        notesList.innerHTML = `
+          <div class="empty-notes">
+            <p class="error-message">Error connecting to server. Please try again.</p>
+          </div>
+        `;
+      }
+    }
+    
+    // Delete a note
+    async function deleteNote(noteId) {
+      if (!confirm('Are you sure you want to delete this note?')) return;
+      
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'deleteNote',
+            userId,
+            noteId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Reload notes
+          loadNotes();
+          
+          // Show success toast
+          showToast('Note deleted successfully', 'success');
+        } else {
+          showToast('Error deleting note: ' + (result.error || 'Unknown error'), 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting note:', error);
+        showToast('Error connecting to server. Please try again.', 'error');
+      }
+    }
   </script>
 </body>
 </html>

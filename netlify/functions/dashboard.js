@@ -48,10 +48,87 @@ exports.handler = async (event, context) => {
         .select();
       return { statusCode: 200, body: JSON.stringify({ topicId: newTopic[0].id }) };
     } else if (action === 'deleteTopic') {
-      await supabase.from('bookmarks').delete().eq('topic_id', topicId);
-      await supabase.from('conversations').delete().eq('topic_id', topicId);
-      await supabase.from('topics').delete().eq('id', topicId);
-      return { statusCode: 200, body: 'Topic deleted' };
+      console.log(`[DELETE] Starting deletion of topic ${topicId} and all related data`);
+      
+      // Verify the topic belongs to the user
+      const { data: topic, error: topicError } = await supabase
+        .from('topics')
+        .select('user_id')
+        .eq('id', topicId)
+        .single();
+        
+      if (topicError) {
+        console.error(`[DELETE] Error verifying topic: ${topicError.message}`);
+        return { 
+          statusCode: 404, 
+          body: JSON.stringify({ error: 'Topic not found' }) 
+        };
+      }
+      
+      if (topic.user_id !== userId) {
+        console.error(`[DELETE] Permission denied: Topic belongs to ${topic.user_id}, not ${userId}`);
+        return { 
+          statusCode: 403, 
+          body: JSON.stringify({ error: 'You do not have permission to delete this topic' }) 
+        };
+      }
+      
+      try {
+        // Delete related data first - delete bookmarks
+        const { error: bookmarkDeleteError } = await supabase
+          .from('bookmarks')
+          .delete()
+          .eq('topic_id', topicId);
+          
+        if (bookmarkDeleteError) {
+          console.error(`[DELETE] Error deleting bookmarks: ${bookmarkDeleteError.message}`);
+          throw new Error(`Failed to delete bookmarks: ${bookmarkDeleteError.message}`);
+        }
+        
+        console.log(`[DELETE] Successfully deleted bookmarks for topic ${topicId}`);
+        
+        // Delete conversations
+        const { error: conversationDeleteError } = await supabase
+          .from('conversations')
+          .delete()
+          .eq('topic_id', topicId);
+          
+        if (conversationDeleteError) {
+          console.error(`[DELETE] Error deleting conversations: ${conversationDeleteError.message}`);
+          throw new Error(`Failed to delete conversations: ${conversationDeleteError.message}`);
+        }
+        
+        console.log(`[DELETE] Successfully deleted conversations for topic ${topicId}`);
+        
+        // Finally delete the topic itself
+        const { error: topicDeleteError } = await supabase
+          .from('topics')
+          .delete()
+          .eq('id', topicId);
+          
+        if (topicDeleteError) {
+          console.error(`[DELETE] Error deleting topic: ${topicDeleteError.message}`);
+          throw new Error(`Failed to delete topic: ${topicDeleteError.message}`);
+        }
+        
+        console.log(`[DELETE] Successfully deleted topic ${topicId} and all related data`);
+        
+        return { 
+          statusCode: 200, 
+          body: JSON.stringify({ 
+            message: 'Topic and all related data deleted successfully',
+            topicId
+          }) 
+        };
+      } catch (deleteError) {
+        console.error(`[DELETE] Error in deletion process: ${deleteError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ 
+            error: deleteError.message 
+          }) 
+        };
+      }
     } else if (action === 'addBookmark') {
       await supabase.from('bookmarks').insert({ topic_id: topicId, url: bookmarkUrl });
       return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark added' }) };
@@ -78,6 +155,30 @@ exports.handler = async (event, context) => {
       if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ message: 'Conversation saved', data }) };
     } else if (action === 'getTopicDetails') {
+      // Fetch the topic itself to get name
+      const { data: topic, error: topicError } = await supabase
+        .from('topics')
+        .select('id, name, user_id')
+        .eq('id', topicId)
+        .single();
+        
+      if (topicError) {
+        console.error(`[GET_TOPIC_DETAILS] Error fetching topic: ${topicError.message}`);
+        return { 
+          statusCode: 404, 
+          body: JSON.stringify({ error: 'Topic not found' }) 
+        };
+      }
+      
+      // Verify the topic belongs to the user
+      if (topic.user_id !== userId) {
+        console.error(`[GET_TOPIC_DETAILS] Permission denied: Topic belongs to ${topic.user_id}, not ${userId}`);
+        return { 
+          statusCode: 403, 
+          body: JSON.stringify({ error: 'You do not have permission to view this topic' }) 
+        };
+      }
+      
       // Fetch conversations for specific topic
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
@@ -85,7 +186,13 @@ exports.handler = async (event, context) => {
         .eq('topic_id', topicId)
         .order('created_at', { ascending: false });
 
-      if (convError) throw convError;
+      if (convError) {
+        console.error(`[GET_TOPIC_DETAILS] Error fetching conversations: ${convError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: `Failed to fetch conversations: ${convError.message}` }) 
+        };
+      }
 
       // Fetch bookmarks for specific topic
       const { data: bookmarks, error: bookError } = await supabase
@@ -93,11 +200,39 @@ exports.handler = async (event, context) => {
         .select('*')
         .eq('topic_id', topicId);
 
-      if (bookError) throw bookError;
+      if (bookError) {
+        console.error(`[GET_TOPIC_DETAILS] Error fetching bookmarks: ${bookError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: `Failed to fetch bookmarks: ${bookError.message}` }) 
+        };
+      }
+      
+      // Fetch notes for specific topic
+      const { data: notes, error: notesError } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('topic_id', topicId)
+        .order('created_at', { ascending: false });
+        
+      if (notesError) {
+        console.error(`[GET_TOPIC_DETAILS] Error fetching notes: ${notesError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: `Failed to fetch notes: ${notesError.message}` }) 
+        };
+      }
+      
+      console.log(`[GET_TOPIC_DETAILS] Found ${conversations.length} conversations, ${bookmarks.length} bookmarks, ${notes.length} notes for topic ${topicId}`);
 
       return {
         statusCode: 200,
-        body: JSON.stringify({ conversations, bookmarks })
+        body: JSON.stringify({ 
+          topic,
+          conversations, 
+          bookmarks,
+          notes
+        })
       };
     } else if (action === 'generateSummary') {
       // Fetch conversations for the topic
@@ -161,28 +296,140 @@ exports.handler = async (event, context) => {
         statusCode: 200,
         body: JSON.stringify({ summary })
       };
+    } else if (action === 'getNotes') {
+      console.log(`[GET_NOTES] Fetching notes for user ${userId}, topic filter: ${topicId || 'all'}`);
+      
+      // Create base query without the topics relation
+      let query = supabase
+        .from('notes')
+        .select(`
+          id, 
+          content, 
+          created_at,
+          topic_id
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+        
+      // Apply topic filter if specified
+      if (topicId) {
+        if (topicId === 'untagged') {
+          query = query.is('topic_id', null);
+        } else {
+          query = query.eq('topic_id', topicId);
+        }
+      }
+      
+      const { data: notes, error: notesError } = await query;
+      
+      if (notesError) {
+        console.error(`[GET_NOTES] Error fetching notes: ${notesError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: `Failed to fetch notes: ${notesError.message}` }) 
+        };
+      }
+      
+      // Fetch topic names separately only for notes with topic_id
+      const topicIds = notes
+        .filter(note => note.topic_id)
+        .map(note => note.topic_id);
+      
+      let topicMap = {};
+      
+      if (topicIds.length > 0) {
+        const { data: topics, error: topicsError } = await supabase
+          .from('topics')
+          .select('id, name')
+          .in('id', topicIds);
+        
+        if (!topicsError && topics) {
+          // Create a map of topic id to name
+          topicMap = topics.reduce((map, topic) => {
+            map[topic.id] = topic.name;
+            return map;
+          }, {});
+        }
+      }
+      
+      // Format notes with topic names
+      const formattedNotes = notes.map(note => ({
+        id: note.id,
+        content: note.content,
+        created_at: note.created_at,
+        topic_id: note.topic_id,
+        topic_name: note.topic_id ? topicMap[note.topic_id] || null : null
+      }));
+      
+      console.log(`[GET_NOTES] Found ${formattedNotes.length} notes`);
+      
+      return { 
+        statusCode: 200, 
+        body: JSON.stringify({ notes: formattedNotes }) 
+      };
     } else {
       // Get topics with conversation and bookmark counts
       const { data: topics, error: topicsError } = await supabase
         .from('topics')
         .select(`
-          *,
-          conversations:conversations(count),
-          bookmarks:bookmarks(count)
+          id,
+          name,
+          user_id
         `)
         .eq('user_id', userId);
 
-      if (topicsError) throw topicsError;
-
-      // Transform the response to include the counts
-      const transformedTopics = topics.map(topic => ({
+      if (topicsError) {
+        console.error(`[GET_TOPICS] Error fetching topics: ${topicsError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: `Failed to fetch topics: ${topicsError.message}` }) 
+        };
+      }
+      
+      // Fetch conversation counts separately
+      const conversationCountPromises = topics.map(async topic => {
+        const { count, error } = await supabase
+          .from('conversations')
+          .select('*', { count: 'exact', head: true })
+          .eq('topic_id', topic.id);
+          
+        return error ? 0 : (count || 0);
+      });
+      
+      // Fetch bookmark counts separately
+      const bookmarkCountPromises = topics.map(async topic => {
+        const { count, error } = await supabase
+          .from('bookmarks')
+          .select('*', { count: 'exact', head: true })
+          .eq('topic_id', topic.id);
+          
+        return error ? 0 : (count || 0);
+      });
+      
+      // Fetch note counts separately
+      const noteCountPromises = topics.map(async topic => {
+        const { count, error } = await supabase
+          .from('notes')
+          .select('*', { count: 'exact', head: true })
+          .eq('topic_id', topic.id);
+          
+        return error ? 0 : (count || 0);
+      });
+      
+      // Wait for all count queries to complete
+      const conversationCounts = await Promise.all(conversationCountPromises);
+      const bookmarkCounts = await Promise.all(bookmarkCountPromises);
+      const noteCounts = await Promise.all(noteCountPromises);
+      
+      // Combine topics with their counts
+      const transformedTopics = topics.map((topic, index) => ({
         ...topic,
-        conversation_count: topic.conversations[0]?.count || 0,
-        bookmark_count: topic.bookmarks[0]?.count || 0,
-        // Remove the raw counts from the response
-        conversations: undefined,
-        bookmarks: undefined
+        conversation_count: conversationCounts[index],
+        bookmark_count: bookmarkCounts[index],
+        note_count: noteCounts[index]
       }));
+      
+      console.log(`[GET_TOPICS] Found ${transformedTopics.length} topics`);
 
       return {
         statusCode: 200,
@@ -190,7 +437,13 @@ exports.handler = async (event, context) => {
       };
     }
   } catch (error) {
-    console.error('Error:', error.message);
-    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+    console.error('Error in dashboard function:', error.message, error.stack);
+    return { 
+      statusCode: 500, 
+      body: JSON.stringify({ 
+        error: `Server error: ${error.message}`, 
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      }) 
+    };
   }
 };
