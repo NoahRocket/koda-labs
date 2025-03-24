@@ -551,8 +551,32 @@
       }
     }
 
+    // Animate elements when they come into view
+    function animateOnScroll() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-fade-in');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1 });
+
+      document.querySelectorAll('.topic-card').forEach(card => {
+        observer.observe(card);
+      });
+    }
+
     // Call updateNavigation on page load
-    document.addEventListener('DOMContentLoaded', updateNavigation);
+    document.addEventListener('DOMContentLoaded', () => {
+      updateNavigation();
+      
+      // Add page entrance animation for dashboard header
+      const header = document.querySelector('.dashboard-header');
+      if (header) {
+        header.classList.add('animate-slide-down');
+      }
+    });
 
     // Hamburger menu toggle
     const hamburger = document.querySelector('.hamburger');
@@ -567,84 +591,265 @@
       nav.classList.remove('active');
     });
 
-    // Modal functionality
+    // Modal functionality with animations
     const modal = document.getElementById('topicModal');
     const closeModal = document.querySelector('.close-modal');
     let currentTopicId = null;
 
+    function openTopicModal(topicId, topicName) {
+      currentTopicId = topicId;
+      document.getElementById('modalTopicName').textContent = topicName;
+      modal.classList.add('active');
+      
+      // Add entrance animations for modal content
+      const modalContent = document.querySelector('.modal-content');
+      modalContent.classList.add('animate-scale');
+      
+      // Reset and add staggered animations to modal sections
+      const modalSections = document.querySelectorAll('.modal-section');
+      modalSections.forEach((section, index) => {
+        section.classList.remove('animate-slide-up');
+        section.style.opacity = '0';
+        
+        setTimeout(() => {
+          section.classList.add('animate-slide-up');
+          section.style.opacity = '1';
+        }, 100 + (index * 150));
+      });
+      
+      // Load topic conversations with animation
+      loadTopicDetails(topicId);
+    }
+
     closeModal.addEventListener('click', () => {
-      modal.classList.remove('active');
+      // Add exit animation
+      const modalContent = document.querySelector('.modal-content');
+      modalContent.classList.add('animate-fade-out');
+      
+      setTimeout(() => {
+        modal.classList.remove('active');
+        modalContent.classList.remove('animate-fade-out', 'animate-scale');
+      }, 300);
     });
 
     window.addEventListener('click', (e) => {
       if (e.target === modal) {
-        modal.classList.remove('active');
+        closeModal.click();
       }
     });
 
-    // Load topics
+    // Load topics with staggered animation
     async function loadTopics() {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      
       try {
-        const userId = localStorage.getItem('userId');
-        const accessToken = localStorage.getItem('accessToken');
+        // Show loader
+        const topicsGrid = document.getElementById('topicsGrid');
+        topicsGrid.innerHTML = '<div class="loading-spinner" style="margin: 2rem auto;"></div>';
         
         const response = await fetch('/.netlify/functions/dashboard', {
           method: 'POST',
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({
+            action: 'getTopics',
+            userId
+          }),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`
           }
         });
-
-        if (!response.ok) throw new Error('Failed to load topics');
-
-        const { topics } = await response.json();
-        const topicsGrid = document.getElementById('topicsGrid');
         
-        if (topics && topics.length > 0) {
-          topicsGrid.innerHTML = topics.map(topic => `
-            <div class="topic-card" data-topic-id="${topic.id}">
-              <div class="topic-name">${topic.name}</div>
-              <div class="topic-stats">
-                <div class="stat">
-                  <i class="fas fa-comments"></i>
-                  <span>${topic.conversation_count || 0} conversations</span>
+        const result = await response.json();
+        
+        if (response.ok) {
+          topicsGrid.innerHTML = '';
+          
+          if (result.topics && result.topics.length > 0) {
+            result.topics.forEach((topic, index) => {
+              const topicCard = document.createElement('div');
+              topicCard.className = 'topic-card';
+              topicCard.style.opacity = '0';
+              topicCard.style.transform = 'translateY(20px)';
+              topicCard.innerHTML = `
+                <h3>${topic.name}</h3>
+                <div class="topic-stats">
+                  <span class="stat"><i class="fas fa-comments"></i> ${topic.conversation_count || 0} conversations</span>
+                  <span class="stat"><i class="fas fa-bookmark"></i> ${topic.bookmark_count || 0} bookmarks</span>
                 </div>
-                <div class="stat">
-                  <i class="fas fa-link"></i>
-                  <span>${topic.bookmark_count || 0} bookmarks</span>
-                </div>
-              </div>
-            </div>
-          `).join('');
-
-          // Add click handlers to cards
-          document.querySelectorAll('.topic-card').forEach(card => {
-            card.addEventListener('click', () => {
-              const topicId = card.dataset.topicId;
-              const topicName = card.querySelector('.topic-name').textContent;
-              openTopicDetails(topicId, topicName);
+              `;
+              
+              topicCard.addEventListener('click', () => {
+                // Add click animation
+                topicCard.classList.add('animate-pulse');
+                setTimeout(() => {
+                  topicCard.classList.remove('animate-pulse');
+                  openTopicModal(topic.id, topic.name);
+                }, 300);
+              });
+              
+              topicsGrid.appendChild(topicCard);
+              
+              // Staggered entrance animation
+              setTimeout(() => {
+                topicCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                topicCard.style.opacity = '1';
+                topicCard.style.transform = 'translateY(0)';
+              }, 50 * index);
             });
-          });
+            
+            // Add a "Create New Topic" card with special animation
+            const newTopicCard = document.createElement('div');
+            newTopicCard.className = 'topic-card new-topic-card';
+            newTopicCard.style.opacity = '0';
+            newTopicCard.style.transform = 'translateY(20px)';
+            newTopicCard.innerHTML = `
+              <div class="plus-icon"><i class="fas fa-plus"></i></div>
+              <h3>Create New Topic</h3>
+            `;
+            
+            newTopicCard.addEventListener('click', showAddTopicForm);
+            topicsGrid.appendChild(newTopicCard);
+            
+            setTimeout(() => {
+              newTopicCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+              newTopicCard.style.opacity = '1';
+              newTopicCard.style.transform = 'translateY(0)';
+            }, 50 * result.topics.length);
+            
+          } else {
+            // No topics yet - show welcome animation
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-state animate-bounce';
+            emptyState.innerHTML = `
+              <div class="empty-icon"><i class="fas fa-lightbulb floating"></i></div>
+              <h3>Create Your First Topic</h3>
+              <p>Start organizing your knowledge by creating a topic</p>
+              <button id="createFirstTopic" class="btn-primary">Create Topic</button>
+            `;
+            topicsGrid.appendChild(emptyState);
+            
+            document.getElementById('createFirstTopic').addEventListener('click', showAddTopicForm);
+          }
         } else {
-          topicsGrid.innerHTML = '<p>No topics yet. Create one in Settings!</p>';
+          showToast('Failed to load topics: ' + result.error);
+          topicsGrid.innerHTML = `<p class="error-message">Failed to load topics. Please try again.</p>`;
         }
       } catch (error) {
         console.error('Error loading topics:', error);
-        alert('Failed to load topics. Please try again.');
+        const topicsGrid = document.getElementById('topicsGrid');
+        topicsGrid.innerHTML = `<p class="error-message">Error connecting to server. Please check your connection and try again.</p>`;
       }
     }
 
-    async function openTopicDetails(topicId, topicName) {
+    // Add topic form with animation
+    function showAddTopicForm() {
+      const addTopicForm = document.getElementById('addTopicForm');
+      const addTopicModal = document.getElementById('addTopicModal');
+      
+      // Reset form
+      addTopicForm.reset();
+      
+      // Show modal with animation
+      addTopicModal.classList.add('active');
+      document.querySelector('#addTopicModal .modal-content').classList.add('animate-slide-up');
+    }
+
+    // Close add topic modal
+    document.querySelector('#addTopicModal .close-modal').addEventListener('click', () => {
+      const modalContent = document.querySelector('#addTopicModal .modal-content');
+      modalContent.classList.add('animate-slide-down');
+      
+      setTimeout(() => {
+        document.getElementById('addTopicModal').classList.remove('active');
+        modalContent.classList.remove('animate-slide-up', 'animate-slide-down');
+      }, 300);
+    });
+
+    // Add topic submission with animation
+    document.getElementById('addTopicForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const topicName = document.getElementById('newTopicName').value.trim();
+      if (!topicName) return;
+      
+      const submitButton = document.querySelector('#addTopicForm button[type="submit"]');
+      const originalText = submitButton.textContent;
+      
+      // Show loading state
+      submitButton.innerHTML = '<span class="loading-spinner" style="width: 20px; height: 20px;"></span>';
+      submitButton.disabled = true;
+      
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
-      currentTopicId = topicId;
-      document.getElementById('modalTopicName').textContent = topicName;
-      document.getElementById('summarySection').classList.remove('active');
-      document.getElementById('summaryLoading').classList.remove('active');
-      modal.classList.add('active');
+      
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'addTopic',
+            userId,
+            name: topicName
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Success animation
+          submitButton.innerHTML = '<i class="fas fa-check"></i>';
+          submitButton.classList.add('success');
+          
+          setTimeout(() => {
+            document.querySelector('#addTopicModal .close-modal').click();
+            submitButton.textContent = originalText;
+            submitButton.classList.remove('success');
+            submitButton.disabled = false;
+            
+            // Show success toast
+            showToast('Topic created successfully!');
+            
+            // Reload topics with animation
+            loadTopics();
+          }, 1000);
+        } else {
+          submitButton.textContent = originalText;
+          submitButton.disabled = false;
+          showToast('Failed to create topic: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Error creating topic:', error);
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+        showToast('Error connecting to server. Please try again.');
+      }
+    });
 
+    // Load topic details with animation
+    async function loadTopicDetails(topicId) {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      
+      // Show skeleton loading state
+      document.getElementById('conversationsList').innerHTML = `
+        <div class="skeleton-loader">
+          <div class="skeleton-item"></div>
+          <div class="skeleton-item"></div>
+          <div class="skeleton-item"></div>
+        </div>
+      `;
+      
+      document.getElementById('bookmarksList').innerHTML = `
+        <div class="skeleton-loader">
+          <div class="skeleton-item"></div>
+          <div class="skeleton-item"></div>
+        </div>
+      `;
+      
       try {
         const response = await fetch('/.netlify/functions/dashboard', {
           method: 'POST',
@@ -658,54 +863,86 @@
             'Authorization': `Bearer ${accessToken}`
           }
         });
-
-        if (!response.ok) throw new Error('Failed to load topic details');
-
-        const { conversations, bookmarks } = await response.json();
         
-        // Display conversations
-        const conversationsList = document.getElementById('conversationsList');
-        if (conversations && conversations.length > 0) {
-          conversationsList.innerHTML = conversations.map(conv => `
-            <div class="conversation-item">
-              <div class="conversation-text">${conv.content}</div>
-              <div class="conversation-time">${new Date(conv.created_at).toLocaleString()}</div>
-            </div>
-          `).join('');
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Populate conversations with animation
+          const conversationsContainer = document.getElementById('conversationsList');
+          conversationsContainer.innerHTML = '';
+          
+          if (result.conversations && result.conversations.length > 0) {
+            result.conversations.forEach((conversation, index) => {
+              const conversationItem = document.createElement('div');
+              conversationItem.className = 'conversation-item';
+              conversationItem.style.opacity = '0';
+              conversationItem.innerHTML = `
+                <p>${conversation.content}</p>
+              `;
+              conversationsContainer.appendChild(conversationItem);
+              
+              // Staggered animation
+              setTimeout(() => {
+                conversationItem.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                conversationItem.style.opacity = '1';
+              }, 50 * index);
+            });
+          } else {
+            conversationsContainer.innerHTML = '<p class="empty-message animate-fade-in">No conversations yet.</p>';
+          }
+          
+          // Populate bookmarks with animation
+          const bookmarksContainer = document.getElementById('bookmarksList');
+          bookmarksContainer.innerHTML = '';
+          
+          if (result.bookmarks && result.bookmarks.length > 0) {
+            result.bookmarks.forEach((bookmark, index) => {
+              const bookmarkItem = document.createElement('div');
+              bookmarkItem.className = 'bookmark-item';
+              bookmarkItem.style.opacity = '0';
+              bookmarkItem.innerHTML = `
+                <a href="${bookmark.url}" target="_blank">${bookmark.url}</a>
+              `;
+              bookmarksContainer.appendChild(bookmarkItem);
+              
+              // Staggered animation
+              setTimeout(() => {
+                bookmarkItem.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                bookmarkItem.style.opacity = '1';
+              }, 50 * index);
+            });
+          } else {
+            bookmarksContainer.innerHTML = '<p class="empty-message animate-fade-in">No bookmarks yet.</p>';
+          }
         } else {
-          conversationsList.innerHTML = '<p>No conversations yet.</p>';
-        }
-
-        // Display bookmarks
-        const bookmarksList = document.getElementById('bookmarksList');
-        if (bookmarks && bookmarks.length > 0) {
-          bookmarksList.innerHTML = bookmarks.map(bookmark => `
-            <div class="link-item">
-              <a href="${bookmark.url}" class="link-url" target="_blank">${bookmark.url}</a>
-            </div>
-          `).join('');
-        } else {
-          bookmarksList.innerHTML = '<p>No bookmarks yet.</p>';
+          document.getElementById('conversationsList').innerHTML = '<p class="error-message">Failed to load conversations.</p>';
+          document.getElementById('bookmarksList').innerHTML = '<p class="error-message">Failed to load bookmarks.</p>';
         }
       } catch (error) {
         console.error('Error loading topic details:', error);
-        alert('Failed to load topic details. Please try again.');
+        document.getElementById('conversationsList').innerHTML = '<p class="error-message">Error connecting to server.</p>';
+        document.getElementById('bookmarksList').innerHTML = '<p class="error-message">Error connecting to server.</p>';
       }
     }
 
-    // Generate summary functionality
+    // Generate summary with animation
     document.getElementById('generateSummaryBtn').addEventListener('click', async () => {
       if (!currentTopicId) return;
-
+      
+      const summaryButton = document.getElementById('generateSummaryBtn');
+      const summaryContainer = document.getElementById('summarySection');
+      
+      // Show loading state with animation
+      summaryButton.innerHTML = '<span class="loading-spinner" style="width: 20px; height: 20px;"></span> Generating...';
+      summaryButton.disabled = true;
+      
+      // Pulse animation on summary container
+      summaryContainer.innerHTML = '';
+      summaryContainer.classList.add('animate-pulse');
+      
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
-      const loadingEl = document.getElementById('summaryLoading');
-      const summarySection = document.getElementById('summarySection');
-      const summaryContent = document.getElementById('summaryContent');
-
-      loadingEl.classList.add('active');
-      summarySection.classList.remove('active');
-
+      
       try {
         const response = await fetch('/.netlify/functions/dashboard', {
           method: 'POST',
@@ -719,25 +956,161 @@
             'Authorization': `Bearer ${accessToken}`
           }
         });
-
-        if (!response.ok) throw new Error('Failed to generate summary');
-
-        const { summary } = await response.json();
-        summaryContent.textContent = summary;
-        summarySection.classList.add('active');
+        
+        const result = await response.json();
+        
+        // Remove pulse animation
+        summaryContainer.classList.remove('animate-pulse');
+        
+        if (response.ok && result.summary) {
+          // Typewriter effect for summary
+          summaryContainer.textContent = '';
+          const summaryText = result.summary;
+          let charIndex = 0;
+          
+          function typeNextChar() {
+            if (charIndex < summaryText.length) {
+              summaryContainer.textContent += summaryText.charAt(charIndex);
+              charIndex++;
+              setTimeout(typeNextChar, Math.random() * 20 + 10); // Random delay for natural effect
+            } else {
+              // Typing complete, restore button
+              summaryButton.innerHTML = '<i class="fas fa-sync"></i> Regenerate Summary';
+              summaryButton.disabled = false;
+            }
+          }
+          
+          // Start typewriter effect
+          typeNextChar();
+        } else {
+          summaryContainer.innerHTML = '<p class="error-message animate-fade-in">Failed to generate summary. Please try again later.</p>';
+          summaryButton.innerHTML = '<i class="fas fa-sync"></i> Try Again';
+          summaryButton.disabled = false;
+        }
       } catch (error) {
         console.error('Error generating summary:', error);
-        alert('Failed to generate summary. Please try again.');
-      } finally {
-        loadingEl.classList.remove('active');
+        summaryContainer.innerHTML = '<p class="error-message animate-fade-in">Error connecting to server. Please try again.</p>';
+        summaryButton.innerHTML = '<i class="fas fa-sync"></i> Try Again';
+        summaryButton.disabled = false;
       }
     });
 
-    // Logout functionality
-    document.getElementById('logout').addEventListener('click', () => {
-      localStorage.removeItem('userId');
-      localStorage.removeItem('accessToken');
-      window.location.href = '/';
+    // Delete topic with confirmation animation
+    document.getElementById('deleteTopic').addEventListener('click', async () => {
+      if (!currentTopicId) return;
+      
+      // Show confirmation with animation
+      const deleteButton = document.getElementById('deleteTopic');
+      const originalText = deleteButton.innerHTML;
+      
+      deleteButton.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Confirm Delete?';
+      deleteButton.classList.add('confirm-delete');
+      
+      // Create cancel option
+      const cancelButton = document.createElement('button');
+      cancelButton.className = 'btn-secondary cancel-delete animate-fade-in';
+      cancelButton.innerHTML = 'Cancel';
+      deleteButton.parentNode.insertBefore(cancelButton, deleteButton.nextSibling);
+      
+      // Handle cancel
+      cancelButton.addEventListener('click', () => {
+        deleteButton.innerHTML = originalText;
+        deleteButton.classList.remove('confirm-delete');
+        cancelButton.classList.add('animate-fade-out');
+        setTimeout(() => cancelButton.remove(), 300);
+      });
+      
+      // Handle confirmation
+      function handleDeleteConfirm() {
+        // Remove listeners
+        deleteButton.removeEventListener('click', handleDeleteConfirm);
+        
+        // Show loading state
+        deleteButton.innerHTML = '<span class="loading-spinner" style="width: 20px; height: 20px;"></span>';
+        deleteButton.disabled = true;
+        cancelButton.remove();
+        
+        deleteTopic(currentTopicId);
+      }
+      
+      // Add confirmation listener
+      deleteButton.addEventListener('click', handleDeleteConfirm);
+    });
+
+    // Delete topic implementation
+    async function deleteTopic(topicId) {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'deleteTopic',
+            userId,
+            topicId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Success animation
+          document.getElementById('deleteTopic').innerHTML = '<i class="fas fa-check"></i> Deleted!';
+          
+          // Modal exit animation
+          setTimeout(() => {
+            closeModal.click();
+            showToast('Topic deleted successfully!');
+            loadTopics();
+          }, 1000);
+        } else {
+          document.getElementById('deleteTopic').innerHTML = '<i class="fas fa-trash"></i> Delete Topic';
+          document.getElementById('deleteTopic').disabled = false;
+          showToast('Failed to delete topic: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Error deleting topic:', error);
+        document.getElementById('deleteTopic').innerHTML = '<i class="fas fa-trash"></i> Delete Topic';
+        document.getElementById('deleteTopic').disabled = false;
+        showToast('Error connecting to server. Please try again.');
+      }
+    }
+
+    // Toast notification
+    function showToast(message, type = 'info') {
+      // Remove existing toasts
+      const existingToasts = document.querySelectorAll('.toast');
+      existingToasts.forEach(toast => toast.remove());
+      
+      // Create new toast
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      // Remove after animation completes
+      setTimeout(() => {
+        toast.remove();
+      }, 3300);
+    }
+
+    // Add logout functionality
+    document.getElementById('logout')?.addEventListener('click', () => {
+      // Add animation
+      const icon = document.querySelector('#logout i');
+      icon.classList.add('animate-rotate');
+      
+      setTimeout(() => {
+        localStorage.removeItem('userId');
+        localStorage.removeItem('accessToken');
+        window.location.href = '/';
+      }, 500);
     });
   </script>
 </body>

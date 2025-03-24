@@ -276,6 +276,171 @@
         display: block;
       }
     }
+
+    /* Message animations */
+    .message {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s, transform 0.5s;
+    }
+    
+    .message.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .user-message {
+      align-self: flex-end;
+      animation-duration: 0.3s;
+    }
+    
+    .ai-message {
+      align-self: flex-start;
+      animation-duration: 0.3s;
+    }
+    
+    /* Thinking animation */
+    .thinking {
+      padding: 1rem;
+      border-radius: 1rem;
+      background-color: #f1f1f1;
+      max-width: 80%;
+      margin-bottom: 0.5rem;
+    }
+    
+    .thinking-dots {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: #32CD32;
+      border-radius: 50%;
+      animation: dot-pulse 1.5s infinite;
+    }
+    
+    .dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    .dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    
+    @keyframes dot-pulse {
+      0% { transform: scale(0.5); opacity: 0.5; }
+      50% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(0.5); opacity: 0.5; }
+    }
+    
+    /* Question box hover effects */
+    .question-box {
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .question-box:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .question-box::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+      transform: translateX(-100%);
+      transition: transform 0.6s;
+    }
+    
+    .question-box:hover::after {
+      transform: translateX(100%);
+    }
+    
+    /* Input animation */
+    #questionInput {
+      transition: all 0.3s ease;
+    }
+    
+    #questionInput:focus {
+      box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.3);
+      transform: scale(1.02);
+    }
+    
+    /* Button animations */
+    #askButton, #saveConversation {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #askButton:hover, #saveConversation:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    #askButton:active, #saveConversation:active {
+      transform: translateY(1px);
+    }
+    
+    #askButton::after, #saveConversation::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.5);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+    
+    #askButton:focus:not(:active)::after, #saveConversation:focus:not(:active)::after {
+      animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+      }
+      20% {
+        transform: scale(25, 25);
+        opacity: 0.3;
+      }
+      100% {
+        opacity: 0;
+        transform: scale(40, 40);
+      }
+    }
+    
+    /* Success state */
+    .success {
+      background-color: #28a745 !important;
+      color: white !important;
+    }
+    
+    /* Error shake animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    
+    .animate-shake {
+      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
   </style>
 </head>
 <body>
@@ -323,6 +488,10 @@
   </div>
   <script src="../chat.js"></script>
   <script>
+    // Get user credentials
+    const userId = localStorage.getItem('userId');
+    const accessToken = localStorage.getItem('accessToken');
+
     // Check login status and update navigation
     function updateNavigation() {
       const isLoggedIn = localStorage.getItem('userId') && localStorage.getItem('accessToken');
@@ -332,6 +501,13 @@
       if (isLoggedIn) {
         loggedInNav.style.display = 'block';
         loggedOutNav.style.display = 'none';
+        
+        // Add entrance animation to main content
+        const mainContent = document.querySelector('.main-content');
+        mainContent.classList.add('animate-fade-in');
+        
+        // Load conversation topics
+        loadConversationTopics();
       } else {
         loggedInNav.style.display = 'none';
         loggedOutNav.style.display = 'block';
@@ -354,119 +530,375 @@
     closeBtn.addEventListener('click', () => {
       nav.classList.remove('active');
     });
-
-    // Existing Chat functionality
-    const userId = localStorage.getItem('userId');
-    const accessToken = localStorage.getItem('accessToken');
-    console.log('User ID from localStorage:', userId);
-    console.log('Access Token from localStorage:', accessToken);
-
-    const userQuestionInput = document.getElementById('questionInput');
-    const askButton = document.getElementById('askButton');
-    const chatContainer = document.getElementById('chatContainer');
-    const questionBoxes = document.querySelectorAll('.question-box');
-
-    function appendMessage(content, sender = 'assistant') {
-      const msg = document.createElement('div');
-      msg.classList.add('message');
-      if (sender === 'user') msg.classList.add('user-message');
-      else msg.classList.add('assistant-message');
-      msg.textContent = content;
-      chatContainer.appendChild(msg);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-
-    async function handleUserQuestion(question) {
-      if (!question) return;
-      appendMessage(question, 'user');
-      userQuestionInput.value = '';
-      const assistantResponse = await fetchChatGPTResponse(question);
-      appendMessage(assistantResponse, 'assistant');
-    }
-
-    askButton.addEventListener('click', () => {
-      const question = userQuestionInput.value.trim();
-      handleUserQuestion(question);
-    });
-
-    userQuestionInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        askButton.click();
+    
+    // Load conversation topics
+    async function loadConversationTopics() {
+      try {
+        const select = document.getElementById('conversationTopic');
+        
+        // Show loading animation
+        select.innerHTML = '<option value="">Loading topics...</option>';
+        select.classList.add('animate-pulse');
+        
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'getTopics',
+            userId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        // Remove loading animation
+        select.classList.remove('animate-pulse');
+        
+        if (response.ok) {
+          select.innerHTML = '<option value="">Select Topic for Conversation</option>';
+          
+          if (result.topics && result.topics.length > 0) {
+            result.topics.forEach(topic => {
+              const option = document.createElement('option');
+              option.value = topic.id;
+              option.textContent = topic.name;
+              select.appendChild(option);
+            });
+          } else {
+            const option = document.createElement('option');
+            option.disabled = true;
+            option.textContent = 'No topics yet - create one in Settings';
+            select.appendChild(option);
+          }
+        } else {
+          select.innerHTML = '<option value="">Failed to load topics</option>';
+        }
+      } catch (error) {
+        console.error('Error loading topics:', error);
+        document.getElementById('conversationTopic').innerHTML = '<option value="">Error loading topics</option>';
       }
-    });
+    }
+    
+    // Animated greeting based on time of day
+    function updateGreeting() {
+      const hour = new Date().getHours();
+      const greeting = document.querySelector('h1');
+      let greetingText = 'Good ';
+      
+      if (hour >= 5 && hour < 12) {
+        greetingText += 'Morning';
+      } else if (hour >= 12 && hour < 18) {
+        greetingText += 'Afternoon';
+      } else {
+        greetingText += 'Evening';
+      }
+      
+      greeting.textContent = greetingText + '!';
+      greeting.classList.add('animate-slide-down');
+    }
+    
+    // Call greeting on load
+    document.addEventListener('DOMContentLoaded', updateGreeting);
+    
+    // Chat message animation
+    function animateChatMessage(message, isUser = false) {
+      message.classList.add(isUser ? 'animate-slide-left' : 'animate-slide-right');
+      setTimeout(() => {
+        message.classList.add('visible');
+      }, 300);
+    }
 
-    questionBoxes.forEach(box => {
-      box.addEventListener('click', () => {
-        const question = box.textContent;
-        handleUserQuestion(question);
-      });
-    });
-
-    async function loadTopicOptions() {
-      const response = await fetch('/.netlify/functions/dashboard', {
+    // Function to fetch chat response
+    async function fetchChatResponse(question) {
+      const response = await fetch('/.netlify/functions/chat', {
         method: 'POST',
-        body: JSON.stringify({ userId }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
-        }
+        },
+        body: JSON.stringify({
+          userId,
+          question
+        })
       });
+      
       if (!response.ok) {
-        console.error('Failed to fetch topics:', response.statusText);
-        return;
+        throw new Error('API request failed');
       }
-      const { topics } = await response.json();
-      console.log('Topics loaded:', topics);
-      const select = document.getElementById('conversationTopic');
-      select.innerHTML = '<option value="">Select Topic for Conversation</option>';
-      topics.forEach(topic => {
-        const option = document.createElement('option');
-        option.value = topic.id;
-        option.textContent = topic.name;
-        select.appendChild(option);
-      });
+      
+      const data = await response.json();
+      return data.response || "Sorry, I couldn't generate a response.";
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      loadTopicOptions();
+    // Handle question submission with animation
+    document.getElementById('askButton').addEventListener('click', async () => {
+      const questionInput = document.getElementById('questionInput');
+      const question = questionInput.value.trim();
+      
+      if (!question) return;
+      
+      // Clear input with animation
+      questionInput.value = '';
+      questionInput.classList.add('animate-pulse');
+      setTimeout(() => {
+        questionInput.classList.remove('animate-pulse');
+      }, 300);
+      
+      // Add user message with animation
+      const chatContainer = document.getElementById('chatContainer');
+      const userMessageElement = document.createElement('div');
+      userMessageElement.className = 'message user-message';
+      userMessageElement.innerHTML = `
+        <div class="message-content">${question}</div>
+        <div class="message-time">${new Date().toLocaleTimeString()}</div>
+      `;
+      chatContainer.appendChild(userMessageElement);
+      animateChatMessage(userMessageElement, true);
+      
+      // Scroll to bottom with smooth animation
+      setTimeout(() => {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }, 100);
+      
+      // Show thinking animation
+      const thinkingElement = document.createElement('div');
+      thinkingElement.className = 'message ai-message thinking';
+      thinkingElement.innerHTML = `
+        <div class="thinking-dots">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      `;
+      chatContainer.appendChild(thinkingElement);
+      animateChatMessage(thinkingElement, false);
+      
+      // Scroll to bottom again
+      setTimeout(() => {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }, 100);
+      
+      try {
+        // Use the original fetchChatGPTResponse function from chat.js if it exists
+        const response = typeof fetchChatGPTResponse === 'function' 
+          ? await fetchChatGPTResponse(question) 
+          : await fetchChatResponse(question);
+        
+        // Remove thinking animation
+        chatContainer.removeChild(thinkingElement);
+        
+        // Add AI response with animation
+        const aiMessageElement = document.createElement('div');
+        aiMessageElement.className = 'message ai-message';
+        
+        // Process markdown formatting if needed
+        const formattedResponse = typeof response === 'string' 
+          ? response.replace(/\n/g, '<br>') 
+          : "I couldn't generate a response.";
+        
+        aiMessageElement.innerHTML = `
+          <div class="message-content">${formattedResponse}</div>
+          <div class="message-time">${new Date().toLocaleTimeString()}</div>
+        `;
+        chatContainer.appendChild(aiMessageElement);
+        
+        // Animate the AI message entrance
+        animateChatMessage(aiMessageElement, false);
+        
+        // Scroll to bottom with smooth animation
+        setTimeout(() => {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 100);
+        
+      } catch (error) {
+        console.error('Error sending message:', error);
+        
+        // Remove thinking animation
+        chatContainer.removeChild(thinkingElement);
+        
+        // Add error message
+        const errorMessageElement = document.createElement('div');
+        errorMessageElement.className = 'message error-message';
+        errorMessageElement.innerHTML = `
+          <div class="message-content">Network error. Please check your connection and try again.</div>
+          <div class="message-time">${new Date().toLocaleTimeString()}</div>
+        `;
+        chatContainer.appendChild(errorMessageElement);
+        animateChatMessage(errorMessageElement, false);
+        
+        // Scroll to bottom
+        setTimeout(() => {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 100);
+      }
     });
-
+    
+    // Handle suggested questions with animation
+    document.querySelectorAll('.question-box').forEach(box => {
+      box.addEventListener('click', () => {
+        // Animate the click
+        box.classList.add('animate-pulse');
+        
+        setTimeout(() => {
+          box.classList.remove('animate-pulse');
+          
+          // Set the input value
+          const questionInput = document.getElementById('questionInput');
+          questionInput.value = box.textContent;
+          
+          // Focus with animation
+          questionInput.focus();
+          questionInput.classList.add('animate-pulse');
+          setTimeout(() => {
+            questionInput.classList.remove('animate-pulse');
+          }, 300);
+          
+          // Trigger the ask button after animation
+          document.getElementById('askButton').click();
+        }, 300);
+      });
+    });
+    
+    // Save conversation with animation
     document.getElementById('saveConversation').addEventListener('click', async () => {
       const topicId = document.getElementById('conversationTopic').value;
+      
       if (!topicId) {
-        alert('Please select a topic');
+        // Animated error notification
+        const select = document.getElementById('conversationTopic');
+        select.classList.add('animate-shake');
+        setTimeout(() => {
+          select.classList.remove('animate-shake');
+        }, 500);
+        
+        showToast('Please select a topic first', 'error');
         return;
       }
-      const chatHistory = Array.from(document.querySelectorAll('.message')).map(msg => msg.textContent).join('\n');
-      if (!chatHistory.trim()) {
-        alert('No conversation history to save. Please ask a question first.');
+      
+      // Get all messages
+      const chatContainer = document.getElementById('chatContainer');
+      const messages = chatContainer.querySelectorAll('.message:not(.thinking)');
+      
+      if (messages.length === 0) {
+        showToast('No conversation to save', 'error');
         return;
       }
-      console.log('Saving conversation:', { userId, topicId, chatHistory });
-      const response = await fetch('/.netlify/functions/dashboard', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'saveConversation', userId, topicId, chatHistory }),
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+      
+      // Format conversation
+      let content = '';
+      messages.forEach(message => {
+        const isUser = message.classList.contains('user-message');
+        const messageContent = message.querySelector('.message-content');
+        if (messageContent) {
+          content += `${isUser ? 'You: ' : 'AI: '}${messageContent.textContent}\n\n`;
         }
       });
-      if (response.ok) {
+      
+      // Animate save button
+      const saveButton = document.getElementById('saveConversation');
+      const originalText = saveButton.textContent;
+      saveButton.innerHTML = '<span class="loading-spinner" style="width: 20px; height: 20px;"></span>';
+      saveButton.disabled = true;
+      
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'saveConversation',
+            userId,
+            topicId,
+            chatHistory: content
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
         const result = await response.json();
-        alert('Conversation saved! Check Supabase or Dashboard.');
-        console.log('Save result:', result);
-      } else {
-        const errorText = await response.text();
-        alert('Failed to save conversation: ' + errorText);
-        console.error('Save error:', errorText);
+        
+        if (response.ok) {
+          // Success animation
+          saveButton.innerHTML = '<i class="fas fa-check"></i> Saved!';
+          saveButton.classList.add('success');
+          
+          showToast('Conversation saved successfully!', 'success');
+          
+          setTimeout(() => {
+            saveButton.textContent = originalText;
+            saveButton.classList.remove('success');
+            saveButton.disabled = false;
+          }, 2000);
+        } else {
+          saveButton.textContent = originalText;
+          saveButton.disabled = false;
+          showToast('Failed to save conversation: ' + result.error, 'error');
+        }
+      } catch (error) {
+        console.error('Error saving conversation:', error);
+        saveButton.textContent = originalText;
+        saveButton.disabled = false;
+        showToast('Error connecting to server. Please try again.', 'error');
       }
     });
-
-    document.getElementById('logout').addEventListener('click', () => {
-      localStorage.removeItem('userId');
-      localStorage.removeItem('accessToken');
-      window.location.href = '/';
+    
+    // Submit on Enter key
+    document.getElementById('questionInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('askButton').click();
+      }
+    });
+    
+    // Toast notification
+    function showToast(message, type = 'info') {
+      // Remove existing toasts
+      const existingToasts = document.querySelectorAll('.toast');
+      existingToasts.forEach(toast => toast.remove());
+      
+      // Create new toast
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      // Remove after animation completes
+      setTimeout(() => {
+        toast.remove();
+      }, 3300);
+    }
+    
+    // Animate on scroll
+    document.addEventListener('DOMContentLoaded', () => {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-fade-in');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      document.querySelectorAll('.question-box').forEach(box => {
+        observer.observe(box);
+      });
+    });
+    
+    // Add logout functionality
+    document.getElementById('logout')?.addEventListener('click', () => {
+      // Add animation
+      const icon = document.querySelector('#logout i');
+      icon.classList.add('animate-rotate');
+      
+      setTimeout(() => {
+        localStorage.removeItem('userId');
+        localStorage.removeItem('accessToken');
+        window.location.href = '/';
+      }, 500);
     });
   </script>
 </body>
