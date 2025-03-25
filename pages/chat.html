@@ -904,6 +904,86 @@
     .toast-close:hover {
       color: #333;
     }
+
+    /* Loading styles */
+    .loading-spinner {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 2rem 0;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 2px solid rgba(230, 230, 230, 0.8);
+      border-radius: 50%;
+      position: relative;
+      background: linear-gradient(to bottom, #f9f9f9, #f1f1f1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .spinner-needle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 16px;
+      background: linear-gradient(to bottom, #e63946, #d62828);
+      transform-origin: bottom center;
+      border-radius: 1px;
+      animation: compass-spin 1.5s cubic-bezier(0.44, 0.08, 0.12, 0.97) infinite;
+      box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+      z-index: 2;
+    }
+    
+    .spinner-needle:after {
+      content: '';
+      position: absolute;
+      width: 2px;
+      height: 8px;
+      background: #457b9d;
+      bottom: -16px;
+      left: 0;
+      transform: rotate(180deg);
+      border-radius: 1px;
+    }
+    
+    .spinner-center {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: #333;
+      border-radius: 50%;
+      z-index: 3;
+      box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), inset 0 0 1px rgba(255, 255, 255, 0.5);
+      background: radial-gradient(circle at center, #666, #333);
+    }
+    
+    @keyframes compass-spin {
+      0% { transform: translate(-50%, -100%) rotate(0deg); }
+      50% { transform: translate(-50%, -100%) rotate(180deg); }
+      100% { transform: translate(-50%, -100%) rotate(360deg); }
+    }
+    
+    .loading-text {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 0.5rem;
+      letter-spacing: 0.5px;
+    }
+    
+    .loading-notes {
+      text-align: center;
+      padding: 2rem;
+    }
+    
+    .loading-notes .spinner {
+      margin: 0 auto 1rem;
+    }
   </style>
 </head>
 <body>
@@ -998,6 +1078,14 @@
         <!-- Notes will be loaded here -->
       </div>
     </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner">
+      <div class="spinner-needle"></div>
+      <div class="spinner-center"></div>
+    </div>
+    <p>AI is thinking...</p>
   </div>
 
   <script src="../chat.js"></script>
@@ -1615,7 +1703,10 @@
       // Show loading state
       notesList.innerHTML = `
         <div class="loading-notes">
-          <div class="spinner"></div>
+          <div class="spinner">
+            <div class="spinner-needle"></div>
+            <div class="spinner-center"></div>
+          </div>
           <p>Loading notes...</p>
         </div>
       `;

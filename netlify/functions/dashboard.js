@@ -154,6 +154,135 @@ exports.handler = async (event, context) => {
       });
       if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ message: 'Conversation saved', data }) };
+    } else if (action === 'saveNote') {
+      // Extract the note content from the request body
+      const { content } = JSON.parse(event.body || '{}');
+      
+      if (!content) {
+        return { 
+          statusCode: 400, 
+          body: JSON.stringify({ error: 'Missing note content' }) 
+        };
+      }
+      
+      console.log(`[SAVE_NOTE] Saving note for user ${userId}, topic: ${topicId || 'untagged'}`);
+      
+      // Create the note record
+      const noteRecord = {
+        user_id: userId,
+        content,
+        created_at: new Date().toISOString()
+      };
+      
+      // Only add topic_id if it's provided (otherwise it'll be untagged)
+      if (topicId) {
+        noteRecord.topic_id = topicId;
+        
+        // If topicId is provided, verify it belongs to the user
+        if (topicId) {
+          const { data: topic, error: topicError } = await supabase
+            .from('topics')
+            .select('user_id')
+            .eq('id', topicId)
+            .single();
+            
+          if (topicError) {
+            console.error(`[SAVE_NOTE] Error verifying topic: ${topicError.message}`);
+            return { 
+              statusCode: 404, 
+              body: JSON.stringify({ error: 'Topic not found' }) 
+            };
+          }
+          
+          if (topic.user_id !== userId) {
+            console.error(`[SAVE_NOTE] Permission denied: Topic belongs to ${topic.user_id}, not ${userId}`);
+            return { 
+              statusCode: 403, 
+              body: JSON.stringify({ error: 'You do not have permission to add notes to this topic' }) 
+            };
+          }
+        }
+      }
+      
+      // Insert the note into the database
+      const { data: note, error: noteError } = await supabase
+        .from('notes')
+        .insert(noteRecord)
+        .select();
+        
+      if (noteError) {
+        console.error(`[SAVE_NOTE] Error saving note: ${noteError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: `Failed to save note: ${noteError.message}` }) 
+        };
+      }
+      
+      console.log(`[SAVE_NOTE] Successfully saved note with ID: ${note[0].id}`);
+      
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ 
+          message: 'Note saved successfully',
+          note: note[0]
+        })
+      };
+    } else if (action === 'deleteNote') {
+      // Add a deleteNote handler
+      const { noteId } = JSON.parse(event.body || '{}');
+      
+      if (!noteId) {
+        return { 
+          statusCode: 400, 
+          body: JSON.stringify({ error: 'Missing note ID' }) 
+        };
+      }
+      
+      // Verify the note belongs to the user
+      const { data: note, error: noteError } = await supabase
+        .from('notes')
+        .select('user_id')
+        .eq('id', noteId)
+        .single();
+        
+      if (noteError) {
+        console.error(`[DELETE_NOTE] Error verifying note: ${noteError.message}`);
+        return { 
+          statusCode: 404, 
+          body: JSON.stringify({ error: 'Note not found' }) 
+        };
+      }
+      
+      if (note.user_id !== userId) {
+        console.error(`[DELETE_NOTE] Permission denied: Note belongs to ${note.user_id}, not ${userId}`);
+        return { 
+          statusCode: 403, 
+          body: JSON.stringify({ error: 'You do not have permission to delete this note' }) 
+        };
+      }
+      
+      // Delete the note
+      const { error: deleteError } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', noteId);
+        
+      if (deleteError) {
+        console.error(`[DELETE_NOTE] Error deleting note: ${deleteError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: `Failed to delete note: ${deleteError.message}` }) 
+        };
+      }
+      
+      console.log(`[DELETE_NOTE] Successfully deleted note with ID: ${noteId}`);
+      
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ 
+          message: 'Note deleted successfully'
+        })
+      };
     } else if (action === 'getTopicDetails') {
       // Fetch the topic itself to get name
       const { data: topic, error: topicError } = await supabase
@@ -211,7 +340,8 @@ exports.handler = async (event, context) => {
       // Fetch notes for specific topic
       const { data: notes, error: notesError } = await supabase
         .from('notes')
-        .select('*')
+        .select('id, content, created_at')
+        .eq('user_id', userId)
         .eq('topic_id', topicId)
         .order('created_at', { ascending: false });
         
@@ -231,7 +361,7 @@ exports.handler = async (event, context) => {
           topic,
           conversations, 
           bookmarks,
-          notes
+          notes: notes || []
         })
       };
     } else if (action === 'generateSummary') {
