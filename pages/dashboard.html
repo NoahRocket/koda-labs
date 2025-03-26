@@ -36,73 +36,109 @@
     .dashboard-header p {
       color: #666;
       font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    .dashboard-header .btn-primary {
+      margin-top: 0.5rem;
     }
 
     .topics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 1.5rem;
-      margin-bottom: 2rem;
+      margin: 2rem 0;
     }
 
     .topic-card {
       background: white;
       border-radius: 12px;
-      padding: 1.5rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 1px solid #e0e0e0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      padding: 1.75rem;
+      transition: all 0.2s ease;
+      border: 1px solid #eaeaea;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       position: relative;
-      overflow: hidden;
     }
 
     .topic-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       border-color: #32CD32;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.08);
     }
 
-    .topic-card::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 0;
-      height: 0;
-      border-style: solid;
-      border-width: 0 3rem 3rem 0;
-      border-color: transparent #32CD32 transparent transparent;
-      opacity: 0;
-      transition: opacity 0.2s;
+    .topic-header {
+      margin-bottom: 1.25rem;
     }
 
-    .topic-card:hover::after {
-      opacity: 0.1;
-    }
-
-    .topic-name {
+    .topic-header h3 {
       font-size: 1.25rem;
+      color: #2c3e50;
+      margin: 0;
       font-weight: 600;
-      color: #333;
-      margin-bottom: 0.5rem;
     }
 
-    .topic-stats {
+    .topic-meta {
       display: flex;
-      gap: 1rem;
-      color: #666;
+      gap: 1.25rem;
+      color: #64748b;
       font-size: 0.9rem;
+      margin-bottom: 1.5rem;
     }
 
-    .stat {
+    .topic-meta span {
       display: flex;
       align-items: center;
       gap: 0.5rem;
     }
 
-    .stat i {
+    .topic-meta i {
+      font-size: 0.95rem;
       color: #32CD32;
+      opacity: 0.9;
+    }
+
+    .view-topic-btn {
+      width: 100%;
+      background: #f8f9fa;
+      color: #2c3e50;
+      border: 1px solid #eaeaea;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .view-topic-btn:hover {
+      background: #32CD32;
+      color: white;
+      border-color: #32CD32;
+    }
+
+    .topic-actions {
+      position: absolute;
+      top: 1.75rem;
+      right: 1.75rem;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .topic-card:hover .topic-actions {
+      opacity: 1;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      padding: 0.5rem;
+      cursor: pointer;
+      color: #64748b;
+      transition: color 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      color: #dc3545;
     }
 
     /* Topic Details Modal */
@@ -113,95 +149,51 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.2);
       z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
     }
 
     .modal.active {
       display: flex;
       justify-content: center;
       align-items: center;
+      opacity: 1;
     }
 
     .modal-content {
       background: white;
-      border-radius: 12px;
+      border-radius: 16px;
       width: 90%;
       max-width: 800px;
-      max-height: 90vh;
+      max-height: 85vh;
       overflow-y: auto;
       position: relative;
-      animation: modalSlideIn 0.3s ease-out;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
     }
 
-    @keyframes modalSlideIn {
-      from {
-        transform: translateY(-20px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
+    .modal.active .modal-content {
+      transform: translateY(0);
     }
 
     .modal-header {
-      padding: 1.5rem;
-      border-bottom: 1px solid #e0e0e0;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #eaeaea;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: #fff;
+      border-radius: 16px 16px 0 0;
     }
 
     .modal-header h2 {
       margin: 0;
       font-size: 1.5rem;
-      color: #333;
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    .delete-btn {
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.2s;
-    }
-
-    .delete-btn:hover {
-      background-color: #c82333;
-    }
-
-    .delete-btn.confirm-delete {
-      background-color: #dc3545;
-      animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-
-    .cancel-delete {
-      background-color: #6c757d;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
+      color: #2c3e50;
+      font-weight: 600;
     }
 
     .close-modal {
@@ -209,17 +201,201 @@
       border: none;
       font-size: 1.5rem;
       cursor: pointer;
-      color: #666;
+      color: #64748b;
       padding: 0.5rem;
-      transition: color 0.2s;
+      margin: -0.5rem;
+      transition: color 0.2s ease;
+      line-height: 1;
     }
 
     .close-modal:hover {
-      color: #333;
+      color: #2c3e50;
     }
 
     .modal-body {
-      padding: 20px;
+      padding: 2rem;
+    }
+
+    /* Modal tabs */
+    .modal-tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0 2rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid #eaeaea;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 1rem 1.25rem;
+      font-size: 0.95rem;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tab-btn i {
+      font-size: 1rem;
+    }
+
+    .tab-btn:hover {
+      color: #2c3e50;
+    }
+
+    .tab-btn.active {
+      color: #32CD32;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #32CD32;
+      border-radius: 2px;
+    }
+
+    /* Tab content */
+    .tab-content {
+      display: none;
+      padding: 0 2rem;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Conversation items */
+    .conversation-item {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .conversation-text {
+      color: #2c3e50;
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    .conversation-time {
+      color: #64748b;
+      font-size: 0.85rem;
+    }
+
+    /* Bookmark items */
+    .link-item {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .link-url {
+      color: #32CD32;
+      text-decoration: none;
+      word-break: break-all;
+      font-size: 0.95rem;
+      display: block;
+      line-height: 1.5;
+    }
+
+    .link-url:hover {
+      text-decoration: underline;
+    }
+
+    /* Note items */
+    .note-item {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+
+    .note-content {
+      color: #2c3e50;
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    .note-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+
+    /* Generate Summary button */
+    .generate-summary-btn {
+      background: #32CD32;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1.5rem auto;
+    }
+
+    .generate-summary-btn:hover {
+      background: #28a745;
+      transform: translateY(-1px);
+    }
+
+    .generate-summary-btn i {
+      font-size: 1rem;
+    }
+
+    /* View Conversation button */
+    .view-conversation-btn {
+      background: #f8f9fa;
+      color: #2c3e50;
+      border: 1px solid #eaeaea;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .view-conversation-btn:hover {
+      background: #32CD32;
+      color: white;
+      border-color: #32CD32;
+    }
+
+    .view-conversation-btn i {
+      font-size: 0.9rem;
+    }
+
+    /* Date headers */
+    .conversation-date {
+      color: #64748b;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin: 1.5rem 0 1rem;
     }
 
     .topic-section {
@@ -804,9 +980,8 @@
     }
 
     .loading-notes .spinner {
-      width: 40px;
-      height: 40px;
-      margin: 0 auto 1rem;
+      width: 36px;
+      height: 36px;
       border: 2px solid rgba(230, 230, 230, 0.8);
       border-radius: 50%;
       position: relative;
@@ -815,6 +990,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      aspect-ratio: 1;
     }
     
     .spinner-needle {
@@ -822,7 +998,7 @@
       top: 50%;
       left: 50%;
       width: 2px;
-      height: 16px;
+      height: 14px;
       background: linear-gradient(to bottom, #e63946, #d62828);
       transform-origin: bottom center;
       border-radius: 1px;
@@ -861,9 +1037,8 @@
     }
     
     .loading-notes .spinner {
-      width: 40px;
-      height: 40px;
-      margin: 0 auto 1rem;
+      width: 36px;
+      height: 36px;
       border: 2px solid rgba(230, 230, 230, 0.8);
       border-radius: 50%;
       position: relative;
@@ -872,6 +1047,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      aspect-ratio: 1;
     }
     
     /* Modern spinner for font awesome icons */
@@ -1140,8 +1316,8 @@
     }
     
     .spinner {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       border: 2px solid rgba(230, 230, 230, 0.8);
       border-radius: 50%;
       position: relative;
@@ -1150,6 +1326,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      aspect-ratio: 1;
     }
     
     .spinner-needle {
@@ -1157,337 +1334,7 @@
       top: 50%;
       left: 50%;
       width: 2px;
-      height: 16px;
-      background: linear-gradient(to bottom, #e63946, #d62828);
-      transform-origin: bottom center;
-      border-radius: 1px;
-      animation: compass-spin 1.5s cubic-bezier(0.44, 0.08, 0.12, 0.97) infinite;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-      z-index: 2;
-    }
-    
-    .spinner-needle:after {
-      content: '';
-      position: absolute;
-      width: 2px;
-      height: 8px;
-      background: #457b9d;
-      bottom: -16px;
-      left: 0;
-      transform: rotate(180deg);
-      border-radius: 1px;
-    }
-    
-    .spinner-center {
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: #333;
-      border-radius: 50%;
-      z-index: 3;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), inset 0 0 1px rgba(255, 255, 255, 0.5);
-      background: radial-gradient(circle at center, #666, #333);
-    }
-    
-    @keyframes compass-spin {
-      0% { transform: translate(-50%, -100%) rotate(0deg); }
-      50% { transform: translate(-50%, -100%) rotate(180deg); }
-      100% { transform: translate(-50%, -100%) rotate(360deg); }
-    }
-    
-    .loading-notes {
-      text-align: center;
-      padding: 2rem;
-    }
-    
-    .loading-notes .spinner {
-      margin: 0 auto 1rem;
-    }
-    
-    /* Modern spinner for font awesome icons */
-    .fa-spinner {
-      color: rgba(0, 0, 0, 0.5);
-      animation: fade 1.5s ease infinite;
-    }
-    
-    @keyframes fade {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 0.8; }
-    }
-    
-    /* Enhanced animation for smoother rotation */
-    @keyframes smooth-spin {
-      0% {
-        transform: rotate(0deg) scale(1);
-      }
-      50% {
-        transform: rotate(180deg) scale(0.95);
-      }
-      100% {
-        transform: rotate(360deg) scale(1);
-      }
-    }
-    
-    /* Toast animation for notes */
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-      20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-    
-    .animate-shake {
-      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-    }
-
-    /* Toast Notifications */
-    .toast-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .toast {
-      min-width: 250px;
-      max-width: 350px;
-      background-color: white;
-      color: #333;
-      border-radius: 8px;
-      padding: 12px 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transition: all 0.3s;
-      animation: slideInRight 0.3s forwards;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      overflow: hidden;
-    }
-
-    @keyframes slideInRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-
-    .toast.toast-closing {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-
-    .toast.success {
-      border-left: 4px solid #28a745;
-    }
-
-    .toast.error {
-      border-left: 4px solid #dc3545;
-    }
-
-    .toast-content {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .toast-content i {
-      font-size: 1.2rem;
-    }
-
-    .toast.success i {
-      color: #28a745;
-    }
-
-    .toast.error i {
-      color: #dc3545;
-    }
-
-    .toast-close {
-      background: none;
-      border: none;
-      font-size: 1.1rem;
-      cursor: pointer;
-      color: #aaa;
-      transition: color 0.2s;
-    }
-
-    .toast-close:hover {
-      color: #333;
-    }
-
-    /* Button Styles */
-    .btn-primary {
-      background-color: #32CD32;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-      font-weight: 500;
-      display: inline-block;
-      text-align: center;
-    }
-
-    .btn-primary:hover {
-      background-color: #28a745;
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background-color: #6c757d;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-      font-weight: 500;
-    }
-
-    .btn-secondary:hover {
-      background-color: #5a6268;
-      transform: translateY(-1px);
-    }
-
-    /* Animation classes */
-    .animate-pulse {
-      animation: pulse 0.5s ease-in-out;
-    }
-
-    .animate-fade-in {
-      animation: fadeIn 0.3s ease-in-out;
-    }
-
-    .animate-fade-out {
-      animation: fadeOut 0.3s ease-in-out;
-    }
-
-    .animate-scale {
-      animation: scale 0.3s ease-in-out;
-    }
-
-    .animate-slide-up {
-      animation: slideUp 0.3s ease-in-out;
-    }
-
-    .animate-slide-down {
-      animation: slideDown 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-
-    @keyframes scale {
-      from { transform: scale(0.8); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    @keyframes slideDown {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    /* Add topic form styles */
-    #addTopicForm input {
-      width: 100%;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: border-color 0.2s;
-    }
-
-    #addTopicForm input:focus {
-      outline: none;
-      border-color: #32CD32;
-    }
-
-    #addTopicForm button {
-      width: 100%;
-    }
-
-    /* Empty state styles */
-    .empty-state {
-      text-align: center;
-      padding: 2rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .empty-icon {
-      font-size: 3rem;
-      color: #32CD32;
-      margin-bottom: 1rem;
-    }
-
-    .floating {
-      animation: float 3s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-      100% { transform: translateY(0px); }
-    }
-
-    .animate-bounce {
-      animation: bounce 0.5s ease-in-out;
-    }
-
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-20px); }
-      60% { transform: translateY(-10px); }
-    }
-
-    /* Loading spinner - modern compass design */
-    .loading-spinner {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-    
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 2px solid rgba(230, 230, 230, 0.8);
-      border-radius: 50%;
-      position: relative;
-      background: linear-gradient(to bottom, #f9f9f9, #f1f1f1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .spinner-needle {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 2px;
-      height: 16px;
+      height: 14px;
       background: linear-gradient(to bottom, #e63946, #d62828);
       transform-origin: bottom center;
       border-radius: 1px;
@@ -1800,8 +1647,8 @@
     }
     
     .spinner {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       border: 2px solid rgba(230, 230, 230, 0.8);
       border-radius: 50%;
       position: relative;
@@ -1810,6 +1657,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      aspect-ratio: 1;
     }
     
     .spinner-needle {
@@ -1817,997 +1665,7 @@
       top: 50%;
       left: 50%;
       width: 2px;
-      height: 16px;
-      background: linear-gradient(to bottom, #e63946, #d62828);
-      transform-origin: bottom center;
-      border-radius: 1px;
-      animation: compass-spin 1.5s cubic-bezier(0.44, 0.08, 0.12, 0.97) infinite;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-      z-index: 2;
-    }
-    
-    .spinner-needle:after {
-      content: '';
-      position: absolute;
-      width: 2px;
-      height: 8px;
-      background: #457b9d;
-      bottom: -16px;
-      left: 0;
-      transform: rotate(180deg);
-      border-radius: 1px;
-    }
-    
-    .spinner-center {
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: #333;
-      border-radius: 50%;
-      z-index: 3;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), inset 0 0 1px rgba(255, 255, 255, 0.5);
-      background: radial-gradient(circle at center, #666, #333);
-    }
-    
-    @keyframes compass-spin {
-      0% { transform: translate(-50%, -100%) rotate(0deg); }
-      50% { transform: translate(-50%, -100%) rotate(180deg); }
-      100% { transform: translate(-50%, -100%) rotate(360deg); }
-    }
-    
-    .loading-notes {
-      text-align: center;
-      padding: 2rem;
-    }
-    
-    .loading-notes .spinner {
-      margin: 0 auto 1rem;
-    }
-    
-    /* Modern spinner for font awesome icons */
-    .fa-spinner {
-      color: rgba(0, 0, 0, 0.5);
-      animation: fade 1.5s ease infinite;
-    }
-    
-    @keyframes fade {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 0.8; }
-    }
-    
-    /* Enhanced animation for smoother rotation */
-    @keyframes smooth-spin {
-      0% {
-        transform: rotate(0deg) scale(1);
-      }
-      50% {
-        transform: rotate(180deg) scale(0.95);
-      }
-      100% {
-        transform: rotate(360deg) scale(1);
-      }
-    }
-    
-    /* Toast animation for notes */
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-      20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-    
-    .animate-shake {
-      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-    }
-
-    /* Toast Notifications */
-    .toast-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .toast {
-      min-width: 250px;
-      max-width: 350px;
-      background-color: white;
-      color: #333;
-      border-radius: 8px;
-      padding: 12px 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transition: all 0.3s;
-      animation: slideInRight 0.3s forwards;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      overflow: hidden;
-    }
-
-    @keyframes slideInRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-
-    .toast.toast-closing {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-
-    .toast.success {
-      border-left: 4px solid #28a745;
-    }
-
-    .toast.error {
-      border-left: 4px solid #dc3545;
-    }
-
-    .toast-content {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .toast-content i {
-      font-size: 1.2rem;
-    }
-
-    .toast.success i {
-      color: #28a745;
-    }
-
-    .toast.error i {
-      color: #dc3545;
-    }
-
-    .toast-close {
-      background: none;
-      border: none;
-      font-size: 1.1rem;
-      cursor: pointer;
-      color: #aaa;
-      transition: color 0.2s;
-    }
-
-    .toast-close:hover {
-      color: #333;
-    }
-
-    /* Button Styles */
-    .btn-primary {
-      background-color: #32CD32;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-      font-weight: 500;
-      display: inline-block;
-      text-align: center;
-    }
-
-    .btn-primary:hover {
-      background-color: #28a745;
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background-color: #6c757d;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-      font-weight: 500;
-    }
-
-    .btn-secondary:hover {
-      background-color: #5a6268;
-      transform: translateY(-1px);
-    }
-
-    /* Animation classes */
-    .animate-pulse {
-      animation: pulse 0.5s ease-in-out;
-    }
-
-    .animate-fade-in {
-      animation: fadeIn 0.3s ease-in-out;
-    }
-
-    .animate-fade-out {
-      animation: fadeOut 0.3s ease-in-out;
-    }
-
-    .animate-scale {
-      animation: scale 0.3s ease-in-out;
-    }
-
-    .animate-slide-up {
-      animation: slideUp 0.3s ease-in-out;
-    }
-
-    .animate-slide-down {
-      animation: slideDown 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-
-    @keyframes scale {
-      from { transform: scale(0.8); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    @keyframes slideDown {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    /* Add topic form styles */
-    #addTopicForm input {
-      width: 100%;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: border-color 0.2s;
-    }
-
-    #addTopicForm input:focus {
-      outline: none;
-      border-color: #32CD32;
-    }
-
-    #addTopicForm button {
-      width: 100%;
-    }
-
-    /* Empty state styles */
-    .empty-state {
-      text-align: center;
-      padding: 2rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .empty-icon {
-      font-size: 3rem;
-      color: #32CD32;
-      margin-bottom: 1rem;
-    }
-
-    .floating {
-      animation: float 3s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-      100% { transform: translateY(0px); }
-    }
-
-    .animate-bounce {
-      animation: bounce 0.5s ease-in-out;
-    }
-
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-20px); }
-      60% { transform: translateY(-10px); }
-    }
-
-    /* Loading spinner - modern compass design */
-    .loading-spinner {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-    
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 2px solid rgba(230, 230, 230, 0.8);
-      border-radius: 50%;
-      position: relative;
-      background: linear-gradient(to bottom, #f9f9f9, #f1f1f1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .spinner-needle {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 2px;
-      height: 16px;
-      background: linear-gradient(to bottom, #e63946, #d62828);
-      transform-origin: bottom center;
-      border-radius: 1px;
-      animation: compass-spin 1.5s cubic-bezier(0.44, 0.08, 0.12, 0.97) infinite;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-      z-index: 2;
-    }
-    
-    .spinner-needle:after {
-      content: '';
-      position: absolute;
-      width: 2px;
-      height: 8px;
-      background: #457b9d;
-      bottom: -16px;
-      left: 0;
-      transform: rotate(180deg);
-      border-radius: 1px;
-    }
-    
-    .spinner-center {
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: #333;
-      border-radius: 50%;
-      z-index: 3;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), inset 0 0 1px rgba(255, 255, 255, 0.5);
-      background: radial-gradient(circle at center, #666, #333);
-    }
-    
-    @keyframes compass-spin {
-      0% { transform: translate(-50%, -100%) rotate(0deg); }
-      50% { transform: translate(-50%, -100%) rotate(180deg); }
-      100% { transform: translate(-50%, -100%) rotate(360deg); }
-    }
-    
-    .loading-notes {
-      text-align: center;
-      padding: 2rem;
-    }
-    
-    .loading-notes .spinner {
-      margin: 0 auto 1rem;
-    }
-    
-    /* Modern spinner for font awesome icons */
-    .fa-spinner {
-      color: rgba(0, 0, 0, 0.5);
-      animation: fade 1.5s ease infinite;
-    }
-    
-    @keyframes fade {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 0.8; }
-    }
-    
-    /* Enhanced animation for smoother rotation */
-    @keyframes smooth-spin {
-      0% {
-        transform: rotate(0deg) scale(1);
-      }
-      50% {
-        transform: rotate(180deg) scale(0.95);
-      }
-      100% {
-        transform: rotate(360deg) scale(1);
-      }
-    }
-    
-    /* Toast animation for notes */
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-      20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-    
-    .animate-shake {
-      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-    }
-
-    /* Toast Notifications */
-    .toast-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .toast {
-      min-width: 250px;
-      max-width: 350px;
-      background-color: white;
-      color: #333;
-      border-radius: 8px;
-      padding: 12px 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transition: all 0.3s;
-      animation: slideInRight 0.3s forwards;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      overflow: hidden;
-    }
-
-    @keyframes slideInRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-
-    .toast.toast-closing {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-
-    .toast.success {
-      border-left: 4px solid #28a745;
-    }
-
-    .toast.error {
-      border-left: 4px solid #dc3545;
-    }
-
-    .toast-content {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .toast-content i {
-      font-size: 1.2rem;
-    }
-
-    .toast.success i {
-      color: #28a745;
-    }
-
-    .toast.error i {
-      color: #dc3545;
-    }
-
-    .toast-close {
-      background: none;
-      border: none;
-      font-size: 1.1rem;
-      cursor: pointer;
-      color: #aaa;
-      transition: color 0.2s;
-    }
-
-    .toast-close:hover {
-      color: #333;
-    }
-
-    /* Button Styles */
-    .btn-primary {
-      background-color: #32CD32;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-      font-weight: 500;
-      display: inline-block;
-      text-align: center;
-    }
-
-    .btn-primary:hover {
-      background-color: #28a745;
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background-color: #6c757d;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-      font-weight: 500;
-    }
-
-    .btn-secondary:hover {
-      background-color: #5a6268;
-      transform: translateY(-1px);
-    }
-
-    /* Animation classes */
-    .animate-pulse {
-      animation: pulse 0.5s ease-in-out;
-    }
-
-    .animate-fade-in {
-      animation: fadeIn 0.3s ease-in-out;
-    }
-
-    .animate-fade-out {
-      animation: fadeOut 0.3s ease-in-out;
-    }
-
-    .animate-scale {
-      animation: scale 0.3s ease-in-out;
-    }
-
-    .animate-slide-up {
-      animation: slideUp 0.3s ease-in-out;
-    }
-
-    .animate-slide-down {
-      animation: slideDown 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-
-    @keyframes scale {
-      from { transform: scale(0.8); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    @keyframes slideDown {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    /* Add topic form styles */
-    #addTopicForm input {
-      width: 100%;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: border-color 0.2s;
-    }
-
-    #addTopicForm input:focus {
-      outline: none;
-      border-color: #32CD32;
-    }
-
-    #addTopicForm button {
-      width: 100%;
-    }
-
-    /* Empty state styles */
-    .empty-state {
-      text-align: center;
-      padding: 2rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .empty-icon {
-      font-size: 3rem;
-      color: #32CD32;
-      margin-bottom: 1rem;
-    }
-
-    .floating {
-      animation: float 3s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-      100% { transform: translateY(0px); }
-    }
-
-    .animate-bounce {
-      animation: bounce 0.5s ease-in-out;
-    }
-
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-20px); }
-      60% { transform: translateY(-10px); }
-    }
-
-    /* Loading spinner - modern compass design */
-    .loading-spinner {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-    
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 2px solid rgba(230, 230, 230, 0.8);
-      border-radius: 50%;
-      position: relative;
-      background: linear-gradient(to bottom, #f9f9f9, #f1f1f1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .spinner-needle {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 2px;
-      height: 16px;
-      background: linear-gradient(to bottom, #e63946, #d62828);
-      transform-origin: bottom center;
-      border-radius: 1px;
-      animation: compass-spin 1.5s cubic-bezier(0.44, 0.08, 0.12, 0.97) infinite;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-      z-index: 2;
-    }
-    
-    .spinner-needle:after {
-      content: '';
-      position: absolute;
-      width: 2px;
-      height: 8px;
-      background: #457b9d;
-      bottom: -16px;
-      left: 0;
-      transform: rotate(180deg);
-      border-radius: 1px;
-    }
-    
-    .spinner-center {
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: #333;
-      border-radius: 50%;
-      z-index: 3;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), inset 0 0 1px rgba(255, 255, 255, 0.5);
-      background: radial-gradient(circle at center, #666, #333);
-    }
-    
-    @keyframes compass-spin {
-      0% { transform: translate(-50%, -100%) rotate(0deg); }
-      50% { transform: translate(-50%, -100%) rotate(180deg); }
-      100% { transform: translate(-50%, -100%) rotate(360deg); }
-    }
-    
-    .loading-notes {
-      text-align: center;
-      padding: 2rem;
-    }
-    
-    .loading-notes .spinner {
-      margin: 0 auto 1rem;
-    }
-    
-    /* Modern spinner for font awesome icons */
-    .fa-spinner {
-      color: rgba(0, 0, 0, 0.5);
-      animation: fade 1.5s ease infinite;
-    }
-    
-    @keyframes fade {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 0.8; }
-    }
-    
-    /* Enhanced animation for smoother rotation */
-    @keyframes smooth-spin {
-      0% {
-        transform: rotate(0deg) scale(1);
-      }
-      50% {
-        transform: rotate(180deg) scale(0.95);
-      }
-      100% {
-        transform: rotate(360deg) scale(1);
-      }
-    }
-    
-    /* Toast animation for notes */
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-      20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-    
-    .animate-shake {
-      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-    }
-
-    /* Toast Notifications */
-    .toast-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .toast {
-      min-width: 250px;
-      max-width: 350px;
-      background-color: white;
-      color: #333;
-      border-radius: 8px;
-      padding: 12px 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transition: all 0.3s;
-      animation: slideInRight 0.3s forwards;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      overflow: hidden;
-    }
-
-    @keyframes slideInRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-
-    .toast.toast-closing {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-
-    .toast.success {
-      border-left: 4px solid #28a745;
-    }
-
-    .toast.error {
-      border-left: 4px solid #dc3545;
-    }
-
-    .toast-content {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .toast-content i {
-      font-size: 1.2rem;
-    }
-
-    .toast.success i {
-      color: #28a745;
-    }
-
-    .toast.error i {
-      color: #dc3545;
-    }
-
-    .toast-close {
-      background: none;
-      border: none;
-      font-size: 1.1rem;
-      cursor: pointer;
-      color: #aaa;
-      transition: color 0.2s;
-    }
-
-    .toast-close:hover {
-      color: #333;
-    }
-
-    /* Button Styles */
-    .btn-primary {
-      background-color: #32CD32;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-      font-weight: 500;
-      display: inline-block;
-      text-align: center;
-    }
-
-    .btn-primary:hover {
-      background-color: #28a745;
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background-color: #6c757d;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-      font-weight: 500;
-    }
-
-    .btn-secondary:hover {
-      background-color: #5a6268;
-      transform: translateY(-1px);
-    }
-
-    /* Animation classes */
-    .animate-pulse {
-      animation: pulse 0.5s ease-in-out;
-    }
-
-    .animate-fade-in {
-      animation: fadeIn 0.3s ease-in-out;
-    }
-
-    .animate-fade-out {
-      animation: fadeOut 0.3s ease-in-out;
-    }
-
-    .animate-scale {
-      animation: scale 0.3s ease-in-out;
-    }
-
-    .animate-slide-up {
-      animation: slideUp 0.3s ease-in-out;
-    }
-
-    .animate-slide-down {
-      animation: slideDown 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-
-    @keyframes scale {
-      from { transform: scale(0.8); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    @keyframes slideDown {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    /* Add topic form styles */
-    #addTopicForm input {
-      width: 100%;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: border-color 0.2s;
-    }
-
-    #addTopicForm input:focus {
-      outline: none;
-      border-color: #32CD32;
-    }
-
-    #addTopicForm button {
-      width: 100%;
-    }
-
-    /* Empty state styles */
-    .empty-state {
-      text-align: center;
-      padding: 2rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .empty-icon {
-      font-size: 3rem;
-      color: #32CD32;
-      margin-bottom: 1rem;
-    }
-
-    .floating {
-      animation: float 3s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-      100% { transform: translateY(0px); }
-    }
-
-    .animate-bounce {
-      animation: bounce 0.5s ease-in-out;
-    }
-
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-20px); }
-      60% { transform: translateY(-10px); }
-    }
-
-    /* Loading spinner - modern compass design */
-    .loading-spinner {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-    
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 2px solid rgba(230, 230, 230, 0.8);
-      border-radius: 50%;
-      position: relative;
-      background: linear-gradient(to bottom, #f9f9f9, #f1f1f1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .spinner-needle {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 2px;
-      height: 16px;
+      height: 14px;
       background: linear-gradient(to bottom, #e63946, #d62828);
       transform-origin: bottom center;
       border-radius: 1px;
@@ -3497,7 +2355,12 @@
               conversationItem.className = 'conversation-item';
               conversationItem.style.opacity = '0';
               conversationItem.innerHTML = `
-                <p class="conversation-text">${conversation.content}</p>
+                <div class="conversation-header">
+                  <span class="conversation-date">${new Date(conversation.created_at).toLocaleDateString()}</span>
+                </div>
+                <div class="conversation-content">
+                  <p>${conversation.content}</p>
+                </div>
               `;
               conversationsContainer.appendChild(conversationItem);
               
@@ -3733,11 +2596,8 @@
                 <span class="conversation-date">${new Date(conversation.created_at).toLocaleDateString()}</span>
               </div>
               <div class="conversation-content">
-                <p>${conversation.content.substring(0, 150)}${conversation.content.length > 150 ? '...' : ''}</p>
+                <p>${conversation.content}</p>
               </div>
-              <a href="/pages/chat.html?conversation=${conversation.id}" class="btn-secondary">
-                <i class="fas fa-eye"></i> View Conversation
-              </a>
             `;
             conversationsList.appendChild(conversationItem);
           });

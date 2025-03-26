@@ -984,6 +984,25 @@
     .loading-notes .spinner {
       margin: 0 auto 1rem;
     }
+
+    .loading {
+      position: fixed;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+      text-align: center;
+    }
+
+    .loading p {
+      margin: 0.5rem 0 0;
+      color: #666;
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
@@ -1080,7 +1099,7 @@
     </div>
   </div>
 
-  <div class="loading" id="loading">
+  <div class="loading" id="loading" style="display: none;">
     <div class="spinner">
       <div class="spinner-needle"></div>
       <div class="spinner-center"></div>
@@ -1267,6 +1286,7 @@
     document.getElementById('askButton').addEventListener('click', async () => {
       const questionInput = document.getElementById('questionInput');
       const question = questionInput.value.trim();
+      const loading = document.getElementById('loading');
       
       if (!question) return;
       
@@ -1299,23 +1319,8 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }, 100);
       
-      // Show thinking animation
-      const thinkingElement = document.createElement('div');
-      thinkingElement.className = 'message ai-message thinking';
-      thinkingElement.innerHTML = `
-        <div class="thinking-dots">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-      `;
-      chatContainer.appendChild(thinkingElement);
-      animateChatMessage(thinkingElement, false);
-      
-      // Scroll to bottom again
-      setTimeout(() => {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }, 100);
+      // Show loading spinner
+      loading.style.display = 'block';
       
       try {
         // Use the original fetchChatGPTResponse function from chat.js if it exists
@@ -1323,8 +1328,8 @@
           ? await fetchChatGPTResponse(question) 
           : await fetchChatResponse(question);
         
-        // Remove thinking animation
-        chatContainer.removeChild(thinkingElement);
+        // Hide loading spinner
+        loading.style.display = 'none';
         
         // Add AI response with animation
         const aiMessageElement = document.createElement('div');
@@ -1352,8 +1357,8 @@
       } catch (error) {
         console.error('Error sending message:', error);
         
-        // Remove thinking animation
-        chatContainer.removeChild(thinkingElement);
+        // Hide loading spinner
+        loading.style.display = 'none';
         
         // Add error message
         const errorMessageElement = document.createElement('div');
