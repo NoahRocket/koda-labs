@@ -12,6 +12,9 @@
       font-family: 'EB Garamond', serif;
       color: #333;
       line-height: 1.6;
+      min-height: 100vh;
+      overflow-y: auto;
+      display: block;
     }
 
     nav {
@@ -69,6 +72,10 @@
     .main-content {
       margin-left: 80px;
       padding: 0;
+      width: 100%;
+      overflow-y: auto;
+      height: auto;
+      min-height: 100vh;
     }
 
     .hero {
@@ -76,7 +83,6 @@
       padding: 8rem 2rem;
       text-align: center;
       position: relative;
-      overflow: hidden;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -370,7 +376,7 @@
       <a href="/pages/signup.html"><i class="fas fa-user-plus"></i>Sign Up</a>
     </div>
   </nav>
-  <div class="main-content">
+  <div class="main-content" style="overflow-y: auto;">
     <section class="hero">
       <div class="hero-content">
         <h1>Transform How You Learn and Remember</h1>

@@ -324,9 +324,13 @@ nav a:hover::after {
 
 /* Body styling */
 body {
+  background-color: #f8f9fa;
   display: flex;
-  height: 100vh;
-  background-color: #f5f7fa; /* Softer gray background */
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  /* Removing overflow: hidden to fix scrolling issues */
+  /* overflow: hidden; */
 }
 
 /* Sidebar container */
@@ -722,6 +726,23 @@ button:hover {
   .message {
     font-size: 1rem;
   }
+
+  .chat-input-container {
+    padding: 0.75rem 1.25rem 1rem;
+  }
+
+  .chat-controls {
+    flex-direction: row;
+  }
+
+  .conversation-controls {
+    flex-direction: column;
+  }
+
+  #saveConversation {
+    width: 100%;
+    margin-top: 0.25rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -760,7 +781,6 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  overflow: hidden;
 }
 
 nav {
