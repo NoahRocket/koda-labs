@@ -194,11 +194,95 @@ Keep the tone informative and professional. Even if content is sparse, extract m
       const summary = data.choices[0].message.content.trim();
       console.log('[Summary] Summary generated successfully');
 
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-        body: JSON.stringify({ summary })
-      };
+      // Save the summary to the database
+      try {
+        // Check if summaries already exist for this topic and user
+        const { data: existingSummaries, error: lookupError } = await supabase
+          .from('summaries')
+          .select('id')
+          .eq('topic_id', topicId)
+          .eq('user_id', userId);
+
+        if (lookupError) {
+          console.error('[Summary] Error checking for existing summaries:', lookupError);
+          persistenceError = lookupError;
+        } else if (existingSummaries && existingSummaries.length > 0) {
+          // Delete all existing summaries for this topic and user
+          console.log(`[Summary] Found ${existingSummaries.length} existing summaries for topic ${topicId}, deleting them`);
+          
+          const existingIds = existingSummaries.map(s => s.id);
+          const { error: deleteError } = await supabase
+            .from('summaries')
+            .delete()
+            .in('id', existingIds);
+            
+          if (deleteError) {
+            console.error('[Summary] Error deleting existing summaries:', deleteError);
+            persistenceError = deleteError;
+          } else {
+            console.log(`[Summary] Successfully deleted ${existingSummaries.length} existing summaries`);
+          }
+        } else {
+          console.log('[Summary] No existing summaries found for this topic');
+        }
+        
+        // Create a new summary regardless of what happened above
+        let summaryResult;
+        const currentTimestamp = new Date().toISOString();
+        let persistenceSuccessful = false;
+        let persistenceError = null;
+
+        // Create new summary
+        console.log('[Summary] Creating new summary');
+        const { data: newSummary, error: insertError } = await supabase
+          .from('summaries')
+          .insert({
+            topic_id: topicId,
+            user_id: userId,
+            content: summary,
+            last_source_updated_at: currentTimestamp
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('[Summary] Error creating new summary:', insertError);
+          persistenceError = insertError.message;
+        } else if (!newSummary) {
+          console.error('[Summary] Insert succeeded but no summary returned');
+          persistenceError = 'Insert succeeded but no data returned';
+        } else {
+          console.log('[Summary] Successfully created new summary with ID:', newSummary.id);
+          summaryResult = newSummary;
+          persistenceSuccessful = true;
+        }
+
+        console.log('[Summary] Database persistence successful:', persistenceSuccessful);
+        
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+          body: JSON.stringify({ 
+            summary,
+            persistenceSuccessful,
+            persistenceError,
+            summaryId: summaryResult?.id,
+            timestamp: currentTimestamp
+          })
+        };
+      } catch (dbError) {
+        console.error('[Summary] Database operation failed:', dbError);
+        // Continue even if database operation fails, still return the summary to user
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+          body: JSON.stringify({ 
+            summary,
+            persistenceSuccessful: false,
+            persistenceError: dbError.message
+          })
+        };
+      }
     } catch (apiError) {
       console.error('[Summary] Error making OpenAI API request:', apiError);
       return { 

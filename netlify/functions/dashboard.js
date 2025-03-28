@@ -353,7 +353,25 @@ exports.handler = async (event, context) => {
         };
       }
       
+      // Fetch existing summary for the topic
+      const { data: summaries, error: summaryError } = await supabase
+        .from('summaries')
+        .select('content, created_at, last_source_updated_at')
+        .eq('user_id', userId)
+        .eq('topic_id', topicId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+        
+      if (summaryError) {
+        console.error(`[GET_TOPIC_DETAILS] Error fetching summary: ${summaryError.message}`);
+        // Don't return an error, just continue without a summary
+      }
+      
+      // Get the most recent summary (if any)
+      const summary = summaries && summaries.length > 0 ? summaries[0] : null;
+      
       console.log(`[GET_TOPIC_DETAILS] Found ${conversations.length} conversations, ${bookmarks.length} bookmarks, ${notes.length} notes for topic ${topicId}`);
+      console.log(`[GET_TOPIC_DETAILS] Found summary: ${summary ? 'yes' : 'no'}`);
 
       return {
         statusCode: 200,
@@ -361,7 +379,8 @@ exports.handler = async (event, context) => {
           topic,
           conversations, 
           bookmarks,
-          notes: notes || []
+          notes: notes || [],
+          summary
         })
       };
     } else if (action === 'generateSummary') {
