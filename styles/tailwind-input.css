@@ -3,3 +3,61 @@
 @tailwind utilities;
 
 /* Additional custom styles if needed */
+
+@layer components {
+  .toast-container {
+    @apply fixed bottom-5 right-5 z-[9999] flex flex-col gap-2.5;
+  }
+  .toast {
+    @apply min-w-[250px] max-w-[350px] bg-white text-gray-800 rounded-lg py-3 px-4 shadow-lg transition-all duration-300 flex justify-between items-center overflow-hidden;
+    /* Use a custom animation defined below or integrate with Tailwind's animation config */
+    animation: slideInRight 0.3s forwards;
+  }
+  .toast.toast-closing {
+    @apply opacity-0;
+    transform: translateX(100%); /* Keep transform for exit animation */
+  }
+  .toast.success {
+    @apply border-l-4 border-green-500;
+    /* Or if using bg color instead: @apply bg-green-100 text-green-800; */
+  }
+  .toast.error {
+    @apply border-l-4 border-red-500;
+    /* Or if using bg color instead: @apply bg-red-100 text-red-800; */
+  }
+  .toast-content {
+    @apply flex items-center gap-2.5;
+  }
+  .toast-content i {
+    @apply text-xl; /* approx 1.2rem */
+  }
+  .toast.success i {
+    @apply text-green-500;
+  }
+  .toast.error i {
+    @apply text-red-500;
+  }
+  .toast-close {
+    @apply bg-transparent border-none text-lg cursor-pointer text-gray-400 transition-colors duration-200 hover:text-gray-800;
+  }
+
+  /* New Tab Button Component */
+  .tab-button {
+    @apply relative pb-2 px-4 font-medium text-gray-600 transition-colors duration-200 hover:text-gray-900;
+  }
+
+  .tab-button.active {
+    @apply text-green-500;
+  }
+
+  .tab-button.active::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-green-500 rounded-sm;
+  }
+}
+
+/* Define custom animations if not in tailwind.config.js */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
