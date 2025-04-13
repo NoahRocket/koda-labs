@@ -752,3 +752,47 @@ p {
   color: #666666;
   font-size: 1.1rem;
 }
+
+/* Summary Panel Styles */
+#quick-summary-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.summary-content {
+  line-height: 1.6;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.summary-meta {
+  font-size: 0.9rem;
+  color: #666;
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.no-summary-text {
+  color: #666;
+  font-style: italic;
+  margin-top: 1rem;
+}

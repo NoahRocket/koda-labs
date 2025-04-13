@@ -32,41 +32,55 @@ exports.handler = async (event, context) => {
     }
   });
 
-  const { userId, topicId, timestamp } = JSON.parse(event.body || '{}');
+  const { user_id: userId, topic_id: topicId } = JSON.parse(event.body);
 
   if (!userId || !topicId) return { statusCode: 400, body: 'Missing user ID or topic ID' };
 
   try {
-    console.log(`[Summary] Processing request for userId: ${userId}, topicId: ${topicId}, timestamp: ${timestamp || 'none'}`);
+    console.log(`[Summary] Processing request for userId: ${userId}, topicId: ${topicId}`);
     
-    // Fetch bookmarks for the topic
-    const { data: bookmarks } = await supabase
-      .from('bookmarks')
-      .select('url')
-      .eq('topic_id', topicId);
+    // Get the latest timestamps from all content
+    const { data: latestTimestamps, error: timestampError } = await supabase
+      .from('topics')
+      .select(`
+        id,
+        notes (created_at, updated_at),
+        conversations (created_at),
+        bookmarks (created_at)
+      `)
+      .eq('id', topicId)
+      .single();
 
-    console.log(`[Summary] Found ${bookmarks?.length || 0} bookmarks for topic ${topicId}`);
+    if (timestampError) throw timestampError;
 
-    // Fetch all conversations for the topic
-    const { data: conversations } = await supabase
-      .from('conversations')
-      .select('content')
-      .eq('topic_id', topicId);
-      
-    console.log(`[Summary] Found ${conversations?.length || 0} conversations for topic ${topicId}`);
+    // Calculate the latest timestamp
+    const allTimestamps = [
+      ...(latestTimestamps.notes?.map(n => n.updated_at || n.created_at) || []),
+      ...(latestTimestamps.conversations?.map(c => c.created_at) || []),
+      ...(latestTimestamps.bookmarks?.map(b => b.created_at) || [])
+    ];
 
-    // Fetch notes for the topic
-    const { data: notes } = await supabase
-      .from('notes')
-      .select('content, created_at')
-      .eq('topic_id', topicId);
+    const lastSourceUpdatedAt = allTimestamps.length > 0 
+      ? new Date(Math.max(...allTimestamps.map(t => new Date(t))))
+      : new Date();
 
-    console.log(`[Summary] Found ${notes?.length || 0} notes for topic ${topicId}`);
+    // Get all content for summarization
+    const { data: content, error: contentError } = await supabase
+      .from('topics')
+      .select(`
+        notes (content),
+        conversations (content),
+        bookmarks (url)
+      `)
+      .eq('id', topicId)
+      .single();
+
+    if (contentError) throw contentError;
 
     // Fetch metadata from bookmark URLs
     let bookmarkContent = '';
-    if (bookmarks && bookmarks.length > 0) {
-      for (const bookmark of bookmarks) {
+    if (content.bookmarks && content.bookmarks.length > 0) {
+      for (const bookmark of content.bookmarks) {
         try {
           const metadata = await urlMetadata(bookmark.url, { requestOptions: { timeout: 5000 } });
           bookmarkContent += `URL: ${bookmark.url} - Title: ${metadata.title || 'No title'} - Description: ${metadata.description || 'No description'}\n`;
@@ -79,13 +93,13 @@ exports.handler = async (event, context) => {
     }
 
     // Combine conversation content
-    const conversationContent = conversations && conversations.length > 0
-      ? conversations.map(c => c.content).join('\n')
+    const conversationContent = content.conversations && content.conversations.length > 0
+      ? content.conversations.map(c => c.content).join('\n')
       : 'No conversation history available for this topic.\n';
 
     // Format notes with dates
-    const notesContent = notes && notes.length > 0
-      ? notes.map(n => {
+    const notesContent = content.notes && content.notes.length > 0
+      ? content.notes.map(n => {
           const date = new Date(n.created_at).toLocaleDateString();
           return `[${date}] ${n.content}`;
         }).join('\n')
@@ -194,10 +208,27 @@ Keep the tone informative and professional. Even if content is sparse, extract m
       const summary = data.choices[0].message.content.trim();
       console.log('[Summary] Summary generated successfully');
 
+      // Upsert the summary
+      const { data: savedSummary, error: upsertError } = await supabase
+        .from('summaries')
+        .upsert({
+          user_id: userId,
+          topic_id: topicId,
+          content: summary,
+          last_source_updated_at: lastSourceUpdatedAt.toISOString()
+        }, {
+          onConflict: 'user_id,topic_id',
+          returning: true
+        });
+
+      if (upsertError) throw upsertError;
+
       return {
         statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-        body: JSON.stringify({ summary })
+        body: JSON.stringify({
+          summary: savedSummary[0],
+          needsUpdate: false
+        })
       };
     } catch (apiError) {
       console.error('[Summary] Error making OpenAI API request:', apiError);
@@ -211,15 +242,10 @@ Keep the tone informative and professional. Even if content is sparse, extract m
       };
     }
   } catch (error) {
-    console.error('[Summary] Error generating summary:', error);
-    return { 
-      statusCode: 500, 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        error: 'Failed to generate summary',
-        message: error.message,
-        stack: error.stack
-      }) 
+    console.error('Error in summary function:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Failed to generate or save summary' })
     };
   }
 };
