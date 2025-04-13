@@ -129,6 +129,50 @@ exports.handler = async (event, context) => {
           }) 
         };
       }
+    } else if (action === 'updateTopicName') {
+      const { topicId, newTopicName } = JSON.parse(event.body || '{}');
+      
+      if (!topicId || !newTopicName) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing topic ID or new topic name' }) };
+      }
+
+      console.log(`[UPDATE_TOPIC] Attempting to update topic ${topicId} to name "${newTopicName}" for user ${userId}`);
+
+      // Verify the topic belongs to the user first
+      const { data: topic, error: verifyError } = await supabase
+        .from('topics')
+        .select('user_id')
+        .eq('id', topicId)
+        .single();
+
+      if (verifyError) {
+        console.error(`[UPDATE_TOPIC] Error verifying topic ${topicId}: ${verifyError.message}`);
+        // Differentiate between not found and other errors if needed
+        if (verifyError.code === 'PGRST116') { // Resource not found 
+          return { statusCode: 404, body: JSON.stringify({ error: 'Topic not found' }) };
+        }
+        return { statusCode: 500, body: JSON.stringify({ error: `Verification error: ${verifyError.message}` }) };
+      }
+
+      if (topic.user_id !== userId) {
+        console.error(`[UPDATE_TOPIC] Permission denied: Topic ${topicId} belongs to user ${topic.user_id}, attempt by ${userId}`);
+        return { statusCode: 403, body: JSON.stringify({ error: 'Permission denied to update this topic' }) };
+      }
+
+      // Proceed with the update
+      const { error: updateError } = await supabase
+        .from('topics')
+        .update({ name: newTopicName.trim() })
+        .eq('id', topicId)
+        .eq('user_id', userId); // Redundant check, but good for safety
+
+      if (updateError) {
+        console.error(`[UPDATE_TOPIC] Error updating topic ${topicId}: ${updateError.message}`);
+        return { statusCode: 500, body: JSON.stringify({ error: `Failed to update topic name: ${updateError.message}` }) };
+      }
+
+      console.log(`[UPDATE_TOPIC] Successfully updated topic ${topicId} name for user ${userId}`);
+      return { statusCode: 200, body: JSON.stringify({ message: 'Topic name updated successfully' }) };
     } else if (action === 'addBookmark') {
       await supabase.from('bookmarks').insert({ topic_id: topicId, url: bookmarkUrl });
       return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark added' }) };
@@ -282,6 +326,60 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ 
           message: 'Note deleted successfully'
         })
+      };
+    } else if (action === 'getSummary') {
+      if (!topicId) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing topic ID' }) };
+      }
+      
+      console.log(`[GET_SUMMARY] Fetching summary for topic: ${topicId}`);
+      
+      // Verify the topic belongs to the user
+      const { data: topic, error: topicError } = await supabase
+        .from('topics')
+        .select('user_id')
+        .eq('id', topicId)
+        .single();
+        
+      if (topicError) {
+        console.error(`[GET_SUMMARY] Error verifying topic: ${topicError.message}`);
+        return { 
+          statusCode: 404, 
+          body: JSON.stringify({ error: 'Topic not found' }) 
+        };
+      }
+      
+      if (topic.user_id !== userId) {
+        console.error(`[GET_SUMMARY] Permission denied: Topic belongs to ${topic.user_id}, not ${userId}`);
+        return { 
+          statusCode: 403, 
+          body: JSON.stringify({ error: 'You do not have permission to access this topic' }) 
+        };
+      }
+      
+      // Fetch the summary for this topic
+      const { data: summary, error: summaryError } = await supabase
+        .from('summaries')
+        .select('*')
+        .eq('topic_id', topicId)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (summaryError && summaryError.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is not an error
+        console.error(`[GET_SUMMARY] Error fetching summary: ${summaryError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: `Failed to fetch summary: ${summaryError.message}` }) 
+        };
+      }
+      
+      console.log(`[GET_SUMMARY] Summary found: ${summary ? 'Yes' : 'No'}`);
+      
+      return { 
+        statusCode: 200, 
+        body: JSON.stringify({ summary: summary || null }) 
       };
     } else if (action === 'getTopicDetails') {
       // Fetch the topic itself to get name

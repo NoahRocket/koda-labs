@@ -2,6 +2,48 @@ const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
 const urlMetadata = require('url-metadata');
 
+// Centralized OpenAI API configuration
+const OPENAI_CONFIG = {
+  model: 'gpt-3.5-turbo',
+  temperature: 0.5,
+  max_tokens: 500,
+  endpoint: 'https://api.openai.com/v1/chat/completions'
+};
+
+// Helper function for OpenAI API calls
+async function callOpenAI(systemPrompt, userPrompt) {
+  console.log(`[Summary] Calling OpenAI API with model: ${OPENAI_CONFIG.model}`);
+  
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt }
+  ];
+  
+  console.log('[Summary] Request payload size:', JSON.stringify({
+    model: OPENAI_CONFIG.model,
+    messages: [
+      { role: 'system', content: 'System prompt' }, // Don't log actual content for privacy
+      { role: 'user', content: 'Sample user prompt...' } // Don't log actual content for privacy
+    ]
+  }).length, 'characters');
+  
+  const response = await fetch(OPENAI_CONFIG.endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_CONFIG.model,
+      messages: messages,
+      max_tokens: OPENAI_CONFIG.max_tokens,
+      temperature: OPENAI_CONFIG.temperature,
+    }),
+  });
+  
+  return response;
+}
+
 exports.handler = async (event, context) => {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_KEY;
@@ -44,9 +86,9 @@ exports.handler = async (event, context) => {
       .from('topics')
       .select(`
         id,
-        notes (created_at, updated_at),
-        conversations (created_at),
-        bookmarks (created_at)
+        notes!notes_topic_id_fkey (created_at),
+        conversations!conversations_topic_id_fkey (created_at),
+        bookmarks!bookmarks_topic_id_fkey (created_at)
       `)
       .eq('id', topicId)
       .single();
@@ -55,7 +97,7 @@ exports.handler = async (event, context) => {
 
     // Calculate the latest timestamp
     const allTimestamps = [
-      ...(latestTimestamps.notes?.map(n => n.updated_at || n.created_at) || []),
+      ...(latestTimestamps.notes?.map(n => n.created_at) || []),
       ...(latestTimestamps.conversations?.map(c => c.created_at) || []),
       ...(latestTimestamps.bookmarks?.map(b => b.created_at) || [])
     ];
@@ -68,9 +110,9 @@ exports.handler = async (event, context) => {
     const { data: content, error: contentError } = await supabase
       .from('topics')
       .select(`
-        notes (content),
-        conversations (content),
-        bookmarks (url)
+        notes!notes_topic_id_fkey (content),
+        conversations!conversations_topic_id_fkey (content),
+        bookmarks!bookmarks_topic_id_fkey (url)
       `)
       .eq('id', topicId)
       .single();
@@ -142,31 +184,13 @@ Keep the tone informative and professional. Even if content is sparse, extract m
     
     const userPrompt = `Generate a comprehensive summary of the user's knowledge about this topic based on their conversations, bookmarks, and personal notes:\n\n${combinedContent}`;
     
-    console.log('[Summary] Making request to OpenAI API');
+    console.log('[Summary] OpenAI API Key available:', !!process.env.OPENAI_API_KEY);
+    console.log('[Summary] OpenAI API Key prefix:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 5) + '...' : 'Not available');
+    
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini-2024-07-18',
-          messages: [
-            {
-              role: 'system',
-              content: systemPrompt
-            },
-            {
-              role: 'user',
-              content: userPrompt
-            }
-          ],
-          max_tokens: 500,
-          temperature: 0.5,
-        }),
-      });
-
+      // Call OpenAI API using the helper function
+      const response = await callOpenAI(systemPrompt, userPrompt);
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[Summary] OpenAI API error:', errorText);
@@ -185,10 +209,7 @@ Keep the tone informative and professional. Even if content is sparse, extract m
         return {
           statusCode: response.status,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            error: errorMessage,
-            details: errorText
-          })
+          body: JSON.stringify({ error: errorMessage })
         };
       }
 
@@ -196,40 +217,68 @@ Keep the tone informative and professional. Even if content is sparse, extract m
       const data = await response.json();
       console.log('[Summary] Response parsed successfully');
       
-      if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error('[Summary] Invalid response structure from OpenAI:', JSON.stringify(data));
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('[Summary] Invalid response format from OpenAI:', JSON.stringify(data));
         return {
           statusCode: 500,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'Invalid response from OpenAI' })
+          body: JSON.stringify({ error: 'Invalid response format from OpenAI' })
         };
       }
       
-      const summary = data.choices[0].message.content.trim();
-      console.log('[Summary] Summary generated successfully');
-
-      // Upsert the summary
-      const { data: savedSummary, error: upsertError } = await supabase
-        .from('summaries')
-        .upsert({
-          user_id: userId,
-          topic_id: topicId,
-          content: summary,
-          last_source_updated_at: lastSourceUpdatedAt.toISOString()
-        }, {
-          onConflict: 'user_id,topic_id',
-          returning: true
-        });
-
-      if (upsertError) throw upsertError;
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          summary: savedSummary[0],
-          needsUpdate: false
-        })
-      };
+      const summary = data.choices[0].message.content;
+      console.log('[Summary] Generated summary length:', summary.length);
+      
+      // Save the summary to the database
+      console.log('[Summary] Saving summary to database for topic:', topicId);
+      try {
+        const { data: savedSummary, error: saveError } = await supabase
+          .from('summaries')
+          .upsert([
+            {
+              user_id: userId,
+              topic_id: topicId,
+              content: summary,
+              created_at: new Date().toISOString(),
+              last_source_updated_at: lastSourceUpdatedAt.toISOString()
+            }
+          ])
+          .select();
+        
+        if (saveError) {
+          console.error('[Summary] Error saving summary:', saveError);
+          return {
+            statusCode: 500,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Failed to save summary to database' })
+          };
+        }
+        
+        if (!savedSummary || savedSummary.length === 0) {
+          console.error('[Summary] No data returned after saving summary');
+          return {
+            statusCode: 500,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Failed to save summary to database (no data returned)' })
+          };
+        }
+        
+        console.log('[Summary] Summary saved successfully');
+        
+        // Return the generated summary
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ summary: savedSummary[0] })
+        };
+      } catch (saveError) {
+        console.error('[Summary] Exception saving summary:', saveError);
+        return {
+          statusCode: 500,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Exception saving summary to database' })
+        };
+      }
     } catch (apiError) {
       console.error('[Summary] Error making OpenAI API request:', apiError);
       return { 
@@ -242,9 +291,13 @@ Keep the tone informative and professional. Even if content is sparse, extract m
       };
     }
   } catch (error) {
-    console.error('Error in summary function:', error);
+    console.error('[Summary] Unhandled error caught in main handler:', error);
+    console.error('[Summary] Error Message:', error.message);
+    console.error('[Summary] Error Stack:', error.stack);
+
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Failed to generate or save summary' })
     };
   }

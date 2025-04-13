@@ -2,11 +2,16 @@
   "name": "my-netlify-site",
   "version": "1.0.0",
   "scripts": {
-    "build": "echo 'No build step yet'"
+    "build": "npx tailwindcss-cli -i ./styles/tailwind-input.css -o ./styles/main.css"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "node-fetch": "^2.6.7",
     "url-metadata": "^2.2.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.3"
   }
 }

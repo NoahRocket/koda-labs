@@ -6,829 +6,6 @@
   <link rel="stylesheet" href="../styles/main.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
-    body {
-      background-color: #f8f9fa;
-      display: flex;
-      min-height: 100vh;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-    }
-
-    nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 80px;
-      height: 100vh;
-      background: linear-gradient(180deg, #e9f1fa 0%, #d9e4f5 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem 0;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-      z-index: 10;
-    }
-
-    .nav-items {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      align-items: center;
-    }
-
-    nav a {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-decoration: none;
-      color: #333333;
-      font-size: 0.8rem;
-      gap: 0.5rem;
-      padding: 0.75rem;
-      border-radius: 8px;
-      width: 70px;
-      text-align: center;
-      transition: all 0.2s;
-    }
-
-    nav a i {
-      font-size: 1.2rem;
-      margin-bottom: 0.25rem;
-    }
-
-    nav a:hover {
-      background-color: #c3d9f5;
-      transform: scale(1.05);
-    }
-
-    nav a.active {
-      background-color: #a0c4ff;
-      font-weight: 700;
-    }
-
-    .main-content {
-      flex: 1;
-      margin-left: 80px;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background-color: #f8f9fa;
-      padding: 1.25rem;
-    }
-
-    .chat-wrapper {
-      background-color: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .chat-header {
-      padding: 1.25rem 1.5rem;
-      background-color: white;
-      z-index: 5;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .greeting {
-      font-size: 1.8rem;
-      color: #333;
-      margin: 0;
-      font-weight: 500;
-    }
-
-    .chat-subheader {
-      color: #666;
-      margin: 0.5rem 0 0 0;
-    }
-
-    .suggested-questions {
-      display: flex;
-      gap: 0.75rem;
-      padding: 1rem 1.5rem;
-      flex-wrap: wrap;
-      background-color: white;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .question-box {
-      background: #f8f9fa;
-      padding: 0.75rem 1.25rem;
-      border-radius: 30px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: 0.9rem;
-      color: #333;
-      border: 1px solid #e6e6e6;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-    }
-
-    .question-box:hover {
-      border-color: #32CD32;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .chat-interface {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .chat-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-      background-color: white;
-    }
-
-    .message {
-      padding: 0.15rem 0;
-      max-width: 80%;
-      word-wrap: break-word;
-      line-height: 1.2;
-      position: relative;
-      margin-bottom: 0.1rem;
-      border-radius: 0;
-      box-shadow: none;
-    }
-
-    .user-message {
-      background: transparent;
-      color: #000000;
-      align-self: flex-end;
-      text-align: right;
-    }
-
-    .user-message .message-time {
-      text-align: right;
-    }
-
-    .ai-message {
-      background: transparent;
-      color: #003366;
-      align-self: flex-start;
-      text-align: left;
-      font-weight: 400;
-    }
-
-    .ai-message .message-time {
-      text-align: left;
-    }
-
-    .message-content {
-      margin-bottom: 0.05rem;
-      font-size: 0.95rem;
-    }
-
-    .message-time {
-      font-size: 0.65rem;
-      opacity: 0.5;
-      line-height: 1;
-    }
-
-    .chat-input-container {
-      padding: 1rem 1.5rem 1.25rem;
-      background-color: white;
-      border-top: 1px solid #f0f0f0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      z-index: 5;
-    }
-
-    .chat-controls {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-    }
-
-    .input-wrapper {
-      flex: 1;
-      position: relative;
-      display: flex;
-      align-items: center;
-      background-color: white;
-      border-radius: 30px;
-      border: 1px solid #32CD32;
-      padding: 0 1rem;
-      transition: all 0.2s;
-    }
-
-    .input-wrapper:focus-within {
-      box-shadow: 0 0 0 2px rgba(50, 205, 50, 0.1);
-    }
-
-    #questionInput {
-      flex: 1;
-      padding: 0.6rem 0;
-      border: none;
-      background: transparent;
-      font-size: 0.95rem;
-      outline: none;
-    }
-
-    #askButton {
-      background-color: #32CD32;
-      color: white;
-      border: none;
-      padding: 0.6rem 1rem;
-      border-radius: 30px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: all 0.2s;
-      min-width: auto;
-    }
-
-    #askButton:hover {
-      background-color: #28a745;
-      transform: translateY(-1px);
-    }
-
-    .conversation-controls {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-    }
-
-    .conversation-controls select {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      border: 1px solid #e6e6e6;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      background-color: #fff;
-      transition: all 0.2s;
-    }
-
-    .conversation-controls select:focus {
-      outline: none;
-      border-color: #32CD32;
-      box-shadow: 0 0 0 2px rgba(50, 205, 50, 0.1);
-    }
-
-    #saveConversation {
-      background-color: #32CD32;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.25rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: all 0.2s;
-      min-width: auto;
-      white-space: nowrap;
-    }
-
-    #saveConversation:hover {
-      background-color: #28a745;
-      transform: translateY(-1px);
-    }
-
-    .empty-chat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      color: #666;
-      font-size: 0.95rem;
-      text-align: center;
-      padding: 2rem;
-      background-color: #f9f9f9;
-      border-radius: 8px;
-      margin: 1rem;
-    }
-
-    .empty-chat i {
-      font-size: 2.5rem;
-      color: #32CD32;
-      margin-bottom: 1rem;
-      opacity: 0.7;
-    }
-
-    .empty-chat p {
-      line-height: 1.4;
-    }
-
-    /* Thinking animation */
-    .thinking {
-      padding: 0.3rem 0;
-      background-color: transparent;
-      align-self: flex-start;
-      text-align: left;
-      border-radius: 0;
-    }
-    
-    .thinking-dots {
-      display: flex;
-      gap: 0.25rem;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 0;
-    }
-    
-    .dot {
-      width: 5px;
-      height: 5px;
-      background: #003366;
-      border-radius: 50%;
-      animation: dot-pulse 1.5s infinite;
-    }
-    
-    .dot:nth-child(2) {
-      animation-delay: 0.2s;
-    }
-    
-    .dot:nth-child(3) {
-      animation-delay: 0.4s;
-    }
-    
-    @keyframes dot-pulse {
-      0% { transform: scale(0.5); opacity: 0.5; }
-      50% { transform: scale(1); opacity: 1; }
-      100% { transform: scale(0.5); opacity: 0.5; }
-    }
-
-    /* Message animations */
-    .message {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.5s, transform 0.5s;
-    }
-    
-    .message.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* Toast notifications */
-    .toast {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      padding: 1rem 1.5rem;
-      background-color: #333;
-      color: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 1000;
-      animation: toast-in 0.3s forwards, toast-out 0.3s forwards 3s;
-    }
-    
-    .toast-success {
-      background-color: #28a745;
-    }
-    
-    .toast-error {
-      background-color: #dc3545;
-    }
-    
-    @keyframes toast-in {
-      from { transform: translateY(100%); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    
-    @keyframes toast-out {
-      from { transform: translateY(0); opacity: 1; }
-      to { transform: translateY(100%); opacity: 0; }
-    }
-
-    @media (max-width: 768px) {
-      nav {
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-        width: 250px;
-      }
-
-      nav.active {
-        transform: translateX(0);
-      }
-
-      .nav-items {
-        align-items: flex-start;
-        padding: 0 1rem;
-      }
-
-      nav a {
-        flex-direction: row;
-        width: 100%;
-        justify-content: flex-start;
-        padding: 0.75rem 1rem;
-      }
-
-      nav a i {
-        margin-bottom: 0;
-        margin-right: 0.5rem;
-        width: 24px;
-      }
-
-      .main-content {
-        margin-left: 0;
-        padding: 0.75rem;
-      }
-
-      .chat-header {
-        padding: 1rem 1.25rem;
-      }
-
-      .suggested-questions {
-        padding: 0.75rem 1.25rem;
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        justify-content: flex-start;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .question-box {
-        white-space: nowrap;
-        padding: 0.6rem 1rem;
-      }
-
-      .chat-container {
-        padding: 1.25rem;
-      }
-
-      .empty-chat {
-        margin: 0.75rem;
-        padding: 1.5rem;
-      }
-
-      .message {
-        max-width: 85%;
-      }
-
-      .chat-input-container {
-        padding: 0.75rem 1.25rem 1rem;
-      }
-
-      .chat-controls {
-        flex-direction: row;
-      }
-
-      .conversation-controls {
-        flex-direction: column;
-      }
-
-      #saveConversation {
-        width: 100%;
-        margin-top: 0.25rem;
-      }
-    }
-
-    .hamburger {
-      display: none;
-      position: fixed;
-      top: 1rem;
-      left: 1rem;
-      z-index: 20;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-
-    .bar {
-      display: block;
-      width: 25px;
-      height: 3px;
-      margin: 5px auto;
-      background-color: #333;
-      transition: all 0.3s ease-in-out;
-    }
-
-    .close-btn {
-      display: none;
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      font-size: 1.5rem;
-      cursor: pointer;
-    }
-
-    @media (max-width: 768px) {
-      .hamburger, .close-btn {
-        display: block;
-      }
-    }
-
-    /* Success state */
-    .success {
-      background-color: #28a745 !important;
-    }
-    
-    /* Error shake animation */
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-      20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-    
-    .animate-shake {
-      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-    }
-
-    /* Animation keyframes and classes */
-    @keyframes slideDown {
-      from { 
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      to { 
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .animate-slide-down {
-      animation: slideDown 0.5s ease forwards;
-    }
-
-    .hidden-before-animation {
-      opacity: 0;
-    }
-
-    /* Notes Panel Styles */
-    .notes-panel {
-      position: fixed;
-      right: -400px;
-      top: 0;
-      width: 380px;
-      height: 100vh;
-      background: white;
-      box-shadow: -2px 0 10px rgba(0,0,0,0.1);
-      z-index: 1000;
-      transition: right 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      border-left: 1px solid #eaeaea;
-    }
-
-    .notes-panel.active {
-      right: 0;
-    }
-
-    .notes-header {
-      padding: 1.25rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #eaeaea;
-      background-color: #f8f9fa;
-    }
-
-    .notes-header h2 {
-      margin: 0;
-      font-size: 1.25rem;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .notes-header h2 i {
-      color: #ffc107;
-    }
-
-    .close-notes {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      cursor: pointer;
-      color: #666;
-      padding: 0;
-      transition: color 0.2s;
-    }
-
-    .close-notes:hover {
-      color: #333;
-    }
-
-    .notes-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .notes-form {
-      padding: 1.25rem;
-      border-bottom: 1px solid #eaeaea;
-    }
-
-    .notes-form textarea {
-      width: 100%;
-      height: 100px;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      resize: none;
-      margin-bottom: 1rem;
-      font-family: inherit;
-      font-size: 0.95rem;
-      transition: border-color 0.2s;
-    }
-
-    .notes-form textarea:focus {
-      outline: none;
-      border-color: #ffc107;
-      box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
-    }
-
-    .notes-controls {
-      display: flex;
-      gap: 0.75rem;
-    }
-
-    .notes-controls select {
-      flex: 1;
-      padding: 0.6rem 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      background-color: white;
-      transition: border-color 0.2s;
-    }
-
-    .notes-controls select:focus {
-      outline: none;
-      border-color: #ffc107;
-    }
-
-    .save-note-btn {
-      background-color: #ffc107;
-      color: #333;
-      border: none;
-      padding: 0.6rem 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      white-space: nowrap;
-    }
-
-    .save-note-btn:hover {
-      background-color: #e0a800;
-      transform: translateY(-1px);
-    }
-
-    .save-note-btn.success {
-      background-color: #28a745;
-      color: white;
-    }
-
-    .notes-list-header {
-      padding: 1rem 1.25rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #eaeaea;
-    }
-
-    .notes-list-header h3 {
-      margin: 0;
-      font-size: 1rem;
-      color: #333;
-    }
-
-    .notes-list-header select {
-      padding: 0.4rem 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      background-color: white;
-    }
-
-    .notes-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem 1.25rem;
-    }
-
-    .note-item {
-      background-color: #fff9e6;
-      border-left: 3px solid #ffc107;
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      transition: all 0.2s;
-      position: relative;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      opacity: 0;
-      transform: translateY(10px);
-      animation: note-fade-in 0.3s forwards;
-    }
-
-    @keyframes note-fade-in {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .note-item:hover {
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    .note-content {
-      margin-bottom: 0.5rem;
-      color: #333;
-      line-height: 1.4;
-      word-break: break-word;
-    }
-
-    .note-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.8rem;
-      color: #666;
-    }
-
-    .note-topic {
-      background-color: #f1f1f1;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 140px;
-    }
-
-    .note-date {
-      white-space: nowrap;
-    }
-
-    .note-actions {
-      position: absolute;
-      top: 0.75rem;
-      right: 0.75rem;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .note-item:hover .note-actions {
-      opacity: 1;
-    }
-
-    .delete-note {
-      background: none;
-      border: none;
-      font-size: 0.9rem;
-      cursor: pointer;
-      color: #dc3545;
-      padding: 0.25rem;
-      border-radius: 4px;
-      transition: background-color 0.2s;
-    }
-
-    .delete-note:hover {
-      background-color: rgba(220, 53, 69, 0.1);
-    }
-
-    .empty-notes {
-      text-align: center;
-      color: #666;
-      padding: 2rem 1rem;
-    }
-
-    .empty-notes i {
-      font-size: 2.5rem;
-      color: #ffc107;
-      margin-bottom: 1rem;
-      opacity: 0.7;
-    }
-
-    .loading-notes {
-      text-align: center;
-      padding: 2rem;
-    }
-
-    .loading-notes .spinner {
-      width: 40px;
-      height: 40px;
-      margin: 0 auto 1rem;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #ffc107;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
     /* Toast Notifications */
     .toast-container {
       position: fixed;
@@ -867,11 +44,11 @@
     }
 
     .toast.success {
-      border-left: 4px solid #28a745;
+      border-left: 4px solid #10B981;
     }
 
     .toast.error {
-      border-left: 4px solid #dc3545;
+      border-left: 4px solid #EF4444;
     }
 
     .toast-content {
@@ -885,11 +62,11 @@
     }
 
     .toast.success i {
-      color: #28a745;
+      color: #10B981;
     }
 
     .toast.error i {
-      color: #dc3545;
+      color: #EF4444;
     }
 
     .toast-close {
@@ -905,932 +82,796 @@
       color: #333;
     }
 
-    /* Loading styles */
-    .loading-spinner {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 2rem 0;
-    }
-    
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 2px solid rgba(230, 230, 230, 0.8);
-      border-radius: 50%;
-      position: relative;
-      background: linear-gradient(to bottom, #f9f9f9, #f1f1f1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .spinner-needle {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 2px;
-      height: 16px;
-      background: linear-gradient(to bottom, #e63946, #d62828);
-      transform-origin: bottom center;
-      border-radius: 1px;
-      animation: compass-spin 1.5s cubic-bezier(0.44, 0.08, 0.12, 0.97) infinite;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-      z-index: 2;
-    }
-    
-    .spinner-needle:after {
-      content: '';
-      position: absolute;
-      width: 2px;
-      height: 8px;
-      background: #457b9d;
-      bottom: -16px;
-      left: 0;
-      transform: rotate(180deg);
-      border-radius: 1px;
-    }
-    
-    .spinner-center {
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: #333;
-      border-radius: 50%;
-      z-index: 3;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.3), inset 0 0 1px rgba(255, 255, 255, 0.5);
-      background: radial-gradient(circle at center, #666, #333);
-    }
-    
-    @keyframes compass-spin {
-      0% { transform: translate(-50%, -100%) rotate(0deg); }
-      50% { transform: translate(-50%, -100%) rotate(180deg); }
-      100% { transform: translate(-50%, -100%) rotate(360deg); }
-    }
-    
-    .loading-text {
-      font-size: 0.9rem;
-      color: #666;
-      margin-top: 0.5rem;
-      letter-spacing: 0.5px;
-    }
-    
-    .loading-notes {
-      text-align: center;
-      padding: 2rem;
-    }
-    
-    .loading-notes .spinner {
-      margin: 0 auto 1rem;
-    }
-
-    .loading {
-      position: fixed;
-      top: 50%;
-      right: 20px;
-      transform: translateY(-50%);
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      z-index: 1000;
-      text-align: center;
-    }
-
-    .loading p {
-      margin: 0.5rem 0 0;
-      color: #666;
-      font-size: 0.9rem;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
-<body>
-  <div class="hamburger">
-    <span class="bar"></span>
-    <span class="bar"></span>
-    <span class="bar"></span>
+<body class="bg-gray-50 font-eb-garamond min-h-screen flex">
+  <!-- Mobile Hamburger -->
+  <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2" id="hamburger">
+    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
+    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
+    <div class="w-6 h-0.5 bg-gray-800"></div>
   </div>
-  <nav>
-    <span class="close-btn">&times;</span>
-    <div class="nav-items" id="loggedInNav" style="display: none;">
-      <a href="/pages/dashboard.html"><i class="fas fa-home"></i>Home</a>
-      <a href="/pages/chat.html" class="active"><i class="fas fa-comments"></i>Chat</a>
-      <a href="#" id="notesToggle"><i class="fas fa-sticky-note"></i>Notes</a>
-      <a href="/pages/bookmarks.html"><i class="fas fa-bookmark"></i>Bookmarks</a>
-      <a href="/pages/settings.html"><i class="fas fa-cog"></i>Settings</a>
-      <a href="#" id="logout"><i class="fas fa-sign-out-alt"></i>Log Out</a>
+
+  <!-- Sidebar Navigation -->
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+    <div class="flex flex-col h-full">
+      <div class="p-5 border-b border-blue-100">
+        <h1 class="text-xl font-bold text-gray-800">Koda Compass</h1>
+        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <nav class="flex-1 overflow-y-auto py-4">
+        <ul class="space-y-2 px-4">
+          <li id="loggedInNav" class="hidden flex-col space-y-2">
+            <a href="dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-compass"></i>
+              <span>Dashboard</span>
+            </a>
+            <a href="chat.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-blue-100 text-blue-800">
+              <i class="fas fa-comments"></i>
+              <span>Chat</span>
+            </a>
+            <a href="bookmarks.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-bookmark"></i>
+              <span>Bookmarks</span>
+            </a>
+            <a href="#" id="notesToggle" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-sticky-note"></i>
+              <span>Notes</span>
+            </a>
+            <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-cog"></i>
+              <span>Settings</span>
+            </a>
+          </li>
+          <li id="loggedOutNav" class="hidden flex-col space-y-2">
+            <a href="login.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-sign-in-alt"></i>
+              <span>Login</span>
+            </a>
+            <a href="signup.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-user-plus"></i>
+              <span>Sign Up</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="p-4 border-t border-blue-100">
+        <button id="logout" class="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      </div>
     </div>
-    <div class="nav-items" id="loggedOutNav">
-      <a href="/"><i class="fas fa-home"></i>Home</a>
-      <a href="/pages/login.html"><i class="fas fa-sign-in-alt"></i>Log In</a>
-      <a href="/pages/signup.html"><i class="fas fa-user-plus"></i>Sign Up</a>
-    </div>
-  </nav>
-  <div class="main-content">
-    <div class="chat-wrapper">
-      <div class="chat-header">
-        <h1 class="greeting">Good Evening!</h1>
-        <p class="chat-subheader">How can I help you today?</p>
-    </div>
-    <div class="suggested-questions">
-        <div class="question-box">What are IOPoints?</div>
-        <div class="question-box">Who is John Galt?</div>
-        <div class="question-box">Why do bees fly?</div>
-    </div>
-      <div class="chat-interface">
-        <div class="chat-container" id="chatContainer">
-          <div class="empty-chat" id="emptyChat">
-            <i class="fas fa-comments"></i>
-            <p>Your conversation will appear here.<br>Ask me anything to get started!</p>
-          </div>
-          <!-- Chat messages will appear here -->
+  </div>
+
+  <!-- Main Content -->
+  <div class="md:ml-56 flex-1 flex flex-col h-screen">
+    <div class="flex-1 flex flex-col">
+      <div class="flex-1 flex flex-col bg-white">
+        <!-- Chat Header -->
+        <div class="p-6 border-b border-gray-200">
+          <h1 class="text-3xl font-semibold text-gray-800 mb-2">Chat with Koda</h1>
+          <p class="text-gray-600 mb-4">I'm your friendly learning companion! Ask me questions, explore new topics, or discuss ideas you're curious about.</p>
         </div>
-        <div class="chat-input-container">
-          <div class="chat-controls">
-            <div class="input-wrapper">
-              <input type="text" id="questionInput" placeholder="Ask a question here...">
-            </div>
-            <button id="askButton">
-              <i class="fas fa-paper-plane"></i> Send
-            </button>
+
+        <!-- Chat Container -->
+        <div class="flex-1 flex flex-col min-h-0">
+          <div id="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-4">
+            <!-- Messages will be loaded here -->
           </div>
-          <div class="conversation-controls">
-            <select id="conversationTopic">
-      <option value="">Select Topic for Conversation</option>
-    </select>
-    <button id="saveConversation">Save Conversation</button>
-  </div>
+
+          <!-- Input Area -->
+          <div class="p-4 border-t border-gray-200 bg-white">
+            <div class="flex gap-4">
+              <div class="flex-1 relative">
+                <textarea 
+                  id="messageInput" 
+                  placeholder="Type your message..." 
+                  class="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent resize-none h-12 max-h-32 transition-all duration-200"
+                  rows="1"
+                ></textarea>
+                <button id="sendMessage" class="absolute right-2 inset-y-0 my-auto flex items-center justify-center w-10 h-10 text-green-500 hover:text-green-600 transition-colors">
+                  <i class="fas fa-paper-plane text-xl"></i>
+                </button>
+              </div>
+              <div class="flex items-center">
+                <button id="saveConversation" class="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors">
+                  <i class="fas fa-folder-plus"></i>
+                  <span>Save to Topic</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-  
+
   <!-- Notes Panel -->
-  <div id="notesPanel" class="notes-panel">
-    <div class="notes-header">
-      <h2><i class="fas fa-sticky-note"></i> Quick Notes</h2>
-      <button class="close-notes">&times;</button>
+  <div id="notesPanel" class="fixed top-0 right-0 w-96 h-screen bg-white shadow-lg z-50 flex flex-col border-l border-gray-200 transform translate-x-full transition-transform duration-300 ease-in-out">
+    <div class="flex justify-between items-center p-5 bg-gray-50 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+        <i class="fas fa-sticky-note text-yellow-400"></i> Quick Notes
+      </h2>
+      <button class="text-2xl text-gray-500 hover:text-gray-700 transition-colors" id="closeNotesBtn">&times;</button>
     </div>
-    <div class="notes-content">
-      <div class="notes-form">
-        <textarea id="noteText" placeholder="Jot down a thought..."></textarea>
-        <div class="notes-controls">
-          <select id="noteTopic">
+    
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <div class="p-5 border-b border-gray-200">
+        <textarea id="noteText" placeholder="Jot down a thought..." class="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent resize-none transition-all duration-200 font-eb-garamond"></textarea>
+        <div class="flex gap-3 mt-4">
+          <select id="noteTopic" class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm">
             <option value="">Untagged</option>
             <!-- Topics will be loaded here -->
           </select>
-          <button id="saveNote" class="save-note-btn">
+          <button id="saveNote" class="bg-yellow-400 hover:bg-yellow-500 text-gray-800 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2">
             <i class="fas fa-save"></i> Save
           </button>
         </div>
       </div>
-      <div class="notes-list-header">
-        <h3>Saved Notes</h3>
-        <select id="noteFilter">
+      
+      <div class="flex justify-between items-center p-4 border-b border-gray-200">
+        <h3 class="font-medium text-gray-800">Saved Notes</h3>
+        <select id="noteFilter" class="p-1.5 text-sm border border-gray-300 rounded-lg">
           <option value="all">All Notes</option>
           <option value="untagged">Untagged</option>
           <!-- Topics will be loaded here -->
         </select>
       </div>
-      <div id="notesList" class="notes-list">
+      
+      <div id="notesList" class="flex-1 overflow-y-auto p-4">
         <!-- Notes will be loaded here -->
       </div>
     </div>
   </div>
 
-  <div class="loading" id="loading" style="display: none;">
-    <div class="spinner">
-      <div class="spinner-needle"></div>
-      <div class="spinner-center"></div>
-    </div>
-    <p>AI is thinking...</p>
-  </div>
-
-  <script src="../chat.js"></script>
   <script>
-    // Get user credentials
+    // Get user info from localStorage
     const userId = localStorage.getItem('userId');
     const accessToken = localStorage.getItem('accessToken');
-
-    // Check login status and update navigation
+    
+    // Check if user is logged in
     function updateNavigation() {
-      const isLoggedIn = localStorage.getItem('userId') && localStorage.getItem('accessToken');
       const loggedInNav = document.getElementById('loggedInNav');
       const loggedOutNav = document.getElementById('loggedOutNav');
       
-      if (isLoggedIn) {
-        loggedInNav.style.display = 'block';
-        loggedOutNav.style.display = 'none';
-        
-        // Add entrance animation to main content
-        const mainContent = document.querySelector('.main-content');
-        mainContent.classList.add('animate-fade-in');
-        
-        // Load conversation topics
-        loadConversationTopics();
+      if (userId && accessToken) {
+        loggedInNav.classList.remove('hidden');
+        loggedOutNav.classList.add('hidden');
       } else {
-        loggedInNav.style.display = 'none';
-        loggedOutNav.style.display = 'block';
+        loggedInNav.classList.add('hidden');
+        loggedOutNav.classList.remove('hidden');
         window.location.href = '/pages/login.html';
       }
     }
-
-    // Call updateNavigation on page load
-    document.addEventListener('DOMContentLoaded', updateNavigation);
-
-    // Hamburger menu toggle
-    const hamburger = document.querySelector('.hamburger');
-    const nav = document.querySelector('nav');
-    const closeBtn = document.querySelector('.close-btn');
-
-    hamburger.addEventListener('click', () => {
-      nav.classList.toggle('active');
-    });
-
-    closeBtn.addEventListener('click', () => {
-      nav.classList.remove('active');
-    });
-
-    // Load conversation topics
-    async function loadConversationTopics() {
-      try {
-        const select = document.getElementById('conversationTopic');
-        
-        // Show loading animation
-        select.innerHTML = '<option value="">Loading topics...</option>';
-        select.classList.add('animate-pulse');
-        
-        const response = await fetch('/.netlify/functions/dashboard', {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'getTopics',
-            userId
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
+    
+    // Initialize the page when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      updateNavigation();
+      
+      // Mobile navigation
+      const hamburger = document.getElementById('hamburger');
+      const sidebar = document.getElementById('sidebar');
+      const closeSidebar = document.getElementById('closeSidebar');
+      
+      if (hamburger && sidebar && closeSidebar) {
+        hamburger.addEventListener('click', () => {
+          sidebar.classList.remove('-translate-x-full');
         });
         
-        const result = await response.json();
-        
-        // Remove loading animation
-        select.classList.remove('animate-pulse');
-        
-        if (response.ok) {
-          select.innerHTML = '<option value="">Select Topic for Conversation</option>';
-          
-          if (result.topics && result.topics.length > 0) {
-            result.topics.forEach(topic => {
-              const option = document.createElement('option');
-              option.value = topic.id;
-              option.textContent = topic.name;
-              select.appendChild(option);
-            });
-          } else {
-            const option = document.createElement('option');
-            option.disabled = true;
-            option.textContent = 'No topics yet - create one in Settings';
-            select.appendChild(option);
+        closeSidebar.addEventListener('click', () => {
+          sidebar.classList.add('-translate-x-full');
+        });
+      }
+      
+      // Logout functionality
+      const logoutButton = document.getElementById('logout');
+      if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+          localStorage.removeItem('userId');
+          localStorage.removeItem('accessToken');
+          window.location.href = '/pages/login.html';
+        });
+      }
+      
+      // Chat functionality
+      const messageInput = document.getElementById('messageInput');
+      const sendButton = document.getElementById('sendMessage');
+      const chatContainer = document.getElementById('chatContainer');
+      const conversationType = document.getElementById('conversationType');
+      const saveConversationBtn = document.getElementById('saveConversation');
+      
+      // Auto-resize textarea
+      if (messageInput) {
+        messageInput.addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = Math.min(this.scrollHeight, 128) + 'px';
+        });
+      }
+      
+      // Send message on Enter (without shift)
+      if (messageInput) {
+        messageInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
           }
-        } else {
-          select.innerHTML = '<option value="">Failed to load topics</option>';
+        });
+      }
+      
+      // Send message on button click
+      if (sendButton) {
+        sendButton.addEventListener('click', sendMessage);
+      }
+      
+      async function sendMessage() {
+        const message = messageInput.value.trim();
+        if (!message) return;
+        
+        // Add user message to chat
+        addMessageToChat('user', message);
+        
+        // Clear input
+        messageInput.value = '';
+        messageInput.style.height = '48px';
+        
+        // Show empty state if it's the first message
+        const emptyState = chatContainer.querySelector('.empty-state');
+        if (emptyState) {
+          emptyState.remove();
         }
-      } catch (error) {
-        console.error('Error loading topics:', error);
-        document.getElementById('conversationTopic').innerHTML = '<option value="">Error loading topics</option>';
-      }
-    }
-    
-    // Animated greeting based on time of day
-    function updateGreeting() {
-      const hour = new Date().getHours();
-      const greeting = document.querySelector('.greeting');
-      const subheader = document.querySelector('.chat-subheader');
-      let greetingText = '';
-      
-      // Make sure the element exists
-      if (!greeting) return;
-      
-      // Ensure element is hidden before any content changes
-      greeting.style.opacity = '0';
-      greeting.style.transform = 'translateY(-20px)';
-      
-      // Set greeting based on time of day with more casual options
-      if (hour >= 5 && hour < 12) {
-        // Morning options
-        const morningGreetings = ["Good Morning!", "Rise and shine!", "Hello, early bird!"];
-        greetingText = morningGreetings[Math.floor(Math.random() * morningGreetings.length)];
-      } else if (hour >= 12 && hour < 18) {
-        // Afternoon options
-        const afternoonGreetings = ["Good Afternoon!", "Hey there!", "Hello!"];
-        greetingText = afternoonGreetings[Math.floor(Math.random() * afternoonGreetings.length)];
-      } else {
-        // Evening options
-        const eveningGreetings = ["Good Evening!", "Hey there!", "Hi, night owl!"];
-        greetingText = eveningGreetings[Math.floor(Math.random() * eveningGreetings.length)];
-      }
-      
-      // Set content while still hidden
-      greeting.textContent = greetingText;
-      
-      // Use requestAnimationFrame to ensure the browser has rendered the hidden state
-      requestAnimationFrame(() => {
-        // Remove inline styles to allow CSS animations to take effect
-        setTimeout(() => {
-          greeting.style.opacity = '';
-          greeting.style.transform = '';
-          greeting.classList.add('animate-slide-down');
-        }, 50);
-      });
-    }
-    
-    // Call greeting on load with a slight delay to ensure DOM is ready
-    document.addEventListener('DOMContentLoaded', () => {
-      // Small delay to ensure everything is rendered
-      setTimeout(updateGreeting, 100);
-    });
-    
-    // Chat message animation
-    function animateChatMessage(message, isUser = false) {
-      message.classList.add(isUser ? 'animate-slide-left' : 'animate-slide-right');
-      setTimeout(() => {
-        message.classList.add('visible');
-      }, 300);
-    }
-
-    // Function to fetch chat response
-    async function fetchChatResponse(question) {
-      const response = await fetch('/.netlify/functions/chat', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          userId,
-          question
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('API request failed');
-      }
-      
-      const data = await response.json();
-      return data.response || "Sorry, I couldn't generate a response.";
-    }
-
-    // Handle question submission with animation
-    document.getElementById('askButton').addEventListener('click', async () => {
-      const questionInput = document.getElementById('questionInput');
-      const question = questionInput.value.trim();
-      const loading = document.getElementById('loading');
-      
-      if (!question) return;
-      
-      // Hide empty chat message if this is the first message
-      const emptyChat = document.getElementById('emptyChat');
-      if (emptyChat) {
-        emptyChat.style.display = 'none';
-      }
-      
-      // Clear input with animation
-      questionInput.value = '';
-      questionInput.classList.add('animate-pulse');
-      setTimeout(() => {
-        questionInput.classList.remove('animate-pulse');
-      }, 300);
-      
-      // Add user message with animation
-      const chatContainer = document.getElementById('chatContainer');
-      const userMessageElement = document.createElement('div');
-      userMessageElement.className = 'message user-message';
-      userMessageElement.innerHTML = `
-        <div class="message-content">${question}</div>
-        <div class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-      `;
-      chatContainer.appendChild(userMessageElement);
-      animateChatMessage(userMessageElement, true);
-      
-      // Scroll to bottom with smooth animation
-      setTimeout(() => {
+        
+        // Show loading state
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'flex justify-start';
+        loadingDiv.innerHTML = `
+          <div class="bg-gray-100 rounded-lg p-3 flex items-center gap-2 max-w-[80%]">
+            <div class="flex gap-1">
+              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+            </div>
+          </div>
+        `;
+        chatContainer.appendChild(loadingDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
-      }, 100);
+        
+        try {
+          const response = await fetch('/.netlify/functions/chatgpt', {
+            method: 'POST',
+            body: JSON.stringify({
+              question: message
+            }),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+          
+          // Remove loading state
+          loadingDiv.remove();
+          
+          const result = await response.json();
+          
+          if (response.ok) {
+            addMessageToChat('ai', result.assistantResponse);
+          } else {
+            showToast('Error: ' + (result.error || 'Failed to send message'), 'error');
+          }
+        } catch (error) {
+          // Remove loading state
+          loadingDiv.remove();
+          console.error('Error sending message:', error);
+          showToast('Error connecting to server', 'error');
+        }
+      }
       
-      // Show loading spinner
-      loading.style.display = 'block';
+      function addMessageToChat(type, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} opacity-0 transform translate-y-4 transition-all duration-300`;
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = type === 'user' 
+          ? 'bg-green-500 text-white rounded-lg py-2 px-4 max-w-[80%] shadow-sm'
+          : 'bg-gray-100 text-gray-800 rounded-lg py-2 px-4 max-w-[80%] shadow-sm';
+        
+        messageBubble.textContent = content;
+        messageDiv.appendChild(messageBubble);
+        
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Animate the message in
+        requestAnimationFrame(() => {
+          messageDiv.classList.remove('opacity-0', 'translate-y-4');
+        });
+      }
       
-      try {
-        // Use the original fetchChatGPTResponse function from chat.js if it exists
-        const response = typeof fetchChatGPTResponse === 'function' 
-          ? await fetchChatGPTResponse(question) 
-          : await fetchChatResponse(question);
-        
-        // Hide loading spinner
-        loading.style.display = 'none';
-        
-        // Add AI response with animation
-        const aiMessageElement = document.createElement('div');
-        aiMessageElement.className = 'message ai-message';
-        
-        // Process markdown formatting if needed
-        const formattedResponse = typeof response === 'string' 
-          ? response.replace(/\n/g, '<br>') 
-          : "I couldn't generate a response.";
-        
-        aiMessageElement.innerHTML = `
-          <div class="message-content">${formattedResponse}</div>
-          <div class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+      // Initialize empty state
+      if (chatContainer && chatContainer.children.length === 0) {
+        chatContainer.innerHTML = `
+          <div class="empty-state flex flex-col items-center justify-center h-full text-gray-500">
+            <i class="fas fa-comments text-4xl mb-4"></i>
+            <h2 id="greeting-message" class="text-xl font-semibold text-gray-800 mb-2">Good Evening!</h2>
+            <p class="text-center mb-6">How can I help you today?</p>
+            <div class="flex flex-wrap gap-2 justify-center max-w-lg">
+              <button class="suggested-question px-4 py-2 bg-white hover:bg-blue-50 text-gray-700 rounded-full border border-gray-300 transition-colors duration-200 text-sm">
+                What are IOPoints?
+              </button>
+              <button class="suggested-question px-4 py-2 bg-white hover:bg-blue-50 text-gray-700 rounded-full border border-gray-300 transition-colors duration-200 text-sm">
+                Who is John Galt?
+              </button>
+              <button class="suggested-question px-4 py-2 bg-white hover:bg-blue-50 text-gray-700 rounded-full border border-gray-300 transition-colors duration-200 text-sm">
+                Why do bees fly?
+              </button>
+            </div>
+          </div>
         `;
-        chatContainer.appendChild(aiMessageElement);
         
-        // Animate the AI message entrance
-        animateChatMessage(aiMessageElement, false);
+        // Set greeting based on time of day
+        updateGreeting();
         
-        // Scroll to bottom with smooth animation
-        setTimeout(() => {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        }, 100);
-        
-      } catch (error) {
-        console.error('Error sending message:', error);
-        
-        // Hide loading spinner
-        loading.style.display = 'none';
-        
-        // Add error message
-        const errorMessageElement = document.createElement('div');
-        errorMessageElement.className = 'message ai-message';
-        errorMessageElement.innerHTML = `
-          <div class="message-content">Network error. Please check your connection and try again.</div>
-          <div class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-        `;
-        chatContainer.appendChild(errorMessageElement);
-        animateChatMessage(errorMessageElement, false);
-        
-        // Scroll to bottom
-        setTimeout(() => {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        }, 100);
-      }
-    });
-    
-    // Handle suggested questions with animation
-    document.querySelectorAll('.question-box').forEach(box => {
-      box.addEventListener('click', () => {
-        // Animate the click
-        box.classList.add('animate-pulse');
-        
-        setTimeout(() => {
-          box.classList.remove('animate-pulse');
-          
-          // Set the input value
-          const questionInput = document.getElementById('questionInput');
-          questionInput.value = box.textContent;
-          
-          // Focus with animation
-          questionInput.focus();
-          questionInput.classList.add('animate-pulse');
-          setTimeout(() => {
-            questionInput.classList.remove('animate-pulse');
-          }, 300);
-          
-          // Trigger the ask button after animation
-          document.getElementById('askButton').click();
-        }, 300);
-      });
-    });
-    
-    // Save conversation with animation
-    document.getElementById('saveConversation').addEventListener('click', async () => {
-      const topicId = document.getElementById('conversationTopic').value;
-      
-      if (!topicId) {
-        // Animated error notification
-        const select = document.getElementById('conversationTopic');
-        select.classList.add('animate-shake');
-        setTimeout(() => {
-          select.classList.remove('animate-shake');
-        }, 500);
-        
-        showToast('Please select a topic first', 'error');
-        return;
+        // Add event listeners to suggested questions
+        document.querySelectorAll('.suggested-question').forEach(button => {
+          button.addEventListener('click', function() {
+            messageInput.value = this.textContent.trim();
+            sendMessage();
+          });
+        });
       }
       
-      // Get all messages
-      const chatContainer = document.getElementById('chatContainer');
-      const messages = chatContainer.querySelectorAll('.message:not(.thinking)');
-      
-      if (messages.length === 0) {
-        showToast('No conversation to save', 'error');
-        return;
-      }
-      
-      // Format conversation
-      let content = '';
-      messages.forEach(message => {
-        const isUser = message.classList.contains('user-message');
-        const messageContent = message.querySelector('.message-content');
-        if (messageContent) {
-          content += `${isUser ? 'You: ' : 'AI: '}${messageContent.textContent}\n\n`;
-        }
-      });
-      
-      // Animate save button
-      const saveButton = document.getElementById('saveConversation');
-      const originalText = saveButton.textContent;
-      saveButton.innerHTML = '<span class="loading-spinner" style="width: 20px; height: 20px;"></span>';
-      saveButton.disabled = true;
-      
-      try {
-      const response = await fetch('/.netlify/functions/dashboard', {
-        method: 'POST',
-          body: JSON.stringify({
-            action: 'saveConversation',
-            userId,
-            topicId,
-            chatHistory: content
-          }),
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-          // Success animation
-          saveButton.innerHTML = '<i class="fas fa-check"></i> Saved!';
-          saveButton.classList.add('success');
+      // Save conversation
+      if (saveConversationBtn) {
+        saveConversationBtn.addEventListener('click', async () => {
+          // Create a select element for topics
+          const topicSelect = document.createElement('select');
+          topicSelect.className = 'w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent mb-4';
           
-          showToast('Conversation saved successfully!', 'success');
+          // Show loading state
+          const loadingDiv = document.createElement('div');
+          loadingDiv.className = 'flex justify-center items-center';
+          loadingDiv.innerHTML = `
+            <div class="animate-spin rounded-full h-5 w-5 border-2 border-green-500 border-t-transparent"></div>
+          `;
           
-          setTimeout(() => {
-            saveButton.textContent = originalText;
-            saveButton.classList.remove('success');
-            saveButton.disabled = false;
-          }, 2000);
-      } else {
-          saveButton.textContent = originalText;
-          saveButton.disabled = false;
-          showToast('Failed to save conversation: ' + result.error, 'error');
-        }
-      } catch (error) {
-        console.error('Error saving conversation:', error);
-        saveButton.textContent = originalText;
-        saveButton.disabled = false;
-        showToast('Error connecting to server. Please try again.', 'error');
+          // Create modal content
+          const modalContent = document.createElement('div');
+          modalContent.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+          modalContent.innerHTML = `
+            <div class="bg-white rounded-lg p-6 w-full max-w-md">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Save Conversation to Topic</h3>
+              <div id="topicSelectContainer">
+                ${loadingDiv.outerHTML}
+              </div>
+              <div class="flex justify-end gap-3 mt-4">
+                <button class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors" id="cancelSave">Cancel</button>
+                <button class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors" id="confirmSave">Save</button>
+              </div>
+            </div>
+          `;
+          
+          document.body.appendChild(modalContent);
+          
+          // Load topics
+          try {
+            const response = await fetch('/.netlify/functions/dashboard', {
+              method: 'POST',
+              body: JSON.stringify({
+                action: 'getTopics',
+                userId
+              }),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+              }
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.topics) {
+              const selectContainer = modalContent.querySelector('#topicSelectContainer');
+              selectContainer.innerHTML = '';
+              
+              if (result.topics.length === 0) {
+                selectContainer.innerHTML = `
+                  <div class="text-center text-gray-600">
+                    <p class="mb-2">No topics found.</p>
+                    <a href="settings.html" class="text-green-500 hover:text-green-600 transition-colors">Create a topic first</a>
+                  </div>
+                `;
+                return;
+              }
+              
+              topicSelect.innerHTML = result.topics.map(topic => 
+                `<option value="${topic.id}">${topic.name}</option>`
+              ).join('');
+              
+              selectContainer.appendChild(topicSelect);
+              
+              // Handle save confirmation
+              const confirmBtn = modalContent.querySelector('#confirmSave');
+              confirmBtn.addEventListener('click', async () => {
+                const selectedTopicId = topicSelect.value;
+                
+                try {
+                  const saveResponse = await fetch('/.netlify/functions/chatgpt', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      action: 'saveConversation',
+                      userId,
+                      topicId: selectedTopicId
+                    }),
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${accessToken}`
+                    }
+                  });
+                  
+                  const saveResult = await saveResponse.json();
+                  
+                  if (saveResponse.ok) {
+                    showToast('Conversation saved successfully', 'success');
+                  } else {
+                    showToast('Error: ' + (saveResult.error || 'Failed to save conversation'), 'error');
+                  }
+                } catch (error) {
+                  console.error('Error saving conversation:', error);
+                  showToast('Error connecting to server', 'error');
+                }
+                
+                modalContent.remove();
+              });
+              
+              // Handle cancel
+              const cancelBtn = modalContent.querySelector('#cancelSave');
+              cancelBtn.addEventListener('click', () => {
+                modalContent.remove();
+              });
+            }
+          } catch (error) {
+            console.error('Error loading topics:', error);
+            showToast('Error loading topics', 'error');
+            modalContent.remove();
+          }
+        });
       }
-    });
-    
-    // Submit on Enter key
-    document.getElementById('questionInput').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        document.getElementById('askButton').click();
-      }
-    });
-    
-    // Toast notification
-    function showToast(message, type = 'info') {
-      // Remove existing toasts
-      const existingToasts = document.querySelectorAll('.toast');
-      existingToasts.forEach(toast => toast.remove());
       
-      // Create new toast
-      const toast = document.createElement('div');
-      toast.className = `toast toast-${type}`;
-      toast.textContent = message;
-      
-      document.body.appendChild(toast);
-      
-      // Remove after animation completes
-      setTimeout(() => {
-        toast.remove();
-      }, 3300);
-    }
-    
-    // Add logout functionality
-    document.getElementById('logout')?.addEventListener('click', () => {
-      // Add animation
-      const icon = document.querySelector('#logout i');
-      icon.classList.add('animate-rotate');
-      
-      setTimeout(() => {
-      localStorage.removeItem('userId');
-      localStorage.removeItem('accessToken');
-      window.location.href = '/';
-      }, 500);
-    });
-
-    // Notes toggle functionality
-    document.addEventListener('DOMContentLoaded', () => {
-      // Set up notes toggle functionality
+      // Notes functionality
       const notesToggle = document.getElementById('notesToggle');
       const notesPanel = document.getElementById('notesPanel');
-      const closeNotes = document.querySelector('.close-notes');
+      const closeNotes = document.getElementById('closeNotesBtn');
       
       if (notesToggle && notesPanel && closeNotes) {
         notesToggle.addEventListener('click', (e) => {
           e.preventDefault();
-          notesPanel.classList.toggle('active');
-          if (notesPanel.classList.contains('active')) {
+          notesPanel.classList.toggle('translate-x-full');
+          if (!notesPanel.classList.contains('translate-x-full')) {
             loadNotesTopics();
             loadNotes();
           }
         });
         
         closeNotes.addEventListener('click', () => {
-          notesPanel.classList.remove('active');
+          notesPanel.classList.toggle('translate-x-full');
         });
       }
       
-      // Set up save note functionality
-      const saveNoteBtn = document.getElementById('saveNote');
-      if (saveNoteBtn) {
-        saveNoteBtn.addEventListener('click', saveNote);
+      // Load topics for notes
+      async function loadNotesTopics() {
+        const topicSelect = document.getElementById('noteTopic');
+        const filterSelect = document.getElementById('noteFilter');
+        
+        try {
+          const response = await fetch('/.netlify/functions/dashboard', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'getTopics',
+              userId
+            }),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+          
+          const result = await response.json();
+          
+          if (response.ok && result.topics) {
+            const topicOptions = result.topics.map(topic => 
+              `<option value="${topic.id}">${topic.name}</option>`
+            ).join('');
+            
+            topicSelect.innerHTML = `
+              <option value="">Untagged</option>
+              ${topicOptions}
+            `;
+            
+            filterSelect.innerHTML = `
+              <option value="all">All Notes</option>
+              <option value="untagged">Untagged</option>
+              ${topicOptions}
+            `;
+          }
+        } catch (error) {
+          console.error('Error loading topics:', error);
+        }
       }
       
-      // Set up note filter change event
+      // Save note
+      const saveNoteBtn = document.getElementById('saveNote');
+      const noteTextarea = document.getElementById('noteText');
+      const noteTopicSelect = document.getElementById('noteTopic');
+      
+      if (saveNoteBtn) {
+        saveNoteBtn.addEventListener('click', async () => {
+          const content = noteTextarea.value.trim();
+          if (!content) return;
+          
+          const originalButtonText = saveNoteBtn.innerHTML;
+          saveNoteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+          saveNoteBtn.disabled = true;
+          
+          try {
+            const response = await fetch('/.netlify/functions/dashboard', {
+              method: 'POST',
+              body: JSON.stringify({
+                action: 'saveNote',
+                userId,
+                content,
+                topicId: noteTopicSelect.value || null
+              }),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+              }
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+              noteTextarea.value = '';
+              loadNotes();
+              showToast('Note saved successfully', 'success');
+            } else {
+              showToast('Error saving note: ' + result.error, 'error');
+            }
+          } catch (error) {
+            console.error('Error saving note:', error);
+            showToast('Error connecting to server', 'error');
+          } finally {
+            saveNoteBtn.innerHTML = originalButtonText;
+            saveNoteBtn.disabled = false;
+          }
+        });
+      }
+      
+      // Load notes
       const noteFilter = document.getElementById('noteFilter');
+      
       if (noteFilter) {
         noteFilter.addEventListener('change', loadNotes);
       }
-    });
-    
-    // Load topics for notes dropdown
-    async function loadNotesTopics() {
-      const userId = localStorage.getItem('userId');
-      const accessToken = localStorage.getItem('accessToken');
       
-      try {
-        const noteTopicSelect = document.getElementById('noteTopic');
-        const noteFilterSelect = document.getElementById('noteFilter');
+      async function loadNotes() {
+        const notesList = document.getElementById('notesList');
+        const filterValue = noteFilter.value;
         
-        // Don't overwrite initial options
-        const defaultNoteTopicOption = noteTopicSelect.options[0];
-        const defaultFilterOptions = Array.from(noteFilterSelect.options).slice(0, 2); // Keep "All" and "Untagged"
-        
-        // Show loading state
-        noteTopicSelect.innerHTML = '';
-        noteTopicSelect.appendChild(defaultNoteTopicOption);
-        noteTopicSelect.disabled = true;
-        
-        noteFilterSelect.innerHTML = '';
-        defaultFilterOptions.forEach(option => noteFilterSelect.appendChild(option));
-        noteFilterSelect.disabled = true;
-        
-        const response = await fetch('/.netlify/functions/dashboard', {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'getTopics',
-            userId
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        
-        const result = await response.json();
-        
-        // Re-enable selects
-        noteTopicSelect.disabled = false;
-        noteFilterSelect.disabled = false;
-        
-        if (response.ok && result.topics && result.topics.length > 0) {
-          // Add topics to the note select
-          result.topics.forEach(topic => {
-            // Add to noteTopic select
-            const topicOption = document.createElement('option');
-            topicOption.value = topic.id;
-            topicOption.textContent = topic.name;
-            noteTopicSelect.appendChild(topicOption);
-            
-            // Add to filter select
-            const filterOption = document.createElement('option');
-            filterOption.value = topic.id;
-            filterOption.textContent = topic.name;
-            noteFilterSelect.appendChild(filterOption);
-          });
-        }
-      } catch (error) {
-        console.error('Error loading topics for notes:', error);
-        showToast('Error loading topics. Please try again.', 'error');
-      }
-    }
-    
-    // Save a new note
-    async function saveNote() {
-      const noteText = document.getElementById('noteText').value.trim();
-      const topicId = document.getElementById('noteTopic').value;
-      const saveButton = document.getElementById('saveNote');
-      
-      if (!noteText) {
-        // Animate textarea to show error
-        const textarea = document.getElementById('noteText');
-        textarea.classList.add('animate-shake');
-        setTimeout(() => textarea.classList.remove('animate-shake'), 500);
-        return;
-      }
-      
-      // Show loading state
-      const originalButtonText = saveButton.innerHTML;
-      saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-      saveButton.disabled = true;
-      
-      const userId = localStorage.getItem('userId');
-      const accessToken = localStorage.getItem('accessToken');
-      
-      try {
-        const response = await fetch('/.netlify/functions/dashboard', {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'saveNote',
-            userId,
-            content: noteText,
-            topicId: topicId || null // Handle untagged case
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-          // Show success state
-          saveButton.innerHTML = '<i class="fas fa-check"></i> Saved!';
-          saveButton.classList.add('success');
-          
-          // Clear input
-          document.getElementById('noteText').value = '';
-          
-          // Reset button after delay
-          setTimeout(() => {
-            saveButton.innerHTML = originalButtonText;
-            saveButton.classList.remove('success');
-            saveButton.disabled = false;
-          }, 1500);
-          
-          // Reload notes list
-          loadNotes();
-          
-          // Show success toast
-          showToast('Note saved successfully!', 'success');
-        } else {
-          // Show error state
-          saveButton.innerHTML = originalButtonText;
-          saveButton.disabled = false;
-          
-          showToast('Error saving note: ' + (result.error || 'Unknown error'), 'error');
-        }
-      } catch (error) {
-        console.error('Error saving note:', error);
-        saveButton.innerHTML = originalButtonText;
-        saveButton.disabled = false;
-        showToast('Error connecting to server. Please try again.', 'error');
-      }
-    }
-    
-    // Load notes for the notes panel
-    async function loadNotes() {
-      const userId = localStorage.getItem('userId');
-      const accessToken = localStorage.getItem('accessToken');
-      const filterValue = document.getElementById('noteFilter').value;
-      
-      const notesList = document.getElementById('notesList');
-      
-      // Show loading state
-      notesList.innerHTML = `
-        <div class="loading-notes">
-          <div class="spinner">
-            <div class="spinner-needle"></div>
-            <div class="spinner-center"></div>
+        notesList.innerHTML = `
+          <div class="flex justify-center items-center h-32">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-yellow-400 border-t-transparent"></div>
           </div>
-          <p>Loading notes...</p>
-        </div>
-      `;
-      
-      try {
-        const response = await fetch('/.netlify/functions/dashboard', {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'getNotes',
-            userId,
-            topicId: filterValue === 'all' ? null : (filterValue === 'untagged' ? 'untagged' : filterValue)
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
+        `;
         
-        const result = await response.json();
-        
-        if (response.ok) {
-          notesList.innerHTML = '';
+        try {
+          const response = await fetch('/.netlify/functions/dashboard', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'getNotes',
+              userId,
+              topicId: filterValue === 'all' ? null : (filterValue === 'untagged' ? 'untagged' : filterValue)
+            }),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
           
-          if (result.notes && result.notes.length > 0) {
-            result.notes.forEach((note, index) => {
-              const noteItem = document.createElement('div');
-              noteItem.className = 'note-item';
-              
-              const date = new Date(note.created_at);
-              const formattedDate = `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
-              
-              // Add delay for staggered animation effect
-              noteItem.style.animationDelay = `${index * 0.05}s`;
-              
-              noteItem.innerHTML = `
-                <div class="note-content">${note.content}</div>
-                <div class="note-meta">
-                  <div class="note-topic">${note.topic_name || 'Untagged'}</div>
-                  <div class="note-date">${formattedDate}</div>
-                </div>
-                <div class="note-actions">
-                  <button class="delete-note" data-note-id="${note.id}">
+          const result = await response.json();
+          
+          if (response.ok) {
+            notesList.innerHTML = '';
+            
+            if (result.notes && result.notes.length > 0) {
+              result.notes.forEach(note => {
+                const noteItem = document.createElement('div');
+                noteItem.className = 'bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-4 mb-4 relative group';
+                
+                const date = new Date(note.created_at);
+                const formattedDate = `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+                
+                noteItem.innerHTML = `
+                  <p class="text-gray-800 mb-3">${note.content}</p>
+                  <div class="flex justify-between items-center text-sm">
+                    <span class="bg-gray-100 px-2 py-1 rounded text-gray-600">${note.topic_name || 'Untagged'}</span>
+                    <span class="text-gray-500">${formattedDate}</span>
+                  </div>
+                  <button class="delete-note absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" data-note-id="${note.id}">
                     <i class="fas fa-trash"></i>
                   </button>
+                `;
+                
+                notesList.appendChild(noteItem);
+              });
+              
+              // Add event listeners for delete buttons
+              document.querySelectorAll('.delete-note').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                  const noteId = e.currentTarget.dataset.noteId;
+                  await deleteNote(noteId);
+                });
+              });
+            } else {
+              notesList.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-32 text-gray-500">
+                  <i class="fas fa-sticky-note text-2xl mb-2"></i>
+                  <p>No notes found</p>
                 </div>
               `;
-              
-              notesList.appendChild(noteItem);
-            });
-            
-            // Add event listeners for delete buttons
-            document.querySelectorAll('.delete-note').forEach(button => {
-              button.addEventListener('click', async (e) => {
-                const noteId = e.currentTarget.dataset.noteId;
-                await deleteNote(noteId);
-              });
-            });
+            }
           } else {
             notesList.innerHTML = `
-              <div class="empty-notes">
-                <i class="fas fa-sticky-note"></i>
-                <p>No notes found</p>
+              <div class="flex flex-col items-center justify-center h-32 text-red-500">
+                <p>Failed to load notes: ${result.error || 'Unknown error'}</p>
               </div>
             `;
           }
-        } else {
+        } catch (error) {
+          console.error('Error loading notes:', error);
           notesList.innerHTML = `
-            <div class="empty-notes">
-              <p class="error-message">Failed to load notes: ${result.error || 'Unknown error'}</p>
+            <div class="flex flex-col items-center justify-center h-32 text-red-500">
+              <p>Error connecting to server. Please try again.</p>
             </div>
           `;
         }
-      } catch (error) {
-        console.error('Error loading notes:', error);
-        notesList.innerHTML = `
-          <div class="empty-notes">
-            <p class="error-message">Error connecting to server. Please try again.</p>
-          </div>
-        `;
       }
-    }
-    
-    // Delete a note
-    async function deleteNote(noteId) {
-      if (!confirm('Are you sure you want to delete this note?')) return;
       
-      const userId = localStorage.getItem('userId');
-      const accessToken = localStorage.getItem('accessToken');
-      
-      try {
-        const response = await fetch('/.netlify/functions/dashboard', {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'deleteNote',
-            userId,
-            noteId
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
+      // Delete note
+      async function deleteNote(noteId) {
+        if (!confirm('Are you sure you want to delete this note?')) return;
+        
+        try {
+          const response = await fetch('/.netlify/functions/dashboard', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'deleteNote',
+              userId,
+              noteId
+            }),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+          
+          const result = await response.json();
+          
+          if (response.ok) {
+            loadNotes();
+            showToast('Note deleted successfully', 'success');
+          } else {
+            showToast('Error deleting note: ' + (result.error || 'Unknown error'), 'error');
           }
+        } catch (error) {
+          console.error('Error deleting note:', error);
+          showToast('Error connecting to server. Please try again.', 'error');
+        }
+      }
+      
+      // Toast notification
+      function showToast(message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+          toastContainer = document.createElement('div');
+          toastContainer.className = 'fixed bottom-5 right-5 flex flex-col gap-3 z-50';
+          document.body.appendChild(toastContainer);
+        }
+        
+        // Create new toast
+        const toast = document.createElement('div');
+        toast.className = `flex items-center justify-between min-w-[250px] max-w-[350px] bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 transform translate-x-full`;
+        
+        // Add border based on type
+        if (type === 'success') {
+          toast.classList.add('border-l-4', 'border-green-500');
+        } else if (type === 'error') {
+          toast.classList.add('border-l-4', 'border-red-500');
+        }
+        
+        // Add content
+        const content = document.createElement('div');
+        content.className = 'flex items-center gap-3 px-4 py-3';
+        
+        // Add icon
+        const icon = document.createElement('i');
+        icon.className = type === 'success' 
+          ? 'fas fa-check-circle text-green-500'
+          : 'fas fa-exclamation-circle text-red-500';
+        content.appendChild(icon);
+        
+        // Add message
+        const messageSpan = document.createElement('span');
+        messageSpan.className = 'text-gray-800';
+        messageSpan.textContent = message;
+        content.appendChild(messageSpan);
+        
+        toast.appendChild(content);
+        
+        // Add close button
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'p-3 text-gray-400 hover:text-gray-600 transition-colors';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', () => {
+          toast.classList.add('translate-x-full', 'opacity-0');
+          setTimeout(() => {
+            toast.remove();
+            if (toastContainer.children.length === 0) {
+              toastContainer.remove();
+            }
+          }, 300);
         });
         
-        const result = await response.json();
+        toast.appendChild(closeBtn);
         
-        if (response.ok) {
-          // Reload notes
-          loadNotes();
-          
-          // Show success toast
-          showToast('Note deleted successfully', 'success');
-        } else {
-          showToast('Error deleting note: ' + (result.error || 'Unknown error'), 'error');
-        }
-      } catch (error) {
-        console.error('Error deleting note:', error);
-        showToast('Error connecting to server. Please try again.', 'error');
+        // Add to container and animate in
+        toastContainer.appendChild(toast);
+        requestAnimationFrame(() => {
+          toast.classList.remove('translate-x-full');
+        });
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+              if (toast.parentNode) {
+                toast.remove();
+                if (toastContainer.children.length === 0) {
+                  toastContainer.remove();
+                }
+              }
+            }, 300);
+          }
+        }, 5000);
       }
-    }
+      
+      // Update greeting based on time of day
+      function updateGreeting() {
+        const greetingElement = document.getElementById('greeting-message');
+        if (!greetingElement) return;
+        
+        const hour = new Date().getHours();
+        let greeting = 'Good ';
+        
+        if (hour < 12) {
+          greeting += 'Morning!';
+        } else if (hour < 18) {
+          greeting += 'Afternoon!';
+        } else {
+          greeting += 'Evening!';
+        }
+        
+        greetingElement.textContent = greeting;
+      }
+    });
   </script>
 </body>
 </html>
