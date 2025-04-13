@@ -91,22 +91,27 @@ function updateNavigation() {
   const loggedOutNav = document.getElementById('loggedOutNav');
   const logoutContainer = document.getElementById('logoutContainer');
   
-  // Only redirect if on index, login, or signup page AND logged in
+  // Get current page
   const currentPage = window.location.pathname.split('/').pop();
-  if (isLoggedIn && ['index.html', '', 'login.html', 'signup.html'].includes(currentPage)) {
-      // Check if we are already on dashboard to prevent redirect loop
-      if (window.location.pathname !== '/pages/dashboard.html') {
-          window.location.href = '/pages/dashboard.html';
-      }
-  } else if (!isLoggedIn) {
-    // Ensure correct nav is shown on non-logged-in pages
+  const isLandingPage = currentPage === '' || currentPage === 'index.html';
+  
+  // Handle redirects for authenticated users on auth pages
+  if (isLoggedIn && ['login.html', 'signup.html'].includes(currentPage)) {
+    // Redirect to dashboard if on login/signup pages
+    window.location.href = '/pages/dashboard.html';
+    return;
+  }
+  
+  // Update navigation visibility based on login status
+  if (isLoggedIn) {
+    // User is logged in
+    if (loggedInNav) loggedInNav.classList.remove('hidden');
+    if (loggedOutNav) loggedOutNav.classList.add('hidden');
+    if (logoutContainer) logoutContainer.classList.remove('hidden');
+  } else {
+    // User is not logged in
     if (loggedInNav) loggedInNav.classList.add('hidden');
     if (loggedOutNav) loggedOutNav.classList.remove('hidden');
     if (logoutContainer) logoutContainer.classList.add('hidden');
-  } else {
-      // If logged in and on other pages (e.g., dashboard, settings), show loggedInNav
-      if (loggedInNav) loggedInNav.classList.remove('hidden');
-      if (loggedOutNav) loggedOutNav.classList.add('hidden');
-      if (logoutContainer) logoutContainer.classList.remove('hidden');
   }
 }
