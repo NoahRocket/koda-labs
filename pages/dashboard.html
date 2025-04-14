@@ -142,14 +142,16 @@
   </div>
 
   <!-- Topic Modal -->
-  <div class="modal fixed inset-0 bg-black bg-opacity-50 hidden z-50" id="topicModal">
-    <div class="bg-white w-11/12 max-w-4xl mx-auto mt-16 rounded-xl shadow-lg max-h-[90vh] overflow-y-auto transition-all duration-300" id="modalContent">
-      <div class="p-6">
-        <div class="flex justify-between items-center mb-6">
+  <div class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden" id="topicModal">
+    <div class="bg-white w-11/12 max-w-4xl mx-auto rounded-xl shadow-lg max-h-[90vh] overflow-hidden transition-all duration-300 flex flex-col" id="modalContent">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex justify-between items-center">
           <h2 id="modalTopicName" class="text-2xl font-bold text-gray-800"></h2>
           <button id="closeTopicModal" class="text-2xl text-gray-500 hover:text-gray-700">&times;</button>
         </div>
-        
+      </div>
+      
+      <div class="overflow-y-auto flex-1 p-6" style="max-height: 70vh">
         <div class="border-b border-gray-200 mb-6">
           <div class="flex space-x-6">
             <button class="tab-button active" data-tab="conversations">
@@ -210,18 +212,31 @@
               <i class="fas fa-magic mr-2"></i> Generate Summary
             </button>
           </div>
-          
           <div id="summaryLoading" class="hidden flex justify-center items-center py-8">
             <div class="text-center">
               <i class="fas fa-circle-notch fa-spin fa-2x text-gray-300 mb-3"></i>
               <p class="text-gray-500">Generating summary... This may take a moment.</p>
             </div>
           </div>
-          
-          <div id="summaryContent" class="bg-white rounded-lg p-5 prose prose-sm max-w-none">
-            <!-- Summary content will be loaded here -->
+          <!-- Learning Highlights Section (Card Layout) -->
+          <div id="summaryContent" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <!-- Cards will be injected here by JS as Tailwind-styled cards -->
           </div>
-          
+          <template id="highlightCardTemplate">
+            <div class="bg-white rounded-xl shadow-md p-5 flex flex-col justify-between h-full border border-gray-100 hover:shadow-lg transition group">
+              <div>
+                <div class="font-bold text-lg mb-1 text-blue-700">{{concept}}</div>
+                <div class="text-gray-700 mb-2 line-clamp-2">{{description}}</div>
+              </div>
+              <div class="flex items-center justify-between mt-3">
+                <span class="text-xs text-gray-400 font-medium">{{source}}</span>
+                <div class="flex gap-2">
+                  <button class="revisit-btn px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-semibold transition">Revisit</button>
+                  <button class="quiz-btn px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 font-semibold transition">Quiz Me</button>
+                </div>
+              </div>
+            </div>
+          </template>
           <div id="summaryMeta" class="mt-4 text-sm text-gray-500 hidden">
             <p>Last updated: <span id="summaryLastUpdated"></span></p>
           </div>
@@ -297,6 +312,14 @@
     let topics = [];
     let currentTopicId = null;
     
+    // Defensive: Prevent JS errors from blocking summary loading
+    if (typeof loadNotes !== 'function') {
+      window.loadNotes = function() { console.warn('loadNotes() is not implemented on this page.'); };
+    }
+    if (typeof setupEventListeners !== 'function') {
+      window.setupEventListeners = function() { console.warn('setupEventListeners() is not implemented on this page.'); };
+    }
+
     // Document ready function
     document.addEventListener('DOMContentLoaded', function() {
       console.log('DOM fully loaded');
@@ -772,6 +795,12 @@
       const topicModal = document.getElementById('topicModal');
       const modalContent = document.getElementById('modalContent');
       const modalTopicName = document.getElementById('modalTopicName');
+      const summaryContent = document.getElementById('summaryContent');
+      
+      // Clear any existing summary content to prevent showing stale data
+      if (summaryContent) {
+        summaryContent.innerHTML = '';
+      }
       
       // Set the topic ID on the modal for later use (especially for summary generation)
       topicModal.setAttribute('data-topic-id', topicId);
@@ -788,6 +817,7 @@
       
       // Show modal with animation
       topicModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
       
       // Add entrance animation
       setTimeout(() => {
@@ -814,84 +844,97 @@
       currentTopicId = topicId;
       loadConversations(topicId);
       loadBookmarks(topicId);
-      loadTopicNotes(topicId);
+      
+      // Only call loadTopicNotes if it exists
+      if (typeof loadTopicNotes === 'function') {
+        loadTopicNotes(topicId);
+      }
+      
       loadTopicSummary(topicId); 
     }
 
     // Function to load existing summary for a topic
     async function loadTopicSummary(topicId) {
-      console.log('Loading summary for topic:', topicId);
+      console.log('[DEBUG] Calling loadTopicSummary for topic:', topicId);
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
       const summaryContent = document.getElementById('summaryContent');
       const summaryLoading = document.getElementById('summaryLoading');
-      
+
       if (!summaryContent) {
         console.error('Summary content container not found');
         return;
       }
-      
+
       // Show loading state
       if (summaryLoading) summaryLoading.style.display = 'flex';
       summaryContent.style.display = 'none';
-      
+
       try {
-        // Fetch existing summary from the database
-        const response = await fetch('/.netlify/functions/dashboard', {
+        console.log(`[DEBUG] Fetching summary for topic_id: ${topicId}, user_id: ${userId}`);
+        const response = await fetch('/.netlify/functions/summary', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`
           },
           body: JSON.stringify({
-            action: 'getSummary',
-            userId,
-            topicId
+            action: 'getSummary',  // Important: this tells the backend what to do
+            topic_id: topicId,     // Must match parameter names in the database schema
+            user_id: userId
           })
         });
         
+        console.log('[DEBUG] Summary API response status:', response.status);
+        const result = await response.json();
+        console.log('[DEBUG] Summary API result:', result);
+        
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(result.error || 'Failed to fetch summary');
         }
         
-        const data = await response.json();
-        
-        // Hide loading state
+        // Always hide loading state
         if (summaryLoading) summaryLoading.style.display = 'none';
         
-        // Display summary if it exists
-        if (data.summary) {
-          summaryContent.innerHTML = parseMarkdown(data.summary.content);
+        if (result.summary && result.summary.highlights && result.summary.highlights.length > 0) {
+          const highlightCards = result.summary.highlights.map(highlight => {
+            const template = document.getElementById('highlightCardTemplate');
+            const clone = template.content.cloneNode(true);
+            clone.querySelector('.font-bold').textContent = highlight.concept;
+            clone.querySelector('.text-gray-700').textContent = highlight.description;
+            clone.querySelector('.text-xs').textContent = highlight.source;
+            return clone;
+          });
+          summaryContent.innerHTML = '';
+          highlightCards.forEach(card => summaryContent.appendChild(card));
           summaryContent.style.display = 'block';
           
           // Show last updated time if available
           const summaryMeta = document.getElementById('summaryMeta');
           const summaryLastUpdated = document.getElementById('summaryLastUpdated');
           
-          if (summaryMeta && summaryLastUpdated && data.summary.created_at) {
-            const lastUpdated = new Date(data.summary.created_at);
-            summaryLastUpdated.textContent = lastUpdated.toLocaleString();
-            summaryMeta.classList.remove('hidden');
+          if (summaryMeta && summaryLastUpdated && result.summary.created_at) {
+            summaryLastUpdated.textContent = formatDate(result.summary.created_at);
+            summaryMeta.style.display = 'block';
           }
         } else {
-          // No summary exists yet
-          summaryContent.innerHTML = '<p class="text-gray-500">No summary has been generated for this topic yet. Click the "Generate Summary" button to create one.</p>';
+          summaryContent.innerHTML = '<p class="text-gray-500">No summary found for this topic. Click Generate Summary to create one!</p>';
           summaryContent.style.display = 'block';
-          
-          // Hide the last updated time
-          const summaryMeta = document.getElementById('summaryMeta');
-          if (summaryMeta) summaryMeta.classList.add('hidden');
         }
       } catch (error) {
         console.error('Error loading summary:', error);
-        
-        // Hide loading state
         if (summaryLoading) summaryLoading.style.display = 'none';
-        
-        // Show error message
-        summaryContent.innerHTML = '<p class="text-red-500">Error loading summary. Please try again.</p>';
+        summaryContent.innerHTML = `<p class="text-red-500">Error loading summary: ${error.message}</p>`;
         summaryContent.style.display = 'block';
       }
+    }
+
+    // Helper function to format dates consistently
+    function formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      return date.toLocaleString();
     }
 
     // Close Topic Modal
@@ -909,6 +952,7 @@
         // Hide modal after animation
         setTimeout(() => {
           topicModal.classList.add('hidden');
+          document.body.style.overflow = '';
         }, 300);
       });
     }
@@ -945,15 +989,16 @@
       const accessToken = localStorage.getItem('accessToken');
       
       console.log('[Debug] User ID:', userId);
-      console.log('[Debug] Making API request with params:', { user_id: userId, topic_id: topicId });
+      console.log('[Debug] Making API request with params:', { action: 'generateSummary', user_id: userId, topic_id: topicId });
       
       try {
         // IMPORTANT: Use user_id and topic_id as parameter names to match Supabase schema
         const response = await fetch('/.netlify/functions/summary', {
           method: 'POST',
           body: JSON.stringify({
-            user_id: userId,
-            topic_id: topicId
+            action: 'generateSummary',
+            topic_id: topicId,
+            user_id: userId
           }),
           headers: { 
             'Content-Type': 'application/json',
@@ -973,7 +1018,17 @@
         console.log('[Debug] Summary generation response:', result);
         
         if (result.summary) {
-          summaryContent.innerHTML = parseMarkdown(result.summary.content);
+          const highlightCards = result.summary.highlights.map(highlight => {
+            const template = document.getElementById('highlightCardTemplate');
+            const clone = template.content.cloneNode(true);
+            clone.querySelector('.font-bold').textContent = highlight.concept;
+            clone.querySelector('.text-gray-700').textContent = highlight.description;
+            clone.querySelector('.text-xs').textContent = highlight.source;
+            return clone;
+          });
+          summaryContent.innerHTML = '';
+          highlightCards.forEach(card => summaryContent.appendChild(card));
+          summaryContent.style.display = 'block';
           
           // Show the last updated timestamp
           if (summaryMeta && result.summary.last_source_updated_at) {
@@ -994,15 +1049,16 @@
           }
           
           summaryContent.innerHTML = `<p class="text-red-500">Failed to generate summary: ${errorMessage}</p>`;
+          summaryContent.style.display = 'block';
           showToast(`Summary generation failed: ${errorMessage}`, 'error');
         }
       } catch (error) {
         console.error('[Debug] Error generating summary:', error);
         summaryContent.innerHTML = `<p class="text-red-500">Error connecting to server. Please try again.</p>`;
+        summaryContent.style.display = 'block';
         showToast('Network error. Please check your internet connection.', 'error');
       } finally {
         // Reset UI
-        summaryContent.style.display = 'block';
         if (summaryLoading) {
           summaryLoading.style.display = 'none';
         }
@@ -1045,43 +1101,148 @@
     });
 
     // Add click handlers for topic modal tabs
-    document.addEventListener('click', function(e) {
-      if (e.target && e.target.classList.contains('tab-btn')) {
-        const tabButtons = document.querySelectorAll('[data-tab]'); 
-        const tabContents = document.querySelectorAll('.tab-content');
-        const targetTab = e.target.getAttribute('data-tab');
-        
-        console.log('Tab clicked:', targetTab);
-        
-        // Remove active class from all tabs
-        tabButtons.forEach(btn => btn.classList.remove('active'));
-        
-        // Add active class to clicked tab and corresponding content
-        e.target.classList.add('active');
-        document.getElementById(`${targetTab}Tab`).classList.remove('hidden');
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get all tab buttons
+      const tabButtons = document.querySelectorAll('[data-tab]'); 
+      
+      // Add click event to each tab button
+      tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          console.log('Tab clicked:', this.getAttribute('data-tab'));
+          
+          // Remove active class from all buttons
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          
+          // Add active class to clicked button
+          this.classList.add('active');
+          
+          // Hide all tab contents
+          const tabContents = document.querySelectorAll('.tab-content');
+          tabContents.forEach(content => content.classList.add('hidden'));
+          
+          // Show the selected tab content
+          const selectedTab = document.getElementById(this.getAttribute('data-tab') + 'Tab');
+          if (selectedTab) {
+            selectedTab.classList.remove('hidden');
+            selectedTab.classList.add('block');
+          }
+        });
+      });
+      
+      // Close modal button
+      const closeModalBtn = document.getElementById('closeTopicModal');
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function() {
+          const modal = document.getElementById('topicModal');
+          if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+          }
+        });
+      }
+      
+      // Generate summary button
+      const generateSummaryBtn = document.getElementById('generateSummaryBtn');
+      if (generateSummaryBtn) {
+        generateSummaryBtn.addEventListener('click', function() {
+          console.log('Generate summary button clicked');
+          
+          // Get the topic ID from the modal
+          const topicId = document.getElementById('topicModal').getAttribute('data-topic-id');
+          if (!topicId) {
+            console.error('No topic ID found on modal');
+            return;
+          }
+          
+          // Show loading state
+          this.disabled = true;
+          this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+          
+          const summaryContent = document.getElementById('summaryContent');
+          const summaryLoading = document.getElementById('summaryLoading');
+          
+          if (summaryContent) summaryContent.style.display = 'none';
+          if (summaryLoading) summaryLoading.style.display = 'flex';
+          
+          // Make the API request
+          const userId = localStorage.getItem('userId');
+          const accessToken = localStorage.getItem('accessToken');
+          
+          fetch('/.netlify/functions/summary', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'generateSummary',
+              user_id: userId,
+              topic_id: topicId
+            }),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            }
+          })
+          .then(response => {
+            if (!response.ok) {
+              return response.text().then(text => {
+                throw new Error(`HTTP error! status: ${response.status}, message: ${text}`);
+              });
+            }
+            return response.json();
+          })
+          .then(data => {
+            // Update the UI with the summary
+            if (summaryContent) {
+              if (data.summary) {
+                const highlightCards = data.summary.highlights.map(highlight => {
+                  const template = document.getElementById('highlightCardTemplate');
+                  const clone = template.content.cloneNode(true);
+                  clone.querySelector('.font-bold').textContent = highlight.concept;
+                  clone.querySelector('.text-gray-700').textContent = highlight.description;
+                  clone.querySelector('.text-xs').textContent = highlight.source;
+                  return clone;
+                });
+                summaryContent.innerHTML = '';
+                highlightCards.forEach(card => summaryContent.appendChild(card));
+                showToast('Summary generated successfully', 'success');
+              } else {
+                summaryContent.innerHTML = '<p class="text-red-500">No summary data returned</p>';
+              }
+              summaryContent.style.display = 'block';
+            }
+          })
+          .catch(error => {
+            console.error('Error generating summary:', error);
+            if (summaryContent) {
+              summaryContent.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+              summaryContent.style.display = 'block';
+            }
+            showToast('Error generating summary', 'error');
+          })
+          .finally(() => {
+            // Reset UI
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
+            if (summaryLoading) summaryLoading.style.display = 'none';
+          });
+        });
       }
     });
-    
+
     // Load conversations for a topic
     async function loadConversations(topicId) {
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
       const conversationsList = document.getElementById('conversationsList');
-      
       if (!conversationsList) {
         console.error('Conversations list container not found');
         return;
       }
-      
       // Show loading state
       conversationsList.innerHTML = `
         <div class="flex justify-center items-center py-8">
           <i class="fas fa-circle-notch fa-spin fa-2x text-gray-300"></i>
         </div>
       `;
-      
       try {
-        // Fetch conversations
         const response = await fetch('/.netlify/functions/dashboard', {
           method: 'POST',
           headers: {
@@ -1094,24 +1255,19 @@
             topicId
           })
         });
-        
         if (!response.ok) {
           throw new Error(`Server responded with status: ${response.status}`);
         }
-        
         const result = await response.json();
-        
         if (result.conversations && result.conversations.length > 0) {
           conversationsList.innerHTML = '';
           result.conversations.forEach(conversation => {
             const conversationItem = document.createElement('div');
             conversationItem.className = 'rounded-lg mb-4 p-4 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md';
-            
             // Truncate long content (300 characters)
             const fullContent = conversation.content;
             const isTruncated = fullContent.length > 300;
             const displayContent = isTruncated ? fullContent.substring(0, 300) + '...' : fullContent;
-            
             conversationItem.innerHTML = `
               <div class="flex justify-between items-start mb-2">
                 <span class="text-sm text-gray-500">${new Date(conversation.created_at).toLocaleDateString()}</span>
@@ -1133,27 +1289,23 @@
               </div>
             `;
             conversationsList.appendChild(conversationItem);
-            
             // Add event listeners for show more/less buttons
             if (isTruncated) {
               const showMoreBtn = conversationItem.querySelector('.show-more-btn');
               const showLessBtn = conversationItem.querySelector('.show-less-btn');
               const truncatedContent = conversationItem.querySelector('.conversation-content > p');
               const fullContentDiv = conversationItem.querySelector('.full-content');
-              
               showMoreBtn.addEventListener('click', () => {
                 truncatedContent.classList.add('hidden');
                 showMoreBtn.classList.add('hidden');
                 fullContentDiv.classList.remove('hidden');
               });
-              
               showLessBtn.addEventListener('click', () => {
                 truncatedContent.classList.remove('hidden');
                 showMoreBtn.classList.remove('hidden');
                 fullContentDiv.classList.add('hidden');
               });
             }
-            
             // Add delete event listener
             conversationItem.querySelector('.delete-conversation-btn').addEventListener('click', (e) => {
               e.stopPropagation();
@@ -1173,56 +1325,32 @@
         }
       } catch (error) {
         console.error('Error loading conversations:', error);
-        
-        // Hide loading
-        if (topicsLoading) {
-          topicsLoading.style.display = 'none';
-        }
-        
-        // Show error
-        const errorState = document.createElement('div');
-        errorState.className = 'col-span-3 text-center py-8';
-        errorState.innerHTML = `
+        conversationsList.innerHTML = `
           <div class="text-center py-8">
             <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
             <h3 class="text-xl font-semibold text-gray-700 mb-2">Error loading conversations</h3>
             <p class="text-gray-500 mb-4">${error.message || 'Please try again later'}</p>
-            <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors" id="retryLoadConversations">
-              <i class="fas fa-redo mr-2"></i> Retry
-            </button>
           </div>
         `;
-        
-        conversationsList.appendChild(errorState);
-        
-        // Add retry event listener
-        document.getElementById('retryLoadConversations')?.addEventListener('click', () => loadConversations(topicId));
       }
     }
-    
-    // Function to show toast notifications
-    // REMOVED (using shared utils.js)
 
     // Load bookmarks for a topic
     async function loadBookmarks(topicId) {
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
       const bookmarksList = document.getElementById('bookmarksList');
-      
       if (!bookmarksList) {
         console.error('Bookmarks list container not found');
         return;
       }
-      
       // Show loading state
       bookmarksList.innerHTML = `
         <div class="flex justify-center items-center py-8">
           <i class="fas fa-circle-notch fa-spin fa-2x text-gray-300"></i>
         </div>
       `;
-      
       try {
-        // Fetch bookmarks
         const response = await fetch('/.netlify/functions/dashboard', {
           method: 'POST',
           body: JSON.stringify({
@@ -1235,13 +1363,10 @@
             'Authorization': `Bearer ${accessToken}`
           }
         });
-        
         if (!response.ok) {
           throw new Error(`Server responded with status: ${response.status}`);
         }
-        
         const result = await response.json();
-        
         if (result.bookmarks && result.bookmarks.length > 0) {
           bookmarksList.innerHTML = '';
           result.bookmarks.forEach(bookmark => {
@@ -1272,292 +1397,15 @@
         bookmarksList.innerHTML = `
           <div class="text-center py-8">
             <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
-            <p class="text-gray-500">Error loading bookmarks. Please try again.</p>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Error loading bookmarks</h3>
+            <p class="text-gray-500 mb-4">${error.message || 'Please try again later'}</p>
           </div>
         `;
       }
     }
-
-    // Direct script to handle tab switching
-    document.addEventListener('DOMContentLoaded', function() {
-      // Get all tab buttons
-      const tabButtons = document.querySelectorAll('[data-tab]'); 
-      
-      // Add click event to each tab button
-      tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          console.log('Tab clicked:', this.getAttribute('data-tab'));
-          
-          // Remove active class from all buttons
-          tabButtons.forEach(btn => btn.classList.remove('active'));
-          
-          // Add active class to clicked button
-          this.classList.add('active');
-          
-          // Hide all tab contents
-          const tabContents = document.querySelectorAll('.tab-content');
-          tabContents.forEach(content => content.classList.add('hidden'));
-          
-          // Show the corresponding tab content
-          const tabName = this.getAttribute('data-tab');
-          const tabContent = document.getElementById(tabName + 'Tab');
-          if (tabContent) {
-            tabContent.classList.remove('hidden');
-          }
-        });
-      });
-      
-      // Close modal button
-      const closeModalBtn = document.getElementById('closeTopicModal');
-      if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', function() {
-          console.log('Close modal clicked');
-          const modal = document.getElementById('topicModal');
-          const modalContent = document.getElementById('modalContent');
-          
-          if (modal && modalContent) {
-            // Add exit animation
-            modalContent.classList.add('opacity-0', 'translate-y-5');
-            
-            // Hide modal after animation
-            setTimeout(() => {
-              modal.classList.add('hidden');
-            }, 300);
-          }
-        });
-      }
-      
-      // Generate summary button
-      const generateSummaryBtn = document.getElementById('generateSummaryBtn');
-      if (generateSummaryBtn) {
-        generateSummaryBtn.addEventListener('click', function() {
-          console.log('Generate summary button clicked');
-          
-          // Get the topic ID from the modal
-          const topicId = document.getElementById('topicModal').getAttribute('data-topic-id');
-          if (!topicId) {
-            console.error('No topic ID found on modal');
-            return;
-          }
-          
-          // Show loading state
-          this.disabled = true;
-          this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-          const summaryContent = document.getElementById('summaryContent');
-          const summaryLoading = document.getElementById('summaryLoading');
-          
-          if (summaryContent) summaryContent.style.display = 'none';
-          if (summaryLoading) summaryLoading.style.display = 'flex';
-          
-          // Make the API request
-          const userId = localStorage.getItem('userId');
-          const accessToken = localStorage.getItem('accessToken');
-          
-          fetch('/.netlify/functions/summary', {
-            method: 'POST',
-            body: JSON.stringify({
-              user_id: userId,
-              topic_id: topicId
-            }),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            }
-          })
-          .then(response => {
-            if (!response.ok) {
-              return response.text().then(text => {
-                throw new Error(`HTTP error! status: ${response.status}, message: ${text}`);
-              });
-            }
-            return response.json();
-          })
-          .then(data => {
-            // Update the UI with the summary
-            if (summaryContent) {
-              if (data.summary) {
-                summaryContent.innerHTML = parseMarkdown(data.summary.content);
-                showToast('Summary generated successfully', 'success');
-              } else {
-                summaryContent.innerHTML = '<p class="text-red-500">No summary data returned</p>';
-              }
-              summaryContent.style.display = 'block';
-            }
-          })
-          .catch(error => {
-            console.error('Error generating summary:', error);
-            if (summaryContent) {
-              summaryContent.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
-              summaryContent.style.display = 'block';
-            }
-            showToast('Error generating summary', 'error');
-          })
-          .finally(() => {
-            // Reset UI
-            this.disabled = false;
-            this.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
-            if (summaryLoading) summaryLoading.style.display = 'none';
-          });
-        });
-      }
-    });
   </script>
   
-  <!-- Simple, direct tab switching script -->
-  <script>
-    // Function to parse markdown to HTML
-    function parseMarkdown(markdown) {
-      if (!markdown) return '';
-      
-      // Replace headers
-      markdown = markdown.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-      markdown = markdown.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-      markdown = markdown.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-      
-      // Replace bold and italic
-      markdown = markdown.replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>');
-      markdown = markdown.replace(/\*(.*)\*/gim, '<em>$1</em>');
-      
-      // Replace links
-      markdown = markdown.replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-      
-      // Replace lists
-      markdown = markdown.replace(/^\s*\n\* (.*)/gim, '<ul>\n<li>$1</li>');
-      markdown = markdown.replace(/^\* (.*)/gim, '<li>$1</li>');
-      markdown = markdown.replace(/^\s*\n- (.*)/gim, '<ul>\n<li>$1</li>');
-      markdown = markdown.replace(/^- (.*)/gim, '<li>$1</li>');
-      
-      // Replace line breaks
-      markdown = markdown.replace(/\n$/gim, '<br />');
-      
-      // Replace paragraphs
-      markdown = markdown.replace(/^\s*\n\s*$/gim, '</p><p>');
-      markdown = '<p>' + markdown + '</p>';
-      
-      // Clean up any remaining line breaks
-      markdown = markdown.replace(/\n/gim, '<br />');
-      
-      return markdown;
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-      // Tab switching functionality
-      const tabButtons = document.querySelectorAll('[data-tab]'); 
-      
-      tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          const tabButtons = document.querySelectorAll('[data-tab]'); 
-          const tabContents = document.querySelectorAll('.tab-content');
-          const targetTab = this.getAttribute('data-tab');
-          
-          console.log('Tab clicked:', targetTab);
-          
-          // Remove active class from all buttons
-          tabButtons.forEach(btn => btn.classList.remove('active'));
-          
-          // Add active class to clicked button
-          this.classList.add('active');
-          
-          // Hide all tab contents
-          tabContents.forEach(content => content.classList.add('hidden'));
-          
-          // Show the selected tab content
-          const selectedTab = document.getElementById(targetTab + 'Tab');
-          if (selectedTab) {
-            selectedTab.classList.remove('hidden');
-            selectedTab.classList.add('block');
-          }
-        });
-      });
-      
-      // Close modal button
-      const closeModalBtn = document.getElementById('closeTopicModal');
-      if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', function() {
-          const modal = document.getElementById('topicModal');
-          if (modal) {
-            modal.classList.add('hidden');
-          }
-        });
-      }
-      
-      // Generate summary button
-      const generateSummaryBtn = document.getElementById('generateSummaryBtn');
-      if (generateSummaryBtn) {
-        generateSummaryBtn.addEventListener('click', function() {
-          console.log('Generate summary button clicked');
-          
-          // Get the topic ID from the modal
-          const topicId = document.getElementById('topicModal').getAttribute('data-topic-id');
-          if (!topicId) {
-            console.error('No topic ID found on modal');
-            return;
-          }
-          
-          // Show loading state
-          this.disabled = true;
-          this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-          
-          const summaryContent = document.getElementById('summaryContent');
-          const summaryLoading = document.getElementById('summaryLoading');
-          
-          if (summaryContent) summaryContent.style.display = 'none';
-          if (summaryLoading) summaryLoading.style.display = 'flex';
-          
-          // Make the API request
-          const userId = localStorage.getItem('userId');
-          const accessToken = localStorage.getItem('accessToken');
-          
-          fetch('/.netlify/functions/summary', {
-            method: 'POST',
-            body: JSON.stringify({
-              user_id: userId,
-              topic_id: topicId
-            }),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            }
-          })
-          .then(response => {
-            if (!response.ok) {
-              return response.text().then(text => {
-                throw new Error(`HTTP error! status: ${response.status}, message: ${text}`);
-              });
-            }
-            return response.json();
-          })
-          .then(data => {
-            // Update the UI with the summary
-            if (summaryContent) {
-              if (data.summary) {
-                summaryContent.innerHTML = parseMarkdown(data.summary.content);
-                showToast('Summary generated successfully', 'success');
-              } else {
-                summaryContent.innerHTML = '<p class="text-red-500">No summary data returned</p>';
-              }
-              summaryContent.style.display = 'block';
-            }
-          })
-          .catch(error => {
-            console.error('Error generating summary:', error);
-            if (summaryContent) {
-              summaryContent.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
-              summaryContent.style.display = 'block';
-            }
-            showToast('Error generating summary', 'error');
-          })
-          .finally(() => {
-            // Reset UI
-            this.disabled = false;
-            this.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
-            if (summaryLoading) summaryLoading.style.display = 'none';
-          });
-        });
-      }
-    });
-  </script>
-  
+  <!-- Delete a conversation -->
   <script>
     // Delete a conversation
     async function deleteConversation(conversationId) {
@@ -1596,6 +1444,104 @@
         console.error('Error deleting conversation:', error);
         showToast('Error connecting to server', 'error');
       }
+    }
+  </script>
+  
+  <script>
+    // Function to set up general event listeners
+    function setupEventListeners() {
+      console.log('Setting up event listeners...');
+      
+      // Logout button
+      const logoutBtn = document.getElementById('logout');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem('userId');
+          localStorage.removeItem('accessToken');
+          window.location.href = '/';
+        });
+      }
+      
+      // Add Topic Modal
+      const addTopicModal = document.getElementById('addTopicModal');
+      const showAddTopicModalBtn = document.getElementById('showAddTopicModal');
+      const closeAddTopicModalBtn = document.getElementById('closeAddTopicModal');
+      const addTopicForm = document.getElementById('addTopicForm');
+      
+      if (showAddTopicModalBtn && addTopicModal && closeAddTopicModalBtn) {
+        showAddTopicModalBtn.addEventListener('click', () => {
+          addTopicModal.classList.remove('hidden');
+        });
+        closeAddTopicModalBtn.addEventListener('click', () => {
+          addTopicModal.classList.add('hidden');
+        });
+      }
+      
+      if (addTopicForm) {
+        addTopicForm.addEventListener('submit', handleAddTopicSubmit);
+      }
+      
+      // Close Topic Modal
+      const closeTopicModalBtn = document.getElementById('closeTopicModal');
+      const topicModal = document.getElementById('topicModal');
+      if (closeTopicModalBtn && topicModal) {
+        closeTopicModalBtn.addEventListener('click', () => {
+          topicModal.classList.add('hidden');
+          document.body.style.overflow = ''; // Restore body scroll
+        });
+      }
+      
+      // Generate Summary Button
+      const generateSummaryBtn = document.getElementById('generateSummaryBtn');
+      if (generateSummaryBtn) {
+        generateSummaryBtn.addEventListener('click', generateSummary);
+      }
+      
+      // Save Note Button (within modal)
+      const saveNoteBtn = document.getElementById('saveNoteBtn');
+      if (saveNoteBtn) {
+        // Check if the function exists before attaching it
+        if (typeof handleSaveNote === 'function') {
+          saveNoteBtn.addEventListener('click', handleSaveNote);
+        } else {
+          // Provide a placeholder function to prevent errors
+          saveNoteBtn.addEventListener('click', () => {
+            console.warn('handleSaveNote function is not defined');
+            showToast('Note saving is not available', 'error');
+          });
+        }
+      }
+      
+      // Tab switching inside the modal
+      const modal = document.getElementById('topicModal');
+      if (modal) {
+        const tabButtons = modal.querySelectorAll('.tab-button');
+        const tabContents = modal.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            const tabName = button.getAttribute('data-tab');
+            
+            // Update button states
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Update content visibility
+            tabContents.forEach(content => {
+              if (content.id === `${tabName}Tab`) {
+                content.classList.remove('hidden');
+              } else {
+                content.classList.add('hidden');
+              }
+            });
+            
+            // Special loading logic if needed (already handled in openTopicModal)
+            // Example: if (tabName === 'summary' && !summaryLoaded) loadSummary(); 
+          });
+        });
+      }
+      
+      console.log('Event listeners set up.');
     }
   </script>
 </body>
