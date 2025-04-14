@@ -6,7 +6,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
-    "node-fetch": "^2.6.7",
+    "node-fetch": "^2.7.0",
     "url-metadata": "^2.2.0"
   },
   "devDependencies": {

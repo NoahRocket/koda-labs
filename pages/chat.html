@@ -207,7 +207,8 @@
       const chatContainer = document.getElementById('chatContainer');
       const conversationType = document.getElementById('conversationType');
       const saveConversationBtn = document.getElementById('saveConversation');
-      
+      let conversationHistory = []; // Initialize conversation history
+
       // Auto-resize textarea
       if (messageInput) {
         messageInput.addEventListener('input', function() {
@@ -235,7 +236,8 @@
         const message = messageInput.value.trim();
         if (!message) return;
         
-        // Add user message to chat
+        // Add user message to history and chat
+        conversationHistory.push({ role: 'user', content: message });
         addMessageToChat('user', message);
         
         // Clear input
@@ -252,11 +254,15 @@
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'flex justify-start';
         loadingDiv.innerHTML = `
-          <div class="bg-gray-100 rounded-lg p-3 flex items-center gap-2 max-w-[80%]">
-            <div class="flex gap-1">
-              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+          <div class="bg-gray-100 rounded-lg p-3 flex items-center gap-2 max-w-[80%] typing-indicator">
+            <img src="../images/koda-avatar.png" alt="Koda" class="w-8 h-8 rounded-full" onerror="this.src='../images/favicon.ico'">
+            <div class="flex flex-col">
+              <span class="text-xs text-gray-500 mb-1">Koda is typing...</span>
+              <div class="flex gap-1">
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+              </div>
             </div>
           </div>
         `;
@@ -264,11 +270,17 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
         
         try {
+          // Add the system prompt to the history before sending if it's the first user message
+          if (conversationHistory.filter(m => m.role === 'user').length === 1) {
+            conversationHistory.unshift({ 
+              role: 'system', 
+              content: 'You are Koda, a friendly and curious learning companion who\'s excited to explore topics with me! Your tone is warm, conversational, and upbeat—like a buddy who loves diving into new ideas. Avoid stiff or robotic replies; instead, show enthusiasm, ask me questions to keep the chat going, and make it feel like we\'re discovering together. Tailor your responses to my interests based on our conversations, bookmarks, or notes, and keep things simple and fun so I enjoy every moment!' 
+            });
+          }
+          
           const response = await fetch('/.netlify/functions/chatgpt', {
             method: 'POST',
-            body: JSON.stringify({
-              question: message
-            }),
+            body: JSON.stringify({ messages: conversationHistory }), // Send full history
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${accessToken}`
@@ -281,6 +293,8 @@
           const result = await response.json();
           
           if (response.ok) {
+            // Add AI response to history and chat
+            conversationHistory.push({ role: 'assistant', content: result.assistantResponse });
             addMessageToChat('ai', result.assistantResponse);
           } else {
             showToast('Error: ' + (result.error || 'Failed to send message'), 'error');
@@ -293,6 +307,34 @@
         }
       }
       
+      // Function to convert markdown to plain text
+      function convertMarkdownToPlainText(markdown) {
+        if (!markdown) return '';
+        
+        // Replace bold/italic formatting
+        let text = markdown
+          .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold **text**
+          .replace(/\*(.*?)\*/g, '$1')     // Remove italic *text*
+          .replace(/__(.*?)__/g, '$1')     // Remove bold __text__
+          .replace(/_(.*?)_/g, '$1')       // Remove italic _text_
+          
+          // Replace headers
+          .replace(/#{1,6}\s+(.+)/g, '$1') // Replace # Header with just Header
+          
+          // Replace links
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1') // Replace [text](url) with just text
+          
+          // Replace lists
+          .replace(/^\s*[-*+]\s+/gm, '• ') // Replace bullet lists with plain bullets
+          .replace(/^\s*\d+\.\s+/gm, '$1. ') // Keep numbering for numbered lists
+          
+          // Replace code blocks and inline code
+          .replace(/```(?:.*?)\n([\s\S]*?)```/g, '$1') // Remove code block markers
+          .replace(/`([^`]+)`/g, '$1'); // Remove inline code markers
+        
+        return text;
+      }
+
       function addMessageToChat(type, content) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} opacity-0 transform translate-y-4 transition-all duration-300`;
@@ -302,7 +344,10 @@
           ? 'bg-green-500 text-white rounded-lg py-2 px-4 max-w-[80%] shadow-sm'
           : 'bg-gray-100 text-gray-800 rounded-lg py-2 px-4 max-w-[80%] shadow-sm';
         
-        messageBubble.textContent = content;
+        // Convert markdown to plain text and display
+        const plainText = convertMarkdownToPlainText(content);
+        messageBubble.textContent = plainText;
+        
         messageDiv.appendChild(messageBubble);
         
         chatContainer.appendChild(messageDiv);
@@ -426,7 +471,8 @@
                     body: JSON.stringify({
                       action: 'saveConversation',
                       userId,
-                      topicId: selectedTopicId
+                      topicId: selectedTopicId,
+                      messages: conversationHistory
                     }),
                     headers: {
                       'Content-Type': 'application/json',
