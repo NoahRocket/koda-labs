@@ -462,68 +462,6 @@ exports.handler = async (event, context) => {
           notes: notes || []
         })
       };
-    } else if (action === 'generateSummary') {
-      // Fetch conversations for the topic
-      const { data: conversations } = await supabase
-        .from('conversations')
-        .select('content')
-        .eq('topic_id', topicId);
-
-      // Fetch bookmarks for the topic
-      const { data: bookmarks } = await supabase
-        .from('bookmarks')
-        .select('url')
-        .eq('topic_id', topicId);
-
-      // Prepare the content for summarization
-      const conversationContent = conversations && conversations.length > 0
-        ? conversations.map(c => c.content).join('\n')
-        : 'No conversation history available for this topic.\n';
-
-      const bookmarkContent = bookmarks && bookmarks.length > 0
-        ? bookmarks.map(b => b.url).join('\n')
-        : 'No bookmarks available for this topic.\n';
-
-      const combinedContent = `Bookmarks:\n${bookmarkContent}\nConversations:\n${conversationContent}`;
-
-      // Call OpenAI API for summary generation
-      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are a helpful assistant that summarizes information. Provide key facts and takeaways in 2-3 sentences, even with limited data.' 
-            },
-            { 
-              role: 'user', 
-              content: `Please summarize the key facts and takeaways from the following content:\n\n${combinedContent}` 
-            }
-          ],
-          max_tokens: 300,
-          temperature: 0.5,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('OpenAI API error:', errorText);
-        throw new Error('Failed to generate summary');
-      }
-
-      const data = await response.json();
-      const summary = data.choices[0].message.content.trim();
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ summary })
-      };
     } else if (action === 'getNotes') {
       console.log(`[GET_NOTES] Fetching notes for user ${userId}, topic filter: ${topicId || 'all'}`);
       
