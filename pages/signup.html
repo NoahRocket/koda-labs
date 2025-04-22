@@ -115,6 +115,7 @@
       if (response.ok) {
         localStorage.setItem('userId', result.user.id);
         localStorage.setItem('accessToken', result.session.access_token);
+        localStorage.setItem('refreshToken', result.session.refresh_token);
         window.location.href = 'dashboard.html';
       } else {
         showToast('Signup failed: ' + (result.error || 'Unknown error'), 'error');

@@ -115,3 +115,33 @@ function updateNavigation() {
     if (logoutContainer) logoutContainer.classList.add('hidden');
   }
 }
+
+// Silent session refresh: use refresh token to renew access token before expiry
+let refreshTimer;
+async function refreshSession() {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return;
+  try {
+    const response = await fetch('/.netlify/functions/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'refresh', refreshToken }),
+    });
+    if (!response.ok) throw new Error('Failed to refresh session');
+    const result = await response.json();
+    localStorage.setItem('accessToken', result.session.access_token);
+    localStorage.setItem('refreshToken', result.session.refresh_token);
+    const expiresIn = result.session.expires_in || 900;
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(refreshSession, (expiresIn - 60) * 1000);
+  } catch (err) {
+    console.error('Session refresh failed:', err);
+    localStorage.removeItem('userId');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  refreshSession();
+});

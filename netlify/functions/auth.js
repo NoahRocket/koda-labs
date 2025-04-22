@@ -20,6 +20,11 @@ exports.handler = async (event, context) => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ user: data.user, session: data.session }) };
+    } else if (action === 'refresh') {
+      const { refreshToken } = JSON.parse(event.body || '{}');
+      const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+      if (error) throw error;
+      return { statusCode: 200, body: JSON.stringify({ session: data.session, user: data.user }) };
     } else if (action === 'verify') {
       const { data: { user } } = await supabase.auth.getUser();
       return { statusCode: 200, body: JSON.stringify({ user }) };

@@ -868,7 +868,7 @@
 
       // Show loading state
       if (summaryLoading) summaryLoading.style.display = 'flex';
-      summaryContent.style.display = 'none';
+      summaryContent.innerHTML = '<div class="flex justify-center items-center py-8"><i class="fas fa-circle-notch fa-spin fa-2x text-gray-300"></i></div>';
 
       try {
         console.log(`[DEBUG] Fetching summary for topic_id: ${topicId}, user_id: ${userId}`);
@@ -917,9 +917,15 @@
             summaryLastUpdated.textContent = formatDate(result.summary.created_at);
             summaryMeta.style.display = 'block';
           }
+        } else if (result.summary) {
+          summaryContent.innerHTML = '<p class="text-gray-500">No summary highlights found for this topic.</p>';
+          summaryContent.style.display = 'block';
         } else {
           summaryContent.innerHTML = '<p class="text-gray-500">No summary found for this topic. Click Generate Summary to create one!</p>';
           summaryContent.style.display = 'block';
+          // Hide summary meta if no summary
+          const summaryMeta = document.getElementById('summaryMeta');
+          if (summaryMeta) summaryMeta.style.display = 'none';
         }
       } catch (error) {
         console.error('Error loading summary:', error);
@@ -1157,7 +1163,6 @@
           // Show loading state
           this.disabled = true;
           this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-          
           const summaryContent = document.getElementById('summaryContent');
           const summaryLoading = document.getElementById('summaryLoading');
           
