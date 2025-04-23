@@ -287,9 +287,12 @@ module.exports.handler = async (event, context) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'No messages provided in the request.' }), // Updated error
+        body: JSON.stringify({ error: 'No messages provided in the request.' }),
       };
     }
+
+    // Only send the last 5 messages to OpenAI
+    const trimmedMessages = messages.slice(-5);
 
     // Grab API Key from Netlify environment variable
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -312,9 +315,9 @@ module.exports.handler = async (event, context) => {
         model: 'gpt-4.1-2025-04-14', 
         messages: [ // New structure: System prompt + conversation history
           { role: 'system', content: 'You are Koda, a friendly and curious learning companion who\'s excited to explore topics with me! Your tone is warm, conversational, and upbeat—like a buddy who loves diving into new ideas. Avoid stiff or robotic replies; instead, show enthusiasm, ask me questions to keep the chat going, and make it feel like we\'re discovering together. Tailor your responses to my interests based on our conversations, bookmarks, or notes, and keep things simple and fun so I enjoy every moment! Try to use ideally less then 500 tokens per response but if you feel like a question warrants a longer response, do so. **Use Markdown formatting (e.g., bold, italics) to emphasize key terms and concepts.**' },
-          ...messages // Spread the incoming messages array
+          ...trimmedMessages // Only the last 5 messages
         ],
-        max_completion_tokens: 1000
+        max_completion_tokens: 1500 // Increased token limit
       }),
     });
 
