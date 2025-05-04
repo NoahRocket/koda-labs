@@ -461,22 +461,83 @@
               
               topicSelect.innerHTML = result.topics.map(topic => 
                 `<option value="${topic.id}">${topic.name}</option>`
-              ).join('');
+              ).join('') + `<option value="new_topic">+ Create New Topic</option>`;
               
               selectContainer.appendChild(topicSelect);
+              
+              // Add new topic input field (hidden by default)
+              const newTopicInput = document.createElement('input');
+              newTopicInput.type = 'text';
+              newTopicInput.id = 'newTopicInput';
+              newTopicInput.className = 'w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent mt-2';
+              newTopicInput.placeholder = 'Enter new topic name...';
+              newTopicInput.style.display = 'none';
+              selectContainer.appendChild(newTopicInput);
+              
+              // Show/hide new topic input based on selection
+              topicSelect.addEventListener('change', function() {
+                if (this.value === 'new_topic') {
+                  newTopicInput.style.display = 'block';
+                  newTopicInput.focus();
+                } else {
+                  newTopicInput.style.display = 'none';
+                }
+              });
               
               // Handle save confirmation
               const confirmBtn = modalContent.querySelector('#confirmSave');
               confirmBtn.addEventListener('click', async () => {
                 const selectedTopicId = topicSelect.value;
+                let finalTopicId = selectedTopicId;
                 
                 try {
+                  // If "Create New Topic" is selected, create a new topic first
+                  if (selectedTopicId === 'new_topic') {
+                    const newTopicName = document.getElementById('newTopicInput').value.trim();
+                    
+                    if (!newTopicName) {
+                      showToast('Please enter a topic name', 'error');
+                      return;
+                    }
+                    
+                    // Create loading indicator
+                    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+                    confirmBtn.disabled = true;
+                    
+                    // Create the new topic
+                    const createTopicResponse = await fetch('/.netlify/functions/dashboard', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        action: 'addTopic',
+                        userId,
+                        topicName: newTopicName
+                      }),
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                      }
+                    });
+                    
+                    const createTopicResult = await createTopicResponse.json();
+                    
+                    if (!createTopicResponse.ok) {
+                      showToast('Error: ' + (createTopicResult.error || 'Failed to create topic'), 'error');
+                      confirmBtn.innerHTML = 'Save';
+                      confirmBtn.disabled = false;
+                      return;
+                    }
+                    
+                    finalTopicId = createTopicResult.topicId;
+                    confirmBtn.innerHTML = 'Save';
+                  }
+                  
+                  // Now save the conversation with the topic ID (either existing or newly created)
                   const saveResponse = await fetch('/.netlify/functions/chatgpt', {
                     method: 'POST',
                     body: JSON.stringify({
                       action: 'saveConversation',
                       userId,
-                      topicId: selectedTopicId,
+                      topicId: finalTopicId,
                       messages: conversationHistory
                     }),
                     headers: {

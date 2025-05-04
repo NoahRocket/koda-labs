@@ -1,82 +1,63 @@
 // scripts/utils.js (Revised)
-function showToast(message, type = 'info') { // Use 'success' or 'error' for styled toasts
+function showToast(message, type = 'info') {
   let toastContainer = document.querySelector('.toast-container');
   if (!toastContainer) {
     toastContainer = document.createElement('div');
-    toastContainer.className = 'toast-container'; // Defined in tailwind-input.css
+    toastContainer.className = 'toast-container';
     document.body.appendChild(toastContainer);
   }
 
   const toast = document.createElement('div');
-  // Base class 'toast', type class 'success' or 'error'
-  toast.className = `toast ${type}`; // Defined in tailwind-input.css
+  toast.className = `toast ${type}`;
 
   // Create icon element based on type
   const icon = document.createElement('i');
-  icon.className = 'fas'; // Base Font Awesome class
+  icon.className = 'fas';
   if (type === 'success') {
-    icon.classList.add('fa-check-circle'); // Icon class defined in toast component styles
+    icon.classList.add('fa-check-circle');
   } else if (type === 'error') {
-    icon.classList.add('fa-exclamation-circle'); // Icon class defined in toast component styles
+    icon.classList.add('fa-exclamation-circle');
   }
-  // Add more types if needed (e.g., fa-info-circle for 'info')
 
   // Create message span
   const messageSpan = document.createElement('span');
   messageSpan.textContent = message;
 
-  // Create content container (optional, but helps with layout if icons/text need specific alignment)
+  // Create content container
   const content = document.createElement('div');
-  content.style.display = 'flex';
-  content.style.alignItems = 'center';
-  content.style.gap = '0.5rem'; // Add some space between icon and text
+  content.className = 'toast-content';
   content.appendChild(icon);
   content.appendChild(messageSpan);
   toast.appendChild(content);
 
-
   // Add close button
   const closeBtn = document.createElement('button');
   closeBtn.innerHTML = '&times;';
-  // Apply Tailwind classes for styling the close button if preferred,
-  // or use inline styles/dedicated CSS class. Using inline for simplicity here.
-  closeBtn.style.position = 'absolute';
-  closeBtn.style.top = '0.25rem';
-  closeBtn.style.right = '0.5rem';
-  closeBtn.style.background = 'transparent';
-  closeBtn.style.border = 'none';
-  closeBtn.style.fontSize = '1.5rem'; // Larger close button
-  closeBtn.style.lineHeight = '1';
-  closeBtn.style.cursor = 'pointer';
-  closeBtn.style.color = 'inherit'; // Inherit color from parent (.toast.success/error)
-  closeBtn.style.padding = '0.25rem';
+  closeBtn.className = 'toast-close-btn';
   closeBtn.onclick = (e) => {
-    e.stopPropagation(); // Prevent triggering other events on the toast
-    toast.classList.remove('active'); // Start fade-out
+    e.stopPropagation();
+    toast.classList.remove('active');
     toast.classList.add('toast-closing');
-    // Remove after transition
     toast.addEventListener('transitionend', () => {
       if (toast.parentNode) toast.remove();
       if (toastContainer.children.length === 0) {
         toastContainer.remove();
       }
-    }, { once: true }); // Ensure listener is removed after firing
+    }, { once: true });
   };
   toast.appendChild(closeBtn);
-  toast.style.position = 'relative'; // Parent needs position:relative for absolute child
-
 
   toastContainer.appendChild(toast);
 
   // Trigger fade-in animation
   requestAnimationFrame(() => {
-    toast.classList.add('active'); // Class defined in tailwind-input.css
+    toast.classList.add('active');
   });
 
   // Set auto-remove timer
   const autoRemoveTimer = setTimeout(() => {
-    if (toast.parentNode) { // Check if it hasn't been closed manually
-      closeBtn.onclick({ stopPropagation: () => {} }); // Trigger the close logic
+    if (toast.parentNode) {
+      closeBtn.onclick({ stopPropagation: () => {} });
     }
   }, 5000);
 
@@ -142,20 +123,20 @@ async function refreshSession() {
   }
 }
 
+// Helper function to handle common event handling tasks
+function handleMenuEvent(event, action) {
+  event.preventDefault();
+  event.stopPropagation();
+  action();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   refreshSession();
   
-  // Mobile Menu Behavior - Improved for iPhone compatibility
+  // Mobile Menu Behavior
   const hamburger = document.getElementById('hamburger');
   const sidebar = document.getElementById('sidebar');
   const closeSidebar = document.getElementById('closeSidebar');
-  
-  // Debug function to add to mobile-only elements
-  function mobileDebug(msg) {
-    if (window.innerWidth < 768) {
-      console.log('Mobile Menu Debug:', msg);
-    }
-  }
   
   if (hamburger && sidebar) {
     // Make sure hamburger has a larger tap area
@@ -164,46 +145,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial state - ensure mobile menu is hidden on small screens
     if (window.innerWidth < 768) {
       sidebar.classList.add('-translate-x-full');
-      mobileDebug('Mobile view detected, menu hidden initially');
     }
     
-    // Improved toggle for hamburger with debug and forced direct manipulation
+    // Toggle menu visibility
     hamburger.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      mobileDebug('Hamburger clicked');
-      
-      if (sidebar.classList.contains('-translate-x-full')) {
-        sidebar.classList.remove('-translate-x-full');
-        mobileDebug('Menu shown');
-      } else {
-        sidebar.classList.add('-translate-x-full');
-        mobileDebug('Menu hidden');
-      }
+      handleMenuEvent(e, () => {
+        sidebar.classList.toggle('-translate-x-full');
+      });
     });
     
-    // Ensure sidebar fully slides off-screen when closed
+    // Close sidebar when close button is clicked
     if (closeSidebar) {
       closeSidebar.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        mobileDebug('Close button clicked');
-        sidebar.classList.add('-translate-x-full');
+        handleMenuEvent(e, () => {
+          sidebar.classList.add('-translate-x-full');
+        });
       });
     }
-    
-    // Add a fallback touch handling to ensure maximum compatibility
-    hamburger.addEventListener('touchend', function(e) {
-      e.preventDefault();
-      mobileDebug('Touch event on hamburger');
-      
-      if (sidebar.classList.contains('-translate-x-full')) {
-        sidebar.classList.remove('-translate-x-full');
-      } else {
-        sidebar.classList.add('-translate-x-full');
-      }
-    });
   }
 });

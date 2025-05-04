@@ -6,3 +6,6 @@ node_modules/
 
 # windsurf rules
 .windsurfrules
+
+# Generated CSS (Tailwind)
+styles/main.css
