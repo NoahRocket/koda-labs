@@ -144,4 +144,28 @@ async function refreshSession() {
 
 document.addEventListener('DOMContentLoaded', () => {
   refreshSession();
+  
+  // Mobile Menu Behavior - Suggestion #2
+  const hamburger = document.getElementById('hamburger');
+  const sidebar = document.getElementById('sidebar');
+  const closeSidebar = document.getElementById('closeSidebar');
+  
+  if (hamburger && sidebar) {
+    // Initial state - ensure mobile menu is hidden on small screens
+    if (window.innerWidth < 768) {
+      sidebar.classList.add('-translate-x-full');
+    }
+    
+    // Toggle sidebar when hamburger is clicked
+    hamburger.addEventListener('click', () => {
+      sidebar.classList.toggle('-translate-x-full');
+    });
+    
+    // Ensure sidebar fully slides off-screen when closed
+    if (closeSidebar) {
+      closeSidebar.addEventListener('click', () => {
+        sidebar.classList.add('-translate-x-full');
+      });
+    }
+  }
 });

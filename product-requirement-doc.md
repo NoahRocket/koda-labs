@@ -72,6 +72,21 @@ Koda Compass is a web application designed to be a personal knowledge companion.
     *   Profile information.
     *   Account management options (e.g., password change - if applicable).
 
+### 4.8. PDF to Podcast Conversion (`pages/podcasts.html`)
+*   **Description:** Allows users to convert PDF documents into audio podcasts by extracting key concepts, generating a conversational script, and converting it to speech.
+*   **Requirements:**
+    *   PDF upload interface
+    *   Concept extraction from PDF text
+    *   AI-generated podcast script creation (using OpenAI's API)
+    *   Text-to-speech conversion (using ElevenLabs API)
+    *   Audio playback of generated podcasts
+    *   Storage of podcast files (using Supabase Storage)
+    *   Authentication integration for user-specific storage
+*   **Backend:**
+    *   `upload-pdf.js`: Handles PDF file uploads
+    *   `analyze-pdf-text.js`: Extracts key concepts from PDF text
+    *   `generate-podcast.js`: Creates podcast script using OpenAI and converts to audio using ElevenLabs
+
 ## 5. Non-Functional Requirements
 
 *   **Technology Stack:**

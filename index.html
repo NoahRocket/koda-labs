@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Koda Compass - Your Personal Knowledge Companion</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="styles/main.css">
@@ -9,7 +10,7 @@
 </head>
 <body class="bg-gray-50 font-eb-garamond min-h-screen flex">
   <!-- Mobile Hamburger -->
-  <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2" id="hamburger">
+  <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
     <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
     <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
     <div class="w-6 h-0.5 bg-gray-800"></div>
@@ -20,7 +21,7 @@
     <div class="flex flex-col h-full">
       <div class="p-5 border-b border-blue-100">
         <h1 class="text-xl font-bold text-gray-800">Koda Compass</h1>
-        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden">
+        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -28,35 +29,35 @@
       <nav class="flex-1 overflow-y-auto py-4">
         <ul class="space-y-2 px-4">
           <li id="loggedInNav" class="hidden flex-col space-y-2">
-            <a href="pages/dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="pages/dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
               <i class="fas fa-compass"></i>
-              <span>Dashboard</span>
+              <span class="mobile-readable">Dashboard</span>
             </a>
-            <a href="pages/chat.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="pages/chat.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
               <i class="fas fa-comments"></i>
-              <span>Chat</span>
+              <span class="mobile-readable">Chat</span>
             </a>
-            <a href="pages/bookmarks.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="pages/bookmarks.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
               <i class="fas fa-bookmark"></i>
-              <span>Bookmarks</span>
+              <span class="mobile-readable">Bookmarks</span>
             </a>
-            <a href="pages/settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="pages/settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
               <i class="fas fa-cog"></i>
-              <span>Settings</span>
+              <span class="mobile-readable">Settings</span>
             </a>
           </li>
           <li id="loggedOutNav" class="flex-col space-y-2">
-            <a href="/" class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-blue-100 text-blue-800">
+            <a href="/" class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-blue-100 text-blue-800 mobile-touch-target">
               <i class="fas fa-home"></i>
-              <span>Home</span>
+              <span class="mobile-readable">Home</span>
             </a>
-            <a href="pages/login.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="pages/login.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
               <i class="fas fa-sign-in-alt"></i>
-              <span>Log In</span>
+              <span class="mobile-readable">Log In</span>
             </a>
-            <a href="pages/signup.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="pages/signup.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
               <i class="fas fa-user-plus"></i>
-              <span>Sign Up</span>
+              <span class="mobile-readable">Sign Up</span>
             </a>
           </li>
         </ul>

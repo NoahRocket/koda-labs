@@ -54,6 +54,16 @@
     content: '';
     @apply absolute bottom-0 left-0 right-0 h-0.5 bg-green-500 rounded-sm;
   }
+
+  /* Mobile Touch Target Class - Suggestion #1 */
+  .mobile-touch-target {
+    @apply p-3; /* Ensures minimum 44x44px touch target */
+  }
+
+  /* Mobile Font Size Class - Suggestion #6 */
+  .mobile-readable {
+    font-size: max(16px, 1rem);
+  }
 }
 
 /* Define custom animations if not in tailwind.config.js */

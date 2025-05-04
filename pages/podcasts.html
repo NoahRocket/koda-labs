@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Podcasts PDF Upload</title>
+  <link rel="stylesheet" href="../styles/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    #sidebar {
+      min-width: 14rem;
+    }
+
+    input[type="file"] {
+      margin-bottom: 1.2rem;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.6rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:disabled {
+      background: #a5b4fc;
+      cursor: not-allowed;
+    }
+    .message {
+      margin-top: 1rem;
+      font-size: 1rem;
+      min-height: 1.5em;
+    }
+    .success {
+      color: #059669;
+    }
+    .error {
+      color: #dc2626;
+    }
+    .podcast-player {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #f9fafb;
+    }
+    .podcast-player audio {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    .podcast-player a {
+      color: #2563eb;
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      #sidebar {
+        transform: translateX(-100%);
+      }
+      .main-content-area {
+        margin-left: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body class="flex bg-gray-100 font-eb-garamond">
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md md:translate-x-0 transition-transform duration-300 z-40">
+    <div class="flex flex-col h-full">
+      <div class="p-5 border-b border-blue-100">
+        <h1 class="text-xl font-bold text-gray-800">Koda Compass</h1>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-4">
+        <ul class="space-y-2 px-4">
+          <li class="flex-col space-y-2">
+            <a href="dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-compass"></i>
+              <span>Dashboard</span>
+            </a>
+            <a href="chat.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-comments"></i>
+              <span>Chat</span>
+            </a>
+            <a href="bookmarks.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-bookmark"></i>
+              <span>Bookmarks</span>
+            </a>
+            <a href="#" id="notesToggle" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-sticky-note"></i>
+              <span>Notes</span>
+            </a>
+            <a href="podcasts.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-blue-100 text-blue-800">
+              <i class="fas fa-podcast"></i>
+              <span>Podcasts</span>
+            </a>
+            <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+              <i class="fas fa-cog"></i>
+              <span>Settings</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <div class="main-content-area flex-1 ml-0 md:ml-56 p-4 md:p-8 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
+      <h1 class="text-2xl font-semibold mb-6">Upload a Podcast PDF</h1>
+      <input type="file" id="pdfInput" accept="application/pdf" class="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+      <button id="uploadBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed">Upload</button>
+      <div class="message mt-4 text-sm min-h-[1.5em]" id="message"></div>
+      <div id="extractedText" class="mt-4 p-4 border border-gray-300 rounded-md bg-gray-50 text-left text-sm overflow-auto max-h-60" style="display: none;"></div>
+      <div id="conceptsSection" class="mt-4" style="display: none;"></div>
+      <div id="podcastSection" class="mt-4" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const pdfInput = document.getElementById('pdfInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const messageDiv = document.getElementById('message');
+    const extractedTextDiv = document.getElementById('extractedText');
+    const conceptsSection = document.getElementById('conceptsSection');
+    const podcastSection = document.getElementById('podcastSection');
+
+    function showMessage(msg, type) {
+      messageDiv.textContent = msg;
+      messageDiv.className = 'message ' + (type || '');
+    }
+
+    uploadBtn.addEventListener('click', async () => {
+      const file = pdfInput.files[0];
+      showMessage('', '');
+      extractedTextDiv.textContent = '';
+      extractedTextDiv.style.display = 'none';
+      conceptsSection.style.display = 'none';
+      conceptsSection.innerHTML = '';
+      podcastSection.style.display = 'none';
+      podcastSection.innerHTML = '';
+
+      if (!file) {
+        showMessage('Please select a PDF file to upload.', 'error');
+        return;
+      }
+      if (file.type !== 'application/pdf') {
+        showMessage('Invalid file type. Only PDF files are allowed.', 'error');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        showMessage('File is too large (max 10MB).', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('pdf', file);
+      uploadBtn.disabled = true;
+      showMessage('Uploading and processing PDF...');
+      try {
+        const res = await fetch('/.netlify/functions/upload-pdf', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showMessage('PDF processed successfully!', 'success');
+          if (data.extractedText) {
+            extractedTextDiv.textContent = data.extractedText;
+            extractedTextDiv.style.display = 'block';
+            await analyzeConcepts(data.extractedText);
+          } else if (data.error) {
+            showMessage(`Processing finished, but: ${data.error}`, 'error');
+          } else {
+            showMessage('PDF uploaded, but no text could be extracted.', 'error');
+          }
+          pdfInput.value = '';
+        } else {
+          const errorMsg = data.error || 'Upload failed. Please try again.';
+          showMessage(errorMsg, 'error');
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        showMessage('Upload failed due to a network or server issue.', 'error');
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+
+    async function analyzeConcepts(text) {
+      if (!text || text.trim().split(/\s+/).length > 10000) {
+        conceptsSection.innerHTML = '<span class="error">Text too long or empty for analysis.</span>';
+        conceptsSection.style.display = 'block';
+        return;
+      }
+      conceptsSection.innerHTML = '<span>Analyzing key concepts...</span>';
+      conceptsSection.style.display = 'block';
+      try {
+        const res = await fetch('/.netlify/functions/analyze-pdf-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        if (res.ok && data.concepts && Array.isArray(data.concepts) && data.concepts.length > 0) {
+          let html = '<div class="border border-blue-200 rounded-md bg-blue-50 p-4"><h2 class="font-semibold mb-2 text-blue-700">Key Concepts</h2><ul class="space-y-2">';
+          data.concepts.forEach(({ concept, explanation }) => {
+            html += `<li><strong>${escapeHTML(concept)}:</strong> ${escapeHTML(explanation)}</li>`;
+          });
+          html += '</ul></div>';
+          conceptsSection.innerHTML = html;
+          console.log('Concepts generated, triggering podcast generation...');
+          await generatePodcast(data.concepts);
+        } else {
+          conceptsSection.innerHTML = '<span class="error">No key concepts found.</span>';
+          console.log('No key concepts found in response:', data);
+        }
+      } catch (err) {
+        console.error('Concept analysis error:', err);
+        conceptsSection.innerHTML = '<span class="error">Unable to analyze text. Please try again later.</span>';
+      }
+    }
+
+    async function generatePodcast(concepts) {
+        console.log('--- generatePodcast function called with concepts:', concepts);
+        podcastSection.innerHTML = '<span>Generating podcast... <i class="fas fa-spinner fa-spin"></i></span>';
+        podcastSection.style.display = 'block';
+
+        try {
+            const accessToken = localStorage.getItem('accessToken');
+            
+            if (!accessToken) {
+                console.error('No access token found');
+                podcastSection.innerHTML = '<span class="error">Authentication error. Please log in again.</span>';
+                return;
+            }
+
+            const response = await fetch('/.netlify/functions/generate-podcast', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({ concepts: concepts })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                const errorMsg = data.error || 'Podcast generation failed. Please try again.';
+                podcastSection.innerHTML = `<span class="error">${errorMsg}</span>`;
+                console.log('Podcast generation failed:', data);
+            } else {
+                const data = await response.json();
+                console.log('Podcast generation response:', data);
+                if (data.podcastUrl) {
+                    podcastSection.innerHTML = `
+                        <div class="podcast-player">
+                            <h2 class="font-semibold mb-2 text-blue-700">Generated Podcast</h2>
+                            <audio controls src="${escapeHTML(data.podcastUrl)}"></audio>
+                            <a href="${escapeHTML(data.podcastUrl)}" download="${escapeHTML(data.filename)}">Download Podcast</a>
+                        </div>
+                    `;
+                    showMessage('Podcast generated successfully!', 'success');
+                } else {
+                    const errorMsg = data.error || 'Unable to generate podcast.';
+                    podcastSection.innerHTML = `<span class="error">${errorMsg}</span>`;
+                    console.log('Podcast generation failed:', data);
+                }
+            }
+        } catch (err) {
+            console.error('Podcast generation error:', err);
+            podcastSection.innerHTML = '<span class="error">Unable to generate podcast. Please try again later.</span>';
+            showMessage('Podcast generation failed due to a network or server issue.', 'error');
+        }
+    }
+
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>"']/g, function (c) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '\'' })[c];
+      });
+    }
+  </script>
+</body>
+</html>
