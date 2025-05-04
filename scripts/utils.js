@@ -145,27 +145,65 @@ async function refreshSession() {
 document.addEventListener('DOMContentLoaded', () => {
   refreshSession();
   
-  // Mobile Menu Behavior - Suggestion #2
+  // Mobile Menu Behavior - Improved for iPhone compatibility
   const hamburger = document.getElementById('hamburger');
   const sidebar = document.getElementById('sidebar');
   const closeSidebar = document.getElementById('closeSidebar');
   
+  // Debug function to add to mobile-only elements
+  function mobileDebug(msg) {
+    if (window.innerWidth < 768) {
+      console.log('Mobile Menu Debug:', msg);
+    }
+  }
+  
   if (hamburger && sidebar) {
+    // Make sure hamburger has a larger tap area
+    hamburger.style.padding = '15px';
+    
     // Initial state - ensure mobile menu is hidden on small screens
     if (window.innerWidth < 768) {
       sidebar.classList.add('-translate-x-full');
+      mobileDebug('Mobile view detected, menu hidden initially');
     }
     
-    // Toggle sidebar when hamburger is clicked
-    hamburger.addEventListener('click', () => {
-      sidebar.classList.toggle('-translate-x-full');
+    // Improved toggle for hamburger with debug and forced direct manipulation
+    hamburger.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      mobileDebug('Hamburger clicked');
+      
+      if (sidebar.classList.contains('-translate-x-full')) {
+        sidebar.classList.remove('-translate-x-full');
+        mobileDebug('Menu shown');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        mobileDebug('Menu hidden');
+      }
     });
     
     // Ensure sidebar fully slides off-screen when closed
     if (closeSidebar) {
-      closeSidebar.addEventListener('click', () => {
+      closeSidebar.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        mobileDebug('Close button clicked');
         sidebar.classList.add('-translate-x-full');
       });
     }
+    
+    // Add a fallback touch handling to ensure maximum compatibility
+    hamburger.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      mobileDebug('Touch event on hamburger');
+      
+      if (sidebar.classList.contains('-translate-x-full')) {
+        sidebar.classList.remove('-translate-x-full');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+      }
+    });
   }
 });
