@@ -57,6 +57,12 @@
       color: #2563eb;
       text-decoration: underline;
     }
+    
+    /* Enhanced tap targets for mobile */
+    .nav-link {
+      display: block;
+      min-height: 44px; /* iOS minimum standard */
+    }
 
     @media (max-width: 768px) {
       #sidebar {
@@ -65,24 +71,34 @@
       .main-content-area {
         margin-left: 0 !important;
       }
+      /* Improve hamburger visibility on mobile */
+      #hamburger {
+        -webkit-tap-highlight-color: rgba(0,0,0,0);
+      }
+      /* Fix any potential scroll issues on iOS */
+      .fixed {
+        position: fixed !important;
+      }
     }
   </style>
 </head>
 <body class="flex bg-gray-100 font-eb-garamond">
-  <!-- Mobile Hamburger - Adding missing hamburger menu -->
-  <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
-    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
-    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
-    <div class="w-6 h-0.5 bg-gray-800"></div>
+  <!-- Mobile Hamburger - Enhanced for better touch on mobile -->
+  <div class="md:hidden fixed top-0 left-0 z-50 cursor-pointer" id="hamburger">
+    <div class="p-5" style="min-height:44px; min-width:44px;"> <!-- iOS minimum touch target size -->
+      <div class="w-6 h-0.5 bg-gray-800 mb-1.5"></div>
+      <div class="w-6 h-0.5 bg-gray-800 mb-1.5"></div>
+      <div class="w-6 h-0.5 bg-gray-800"></div>
+    </div>
   </div>
 
   <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md md:translate-x-0 transform -translate-x-full transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
       <div class="p-5 border-b border-blue-100">
         <h1 class="text-xl font-bold text-gray-800">Koda Compass</h1>
-        <!-- Adding close button for mobile -->
-        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden mobile-touch-target">
-          <i class="fas fa-times"></i>
+        <!-- Enhanced close button for mobile -->
+        <button id="closeSidebar" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 md:hidden p-3" style="min-height:44px; min-width:44px;">
+          <i class="fas fa-times text-xl"></i>
         </button>
       </div>
       <nav class="flex-1 overflow-y-auto py-4">
