@@ -2,15 +2,11 @@
 // This function is invoked by your frontend (chat.js) to keep the OpenAI API key hidden.
 
 const fetch = require('node-fetch'); // Ensure node-fetch version 2.x is installed
-const { createClient } = require('@supabase/supabase-js');
-
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const { getSupabaseAuthClient } = require('./supabaseClient');
 
 // Verify JWT token from the authorization header
 async function verifyToken(authHeader) {
+  const supabase = getSupabaseAuthClient();
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return { error: 'Invalid authorization header' };
   }
@@ -123,6 +119,24 @@ module.exports.handler = async (event, context) => {
     
     // Check if this is a saveConversation action
     if (requestBody.action === 'saveConversation') {
+      const token = event.headers.authorization.split(' ')[1];
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_KEY;
+      
+      // Create a properly authenticated Supabase client
+      const { createClient } = require('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      });
+      
       const { userId, topicId, messages } = requestBody;
       
       // Validate required fields
@@ -135,39 +149,16 @@ module.exports.handler = async (event, context) => {
       }
       
       try {
-        // Get the authorization token from the request headers
-        const authToken = event.headers.authorization?.split(' ')[1];
-        if (!authToken) {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({ error: 'Authentication required' })
-          };
-        }
-        
-        // Create a Supabase client with the user's auth token
-        const supabaseAuth = createClient(
-          supabaseUrl,
-          supabaseKey,
-          {
-            global: {
-              headers: {
-                Authorization: `Bearer ${authToken}`
-              }
-            }
-          }
-        );
-        
         // Format conversation data
         const conversationData = {
           topic_id: topicId,
-          // Format the conversation as readable text instead of JSON
+          // user_id: authUserId, // REMOVED: conversations table does not have a user_id column directly
           content: formatConversationForSaving(messages),
           created_at: new Date().toISOString()
         };
         
         // Save to Supabase using the authenticated client
-        const { data, error } = await supabaseAuth
+        const { data, error } = await supabase
           .from('conversations')
           .insert([conversationData]);
         
@@ -201,6 +192,24 @@ module.exports.handler = async (event, context) => {
     
     // Check if this is a deleteConversation action
     if (requestBody.action === 'deleteConversation') {
+      const token = event.headers.authorization.split(' ')[1];
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_KEY;
+      
+      // Create a properly authenticated Supabase client
+      const { createClient } = require('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      });
+      
       const { conversationId } = requestBody;
       
       // Validate required fields
@@ -213,31 +222,8 @@ module.exports.handler = async (event, context) => {
       }
       
       try {
-        // Get the authorization token from the request headers
-        const authToken = event.headers.authorization?.split(' ')[1];
-        if (!authToken) {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({ error: 'Authentication required' })
-          };
-        }
-        
-        // Create a Supabase client with the user's auth token
-        const supabaseAuth = createClient(
-          supabaseUrl,
-          supabaseKey,
-          {
-            global: {
-              headers: {
-                Authorization: `Bearer ${authToken}`
-              }
-            }
-          }
-        );
-        
         // Delete the conversation
-        const { data, error } = await supabaseAuth
+        const { data, error } = await supabase
           .from('conversations')
           .delete()
           .eq('id', conversationId);

@@ -1,4 +1,4 @@
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseAuthClient } = require('./supabaseClient');
 const fetch = require('node-fetch');
 const urlMetadata = require('url-metadata');
 
@@ -92,8 +92,13 @@ exports.handler = async (event, context) => {
     return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided' }) };
   }
 
-  // Initialize Supabase client with the anon key and pass the JWT token in headers
+  // Initialize Supabase client with the appropriate authentication headers
+  const { createClient } = require('@supabase/supabase-js');
   const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
     global: {
       headers: {
         Authorization: `Bearer ${accessToken}`
@@ -290,8 +295,18 @@ Instructions:
         console.log('[Summary] Generated summary length:', summaryText.length);
         
         // Upsert summary for this topic/user
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const { data: savedSummary, error: saveError } = await supabase
+        const supabaseDb = createClient(supabaseUrl, supabaseKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          },
+          global: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }
+        });
+        const { data: savedSummary, error: saveError } = await supabaseDb
           .from('summaries')
           .upsert([
             {

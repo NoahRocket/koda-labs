@@ -73,19 +73,24 @@ Koda Compass is a web application designed to be a personal knowledge companion.
     *   Account management options (e.g., password change - if applicable).
 
 ### 4.8. PDF to Podcast Conversion (`pages/podcasts.html`)
-*   **Description:** Allows users to convert PDF documents into audio podcasts by extracting key concepts, generating a conversational script, and converting it to speech.
+*   **Description:** Allows users to convert PDF documents into audio podcasts by extracting key concepts, generating a conversational script, and converting it to speech using an asynchronous job-based architecture to handle long-running processes.
 *   **Requirements:**
     *   PDF upload interface
     *   Concept extraction from PDF text
     *   AI-generated podcast script creation (using OpenAI's API)
     *   Text-to-speech conversion (using ElevenLabs API)
+    *   Job status monitoring and progress indication
     *   Audio playback of generated podcasts
     *   Storage of podcast files (using Supabase Storage)
     *   Authentication integration for user-specific storage
-*   **Backend:**
-    *   `upload-pdf.js`: Handles PDF file uploads
-    *   `analyze-pdf-text.js`: Extracts key concepts from PDF text
-    *   `generate-podcast.js`: Creates podcast script using OpenAI and converts to audio using ElevenLabs
+*   **Backend Processing Pipeline:**
+    *   `upload-pdf.js`: Handles PDF file uploads and text extraction
+    *   `analyze-pdf-text.js`: Extracts key concepts from PDF text using OpenAI
+    *   `queue-podcast-job.js`: Creates job entries in Supabase and initiates processing
+    *   `process-podcast-job.js`: Orchestrates script generation and triggers TTS conversion
+    *   `generate-tts-background.js`: Handles long-running text-to-speech conversion as a background process
+    *   `direct-upload.js`: Manages uploading generated audio to Supabase Storage
+    *   `check-podcast-status.js`: Allows users to check the status of podcast generation jobs
 
 ## 5. Non-Functional Requirements
 

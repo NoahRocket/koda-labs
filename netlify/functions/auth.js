@@ -1,9 +1,7 @@
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseAuthClient } = require('./supabaseClient');
 
 exports.handler = async (event, context) => {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = getSupabaseAuthClient();
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -26,7 +24,24 @@ exports.handler = async (event, context) => {
       if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ session: data.session, user: data.user }) };
     } else if (action === 'verify') {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Extract token from header
+      const headers = Object.fromEntries(
+        Object.entries(event.headers).map(([key, value]) => [key.toLowerCase(), value])
+      );
+      const authHeader = headers['authorization'];
+      const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+      if (!accessToken) {
+        return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided for verification' }) };
+      }
+      // Use the supabase client (already initialized as getSupabaseAuthClient())
+      const { data: { user }, error } = await supabase.auth.getUser(accessToken); 
+      
+      if (error) {
+        // Log the error for server-side debugging if needed
+        // console.error('Token verification error:', error.message);
+        return { statusCode: 401, body: JSON.stringify({ error: 'Invalid or expired token for verification' }) };
+      }
       return { statusCode: 200, body: JSON.stringify({ user }) };
     } else {
       return { statusCode: 400, body: 'Invalid action' };

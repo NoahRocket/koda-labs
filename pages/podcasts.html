@@ -238,7 +238,7 @@
 
     async function generatePodcast(concepts) {
         console.log('--- generatePodcast function called with concepts:', concepts);
-        podcastSection.innerHTML = '<span>Generating podcast... <i class="fas fa-spinner fa-spin"></i></span>';
+        podcastSection.innerHTML = '<span>Queuing podcast generation... <i class="fas fa-spinner fa-spin"></i></span>';
         podcastSection.style.display = 'block';
 
         try {
@@ -250,42 +250,165 @@
                 return;
             }
 
-            const response = await fetch('/.netlify/functions/generate-podcast', {
+            // Queue the podcast job instead of generating it directly
+            const response = await fetch('/.netlify/functions/queue-podcast-job', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
                 },
-                body: JSON.stringify({ concepts: concepts })
+                body: JSON.stringify({ 
+                    concepts: concepts,
+                    pdfName: pdfInput.files[0]?.name || 'Uploaded PDF'
+                })
             });
 
             if (!response.ok) {
                 const data = await response.json();
-                const errorMsg = data.error || 'Podcast generation failed. Please try again.';
+                const errorMsg = data.error || 'Failed to queue podcast generation. Please try again.';
                 podcastSection.innerHTML = `<span class="error">${errorMsg}</span>`;
-                console.log('Podcast generation failed:', data);
+                console.log('Podcast queue failed:', data);
             } else {
                 const data = await response.json();
-                console.log('Podcast generation response:', data);
-                if (data.podcastUrl) {
+                console.log('Job queued, response:', data);
+                if (data.jobId) {
                     podcastSection.innerHTML = `
-                        <div class="podcast-player">
-                            <h2 class="font-semibold mb-2 text-blue-700">Generated Podcast</h2>
-                            <audio controls src="${escapeHTML(data.podcastUrl)}"></audio>
-                            <a href="${escapeHTML(data.podcastUrl)}" download="${escapeHTML(data.filename)}">Download Podcast</a>
+                        <div class="podcast-processing">
+                            <h2 class="font-semibold mb-2 text-blue-700">Podcast Processing</h2>
+                            <p class="text-gray-700 mb-4">Your podcast is being generated. This may take up to a minute.</p>
+                            <div class="flex items-center justify-center">
+                                <i class="fas fa-spinner fa-spin fa-2x text-blue-500"></i>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-4">Job ID: ${escapeHTML(data.jobId)}</p>
+                            <button id="checkStatusBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                                Check Status
+                            </button>
                         </div>
                     `;
-                    showMessage('Podcast generated successfully!', 'success');
+                    
+                    // Set up polling to check job status
+                    let jobId = data.jobId;
+                    let pollTimer = setTimeout(function pollJobStatus() {
+                        checkPodcastStatus(jobId);
+                    }, 5000); // First check after 5 seconds
+                    
+                    // Also set up the check status button
+                    document.getElementById('checkStatusBtn').addEventListener('click', () => {
+                        checkPodcastStatus(jobId);
+                    });
+                    
+                    showMessage('Podcast generation has been queued!', 'success');
                 } else {
-                    const errorMsg = data.error || 'Unable to generate podcast.';
+                    const errorMsg = data.error || 'Unable to queue podcast generation.';
                     podcastSection.innerHTML = `<span class="error">${errorMsg}</span>`;
-                    console.log('Podcast generation failed:', data);
                 }
             }
         } catch (err) {
-            console.error('Podcast generation error:', err);
-            podcastSection.innerHTML = '<span class="error">Unable to generate podcast. Please try again later.</span>';
-            showMessage('Podcast generation failed due to a network or server issue.', 'error');
+            console.error('Podcast queue error:', err);
+            podcastSection.innerHTML = '<span class="error">Unable to queue podcast. Please try again later.</span>';
+            showMessage('Failed to queue podcast generation.', 'error');
+        }
+    }
+    
+    async function checkPodcastStatus(jobId) {
+        if (!jobId) {
+            console.error('No job ID provided');
+            return;
+        }
+        
+        try {
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                console.error('No access token found');
+                return;
+            }
+            
+            const response = await fetch(`/.netlify/functions/check-podcast-status?jobId=${jobId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to check job status');
+            }
+            
+            const data = await response.json();
+            console.log('Job status:', data);
+            
+            if (data.status === 'completed' && data.podcastUrl) {
+                // Podcast is ready - update UI
+                podcastSection.innerHTML = `
+                    <div class="podcast-player">
+                        <h2 class="font-semibold mb-2 text-blue-700">Generated Podcast</h2>
+                        <audio controls src="${escapeHTML(data.podcastUrl)}"></audio>
+                        <a href="${escapeHTML(data.podcastUrl)}" download="podcast.mp3">Download Podcast</a>
+                    </div>
+                `;
+                showMessage('Podcast generated successfully!', 'success');
+            } else if (data.status === 'failed') {
+                // Podcast generation failed
+                podcastSection.innerHTML = `
+                    <div class="error">
+                        <h2 class="font-semibold mb-2 text-red-700">Generation Failed</h2>
+                        <p>${data.error || 'An unknown error occurred during podcast generation.'}</p>
+                        <button id="retryBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                            Retry
+                        </button>
+                    </div>
+                `;
+                
+                // Set up retry button
+                document.getElementById('retryBtn').addEventListener('click', () => {
+                    // Use the stored concepts from conceptsSection
+                    const conceptsHTML = conceptsSection.querySelector('ul')?.innerHTML;
+                    if (conceptsHTML) {
+                        const concepts = Array.from(conceptsSection.querySelectorAll('li')).map(li => {
+                            const [concept, explanation] = li.innerHTML.split(':</strong> ');
+                            return {
+                                concept: concept.replace('<strong>', ''),
+                                explanation: explanation
+                            };
+                        });
+                        if (concepts.length > 0) {
+                            generatePodcast(concepts);
+                        }
+                    }
+                });
+            } else if (data.status !== 'completed' && data.status !== 'failed') { 
+                // Job is still in progress - update UI with status and poll again
+                podcastSection.innerHTML = `
+                    <div class="podcast-processing">
+                        <h2 class="font-semibold mb-2 text-blue-700">Podcast Processing</h2>
+                        <p class="text-gray-700 mb-4">Status: ${data.status}</p>
+                        <div class="flex items-center justify-center">
+                            <i class="fas fa-spinner fa-spin fa-2x text-blue-500"></i>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-4">Job ID: ${escapeHTML(jobId)}</p>
+                        <button id="checkStatusBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                            Check Status
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('checkStatusBtn').addEventListener('click', () => {
+                    checkPodcastStatus(jobId);
+                });
+                
+                // Poll again after a delay
+                setTimeout(() => {
+                    checkPodcastStatus(jobId);
+                }, 10000); // Poll every 10 seconds
+            }
+        } catch (err) {
+            console.error('Error checking job status:', err);
+            // Show error but provide a button to check again
+            const currentContent = podcastSection.innerHTML;
+            podcastSection.innerHTML = `
+                <div class="error mb-4">Failed to check podcast status. Please try again.</div>
+                ${currentContent}
+            `;
         }
     }
 

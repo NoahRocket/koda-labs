@@ -1,5 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
+const { getSupabaseAuthClient } = require('./supabaseClient'); // Import the specific client
 
 exports.handler = async (event, context) => {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -22,8 +22,24 @@ exports.handler = async (event, context) => {
     return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided' }) };
   }
 
-  // Initialize Supabase client with the anon key and pass the JWT token in headers
+  const supabaseAuth = getSupabaseAuthClient();
+
+  // Validate the token and get the authenticated user
+  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(accessToken);
+
+  if (authError || !user) {
+    console.error('Authentication error or no user for token:', authError?.message);
+    return { statusCode: 401, body: JSON.stringify({ error: 'Invalid or expired token. Please log in again.' }) };
+  }
+  const authUserId = user.id; // Use this ID for all operations
+
+  // Create a new Supabase client with the access token for authenticated requests
+  const { createClient } = require('@supabase/supabase-js');
   const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
     global: {
       headers: {
         Authorization: `Bearer ${accessToken}`
@@ -31,104 +47,56 @@ exports.handler = async (event, context) => {
     }
   });
 
-  const { action, userId, topicName, topicId, bookmarkUrl, chatHistory } = JSON.parse(event.body || '{}');
-
-  if (!userId) return { statusCode: 400, body: 'Missing user ID' };
-
-  // Log the authenticated user
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  const authUserId = user?.id;
-  console.log('Incoming userId:', userId, 'Authenticated userId:', authUserId, 'Auth error:', authError?.message);
+  // userIdFromBody can be used for non-critical logging if needed, but not for auth-sensitive ops
+  const { action, userId: userIdFromBody, topicName, topicId, bookmarkUrl, chatHistory, noteContent, noteId, conversationId, messageId } = JSON.parse(event.body || '{}');
+  console.log('Incoming userId from body:', userIdFromBody, 'Authenticated userId from token:', authUserId);
 
   try {
     if (action === 'addTopic') {
-      const { data: newTopic } = await supabase
+      const { data: newTopic, error: addTopicError } = await supabase
         .from('topics')
-        .insert({ name: topicName, user_id: userId })
+        .insert({ name: topicName, user_id: authUserId })
         .select();
+      if (addTopicError) throw addTopicError;
       return { statusCode: 200, body: JSON.stringify({ topicId: newTopic[0].id }) };
     } else if (action === 'deleteTopic') {
-      console.log(`[DELETE] Starting deletion of topic ${topicId} and all related data`);
+      if (!topicId) return { statusCode: 400, body: 'Missing topic ID' };
+      console.log(`[DELETE] Starting deletion of topic ${topicId} and all related data for user ${authUserId}`);
       
-      // Verify the topic belongs to the user
       const { data: topic, error: topicError } = await supabase
         .from('topics')
         .select('user_id')
         .eq('id', topicId)
         .single();
         
-      if (topicError) {
-        console.error(`[DELETE] Error verifying topic: ${topicError.message}`);
-        return { 
-          statusCode: 404, 
-          body: JSON.stringify({ error: 'Topic not found' }) 
-        };
+      if (topicError || !topic) {
+        console.error(`[DELETE] Error verifying topic or topic not found: ${topicError?.message}`);
+        return { statusCode: 404, body: JSON.stringify({ error: 'Topic not found' }) };
       }
       
-      if (topic.user_id !== userId) {
-        console.error(`[DELETE] Permission denied: Topic belongs to ${topic.user_id}, not ${userId}`);
-        return { 
-          statusCode: 403, 
-          body: JSON.stringify({ error: 'You do not have permission to delete this topic' }) 
-        };
+      if (topic.user_id !== authUserId) {
+        console.error(`[DELETE] Permission denied: Topic belongs to ${topic.user_id}, not ${authUserId}`);
+        return { statusCode: 403, body: JSON.stringify({ error: 'You do not have permission to delete this topic' }) };
       }
       
-      try {
-        // Delete related data first - delete bookmarks
-        const { error: bookmarkDeleteError } = await supabase
-          .from('bookmarks')
-          .delete()
-          .eq('topic_id', topicId);
-          
-        if (bookmarkDeleteError) {
-          console.error(`[DELETE] Error deleting bookmarks: ${bookmarkDeleteError.message}`);
-          throw new Error(`Failed to delete bookmarks: ${bookmarkDeleteError.message}`);
-        }
-        
-        console.log(`[DELETE] Successfully deleted bookmarks for topic ${topicId}`);
-        
-        // Delete conversations
-        const { error: conversationDeleteError } = await supabase
-          .from('conversations')
-          .delete()
-          .eq('topic_id', topicId);
-          
-        if (conversationDeleteError) {
-          console.error(`[DELETE] Error deleting conversations: ${conversationDeleteError.message}`);
-          throw new Error(`Failed to delete conversations: ${conversationDeleteError.message}`);
-        }
-        
-        console.log(`[DELETE] Successfully deleted conversations for topic ${topicId}`);
-        
-        // Finally delete the topic itself
-        const { error: topicDeleteError } = await supabase
-          .from('topics')
-          .delete()
-          .eq('id', topicId);
-          
-        if (topicDeleteError) {
-          console.error(`[DELETE] Error deleting topic: ${topicDeleteError.message}`);
-          throw new Error(`Failed to delete topic: ${topicDeleteError.message}`);
-        }
-        
-        console.log(`[DELETE] Successfully deleted topic ${topicId} and all related data`);
-        
-        return { 
-          statusCode: 200, 
-          body: JSON.stringify({ 
-            message: 'Topic and all related data deleted successfully',
-            topicId
-          }) 
-        };
-      } catch (deleteError) {
-        console.error(`[DELETE] Error in deletion process: ${deleteError.message}`);
-        return { 
-          statusCode: 500, 
-          body: JSON.stringify({ 
-            error: deleteError.message 
-          }) 
-        };
-      }
+      console.log(`[DELETE] Deleting bookmarks for topic ${topicId}`);
+      const { error: bookmarkDeleteError } = await supabase.from('bookmarks').delete().eq('topic_id', topicId);
+      if (bookmarkDeleteError) throw new Error(`Failed to delete bookmarks: ${bookmarkDeleteError.message}`);
+      
+      console.log(`[DELETE] Deleting conversations for topic ${topicId}`);
+      const { error: conversationDeleteError } = await supabase.from('conversations').delete().eq('topic_id', topicId);
+      if (conversationDeleteError) throw new Error(`Failed to delete conversations: ${conversationDeleteError.message}`);
+
+      console.log(`[DELETE] Deleting notes for topic ${topicId}`);
+      const { error: notesDeleteError } = await supabase.from('notes').delete().eq('topic_id', topicId);
+      if (notesDeleteError) throw new Error(`Failed to delete notes: ${notesDeleteError.message}`);
+
+      console.log(`[DELETE] Deleting topic ${topicId} itself`);
+      const { error: topicDeleteError } = await supabase.from('topics').delete().eq('id', topicId).eq('user_id', authUserId);
+      if (topicDeleteError) throw new Error(`Failed to delete topic: ${topicDeleteError.message}`);
+      
+      console.log(`[DELETE] Successfully deleted topic ${topicId} and related data`);
+      return { statusCode: 200, body: JSON.stringify({ message: 'Topic and all related data deleted successfully' }) };
     } else if (action === 'updateTopicName') {
       const { topicId, newTopicName } = JSON.parse(event.body || '{}');
       
@@ -136,7 +104,7 @@ exports.handler = async (event, context) => {
         return { statusCode: 400, body: JSON.stringify({ error: 'Missing topic ID or new topic name' }) };
       }
 
-      console.log(`[UPDATE_TOPIC] Attempting to update topic ${topicId} to name "${newTopicName}" for user ${userId}`);
+      console.log(`[UPDATE_TOPIC] Attempting to update topic ${topicId} to name "${newTopicName}" for user ${authUserId}`);
 
       // Verify the topic belongs to the user first
       const { data: topic, error: verifyError } = await supabase
@@ -154,8 +122,8 @@ exports.handler = async (event, context) => {
         return { statusCode: 500, body: JSON.stringify({ error: `Verification error: ${verifyError.message}` }) };
       }
 
-      if (topic.user_id !== userId) {
-        console.error(`[UPDATE_TOPIC] Permission denied: Topic ${topicId} belongs to user ${topic.user_id}, attempt by ${userId}`);
+      if (topic.user_id !== authUserId) {
+        console.error(`[UPDATE_TOPIC] Permission denied: Topic ${topicId} belongs to user ${topic.user_id}, attempt by ${authUserId}`);
         return { statusCode: 403, body: JSON.stringify({ error: 'Permission denied to update this topic' }) };
       }
 
@@ -164,20 +132,24 @@ exports.handler = async (event, context) => {
         .from('topics')
         .update({ name: newTopicName.trim() })
         .eq('id', topicId)
-        .eq('user_id', userId); // Redundant check, but good for safety
+        .eq('user_id', authUserId); // Redundant check, but good for safety
 
       if (updateError) {
         console.error(`[UPDATE_TOPIC] Error updating topic ${topicId}: ${updateError.message}`);
         return { statusCode: 500, body: JSON.stringify({ error: `Failed to update topic name: ${updateError.message}` }) };
       }
 
-      console.log(`[UPDATE_TOPIC] Successfully updated topic ${topicId} name for user ${userId}`);
+      console.log(`[UPDATE_TOPIC] Successfully updated topic ${topicId} name for user ${authUserId}`);
       return { statusCode: 200, body: JSON.stringify({ message: 'Topic name updated successfully' }) };
     } else if (action === 'addBookmark') {
-      await supabase.from('bookmarks').insert({ topic_id: topicId, url: bookmarkUrl });
+      if (!topicId || !bookmarkUrl) return { statusCode: 400, body: 'Missing topic ID or bookmark URL' };
+      const { error } = await supabase
+        .from('bookmarks')
+        .insert({ topic_id: topicId, user_id: authUserId, url: bookmarkUrl });
+      if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark added' }) };
     } else if (action === 'saveConversation') {
-      console.log('Saving conversation:', { userId, topicId, chatHistory });
+      console.log('Saving conversation:', { userId: authUserId, topicId, chatHistory });
       // Verify the topic belongs to the user
       const { data: topic } = await supabase
         .from('topics')
@@ -188,7 +160,7 @@ exports.handler = async (event, context) => {
         throw new Error('Topic not found');
       }
       console.log('Topic user_id:', topic.user_id);
-      if (topic.user_id !== userId) {
+      if (topic.user_id !== authUserId) {
         throw new Error('Topic does not belong to this user');
       }
       const { data, error } = await supabase.from('conversations').insert({
@@ -209,11 +181,11 @@ exports.handler = async (event, context) => {
         };
       }
       
-      console.log(`[SAVE_NOTE] Saving note for user ${userId}, topic: ${topicId || 'untagged'}`);
+      console.log(`[SAVE_NOTE] Saving note for user ${authUserId}, topic: ${topicId || 'untagged'}`);
       
       // Create the note record
       const noteRecord = {
-        user_id: userId,
+        user_id: authUserId,
         content,
         created_at: new Date().toISOString()
       };
@@ -238,8 +210,8 @@ exports.handler = async (event, context) => {
             };
           }
           
-          if (topic.user_id !== userId) {
-            console.error(`[SAVE_NOTE] Permission denied: Topic belongs to ${topic.user_id}, not ${userId}`);
+          if (topic.user_id !== authUserId) {
+            console.error(`[SAVE_NOTE] Permission denied: Topic belongs to ${topic.user_id}, not ${authUserId}`);
             return { 
               statusCode: 403, 
               body: JSON.stringify({ error: 'You do not have permission to add notes to this topic' }) 
@@ -297,8 +269,8 @@ exports.handler = async (event, context) => {
         };
       }
       
-      if (note.user_id !== userId) {
-        console.error(`[DELETE_NOTE] Permission denied: Note belongs to ${note.user_id}, not ${userId}`);
+      if (note.user_id !== authUserId) {
+        console.error(`[DELETE_NOTE] Permission denied: Note belongs to ${note.user_id}, not ${authUserId}`);
         return { 
           statusCode: 403, 
           body: JSON.stringify({ error: 'You do not have permission to delete this note' }) 
@@ -349,8 +321,8 @@ exports.handler = async (event, context) => {
         };
       }
       
-      if (topic.user_id !== userId) {
-        console.error(`[GET_SUMMARY] Permission denied: Topic belongs to ${topic.user_id}, not ${userId}`);
+      if (topic.user_id !== authUserId) {
+        console.error(`[GET_SUMMARY] Permission denied: Topic belongs to ${topic.user_id}, not ${authUserId}`);
         return { 
           statusCode: 403, 
           body: JSON.stringify({ error: 'You do not have permission to access this topic' }) 
@@ -362,7 +334,7 @@ exports.handler = async (event, context) => {
         .from('summaries')
         .select('*')
         .eq('topic_id', topicId)
-        .eq('user_id', userId)
+        .eq('user_id', authUserId)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -398,8 +370,8 @@ exports.handler = async (event, context) => {
       }
       
       // Verify the topic belongs to the user
-      if (topic.user_id !== userId) {
-        console.error(`[GET_TOPIC_DETAILS] Permission denied: Topic belongs to ${topic.user_id}, not ${userId}`);
+      if (topic.user_id !== authUserId) {
+        console.error(`[GET_TOPIC_DETAILS] Permission denied: Topic belongs to ${topic.user_id}, not ${authUserId}`);
         return { 
           statusCode: 403, 
           body: JSON.stringify({ error: 'You do not have permission to view this topic' }) 
@@ -439,7 +411,7 @@ exports.handler = async (event, context) => {
       const { data: notes, error: notesError } = await supabase
         .from('notes')
         .select('id, content, created_at')
-        .eq('user_id', userId)
+        .eq('user_id', authUserId)
         .eq('topic_id', topicId)
         .order('created_at', { ascending: false });
         
@@ -463,7 +435,7 @@ exports.handler = async (event, context) => {
         })
       };
     } else if (action === 'getNotes') {
-      console.log(`[GET_NOTES] Fetching notes for user ${userId}, topic filter: ${topicId || 'all'}`);
+      console.log(`[GET_NOTES] Fetching notes for user ${authUserId}, topic filter: ${topicId || 'all'}`);
       
       // Create base query without the topics relation
       let query = supabase
@@ -474,7 +446,7 @@ exports.handler = async (event, context) => {
           created_at,
           topic_id
         `)
-        .eq('user_id', userId)
+        .eq('user_id', authUserId)
         .order('created_at', { ascending: false });
         
       // Apply topic filter if specified
@@ -542,7 +514,7 @@ exports.handler = async (event, context) => {
           name,
           user_id
         `)
-        .eq('user_id', userId);
+        .eq('user_id', authUserId);
 
       if (topicsError) {
         console.error(`[GET_TOPICS] Error fetching topics: ${topicsError.message}`);
