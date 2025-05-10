@@ -65,32 +65,45 @@
     }
 
     @media (max-width: 768px) {
+      body {
+        /* Prevent scrolling when sidebar is open */
+        overflow-x: hidden;
+      }
       #sidebar {
         transform: translateX(-100%);
+        padding-top: env(safe-area-inset-top); /* iOS notch support */
+        height: 100%; /* Fix for iOS height issues */
+        z-index: 999 !important; /* Ensure it's above other elements */
       }
       .main-content-area {
         margin-left: 0 !important;
       }
-      /* Improve hamburger visibility on mobile */
+      /* Fully optimized hamburger for iOS */
       #hamburger {
-        -webkit-tap-highlight-color: rgba(0,0,0,0);
+        -webkit-tap-highlight-color: transparent !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+        cursor: pointer !important;
+        padding-top: env(safe-area-inset-top, 0) !important; /* iOS notch support */
       }
-      /* Fix any potential scroll issues on iOS */
-      .fixed {
+      /* Ensure no elements overlay the hamburger */
+      .fixed, .absolute {
         position: fixed !important;
+      }
+      /* Add explicit touch action for all interactive elements */
+      button, a, input, .cursor-pointer {
+        touch-action: manipulation !important;
       }
     }
   </style>
 </head>
 <body class="flex bg-gray-100 font-eb-garamond">
-  <!-- Mobile Hamburger - Enhanced for better touch on mobile -->
-  <div class="md:hidden fixed top-0 left-0 z-50 cursor-pointer" id="hamburger">
-    <div class="p-5" style="min-height:44px; min-width:44px;"> <!-- iOS minimum touch target size -->
-      <div class="w-6 h-0.5 bg-gray-800 mb-1.5"></div>
-      <div class="w-6 h-0.5 bg-gray-800 mb-1.5"></div>
-      <div class="w-6 h-0.5 bg-gray-800"></div>
-    </div>
-  </div>
+  <!-- Mobile Hamburger - Complete overhaul for iOS compatibility -->
+  <button type="button" class="md:hidden fixed top-0 left-0 z-50 p-4 bg-transparent border-0 outline-none" id="hamburger" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
+    <span class="block w-6 h-0.5 bg-gray-800 mb-1.5 rounded"></span>
+    <span class="block w-6 h-0.5 bg-gray-800 mb-1.5 rounded"></span>
+    <span class="block w-6 h-0.5 bg-gray-800 rounded"></span>
+  </button>
 
   <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md md:translate-x-0 transform -translate-x-full transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
@@ -613,6 +626,82 @@
         const podcastId = deleteBtn.dataset.podcastId;
         deletePodcast(podcastId);
       }
+    });
+    // iOS specific fixes for the hamburger menu
+    document.addEventListener('DOMContentLoaded', function() {
+      const hamburger = document.getElementById('hamburger');
+      const sidebar = document.getElementById('sidebar');
+      const closeSidebar = document.getElementById('closeSidebar');
+      
+      // Force redraw to fix iOS rendering issues
+      function forceRedraw(element) {
+        if (!element) return;
+        element.style.display = 'none';
+        // This triggers a reflow
+        void element.offsetHeight;
+        element.style.display = '';
+      }
+      
+      // iOS optimized event handler for hamburger
+      function handleHamburgerClick(e) {
+        e.preventDefault();
+        sidebar.classList.toggle('-translate-x-full');
+        forceRedraw(sidebar);
+        return false;
+      }
+      
+      // iOS optimized event handler for close button
+      function handleCloseClick(e) {
+        e.preventDefault();
+        sidebar.classList.add('-translate-x-full');
+        forceRedraw(sidebar);
+        return false;
+      }
+      
+      // Apply multiple event listeners for iOS compatibility
+      if (hamburger) {
+        // Remove any existing listeners
+        hamburger.replaceWith(hamburger.cloneNode(true));
+        const newHamburger = document.getElementById('hamburger');
+        
+        // Add touch and click events
+        newHamburger.addEventListener('touchstart', function(e) {
+          e.preventDefault();
+          this.classList.add('opacity-70');
+        }, {passive: false});
+        
+        newHamburger.addEventListener('touchend', handleHamburgerClick, {passive: false});
+        newHamburger.addEventListener('click', handleHamburgerClick, {passive: false});
+      }
+      
+      if (closeSidebar) {
+        // Remove any existing listeners
+        closeSidebar.replaceWith(closeSidebar.cloneNode(true));
+        const newCloseSidebar = document.getElementById('closeSidebar');
+        
+        // Add touch and click events
+        newCloseSidebar.addEventListener('touchstart', function(e) {
+          e.preventDefault();
+          this.classList.add('opacity-70');
+        }, {passive: false});
+        
+        newCloseSidebar.addEventListener('touchend', handleCloseClick, {passive: false});
+        newCloseSidebar.addEventListener('click', handleCloseClick, {passive: false});
+      }
+      
+      // Add document click handler to close sidebar when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!sidebar.contains(e.target) && e.target !== hamburger && !hamburger.contains(e.target) && !sidebar.classList.contains('-translate-x-full')) {
+          sidebar.classList.add('-translate-x-full');
+        }
+      });
+      
+      // For iOS prevention of ghost clicks
+      document.addEventListener('touchmove', function(e) {
+        if (!sidebar.classList.contains('-translate-x-full')) {
+          e.preventDefault();
+        }
+      }, {passive: false});
     });
   </script>
 </body>
