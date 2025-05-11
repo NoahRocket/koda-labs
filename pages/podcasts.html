@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Podcasts PDF Upload</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Podcasts - Koda Compass</title>
   <link rel="stylesheet" href="../styles/main.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="../scripts/utils.js" defer></script>
   <style>
     #sidebar {
       min-width: 14rem;
@@ -58,60 +59,78 @@
       text-decoration: underline;
     }
     
-    /* Enhanced tap targets for mobile */
-    .nav-link {
-      display: block;
-      min-height: 44px; /* iOS minimum standard */
+    /* Toast messages */
+    .toast-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 9999;
     }
+    .toast {
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0.25rem;
+      background-color: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-width: 250px;
+      max-width: 350px;
+    }
+    .toast.info { border-left: 4px solid #3b82f6; }
+    .toast.success { border-left: 4px solid #10b981; }
+    .toast.error { border-left: 4px solid #ef4444; }
+    .toast-content {
+      display: flex;
+      align-items: center;
+    }
+    .toast-content i {
+      margin-right: 0.5rem;
+    }
+    .toast-content .fa-check-circle { color: #10b981; }
+    .toast-content .fa-exclamation-circle { color: #ef4444; }
 
     @media (max-width: 768px) {
       body {
-        /* Prevent scrolling when sidebar is open */
         overflow-x: hidden;
       }
       #sidebar {
         transform: translateX(-100%);
-        padding-top: env(safe-area-inset-top); /* iOS notch support */
-        height: 100%; /* Fix for iOS height issues */
-        z-index: 999 !important; /* Ensure it's above other elements */
       }
       .main-content-area {
         margin-left: 0 !important;
+        width: 100vw;
+        padding: 1rem;
       }
-      /* Fully optimized hamburger for iOS */
-      #hamburger {
-        -webkit-tap-highlight-color: transparent !important;
-        user-select: none !important;
-        -webkit-user-select: none !important;
-        cursor: pointer !important;
-        padding-top: env(safe-area-inset-top, 0) !important; /* iOS notch support */
+      .mobile-readable {
+        font-size: 1rem;
       }
-      /* Ensure no elements overlay the hamburger */
-      .fixed, .absolute {
-        position: fixed !important;
-      }
-      /* Add explicit touch action for all interactive elements */
-      button, a, input, .cursor-pointer {
-        touch-action: manipulation !important;
+      .mobile-touch-target {
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
       }
     }
   </style>
 </head>
-<body class="flex bg-gray-100 font-eb-garamond">
-  <!-- Mobile Hamburger - Complete overhaul for iOS compatibility -->
-  <button type="button" class="md:hidden fixed top-0 left-0 z-50 p-4 bg-transparent border-0 outline-none" id="hamburger" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
-    <span class="block w-6 h-0.5 bg-gray-800 mb-1.5 rounded"></span>
-    <span class="block w-6 h-0.5 bg-gray-800 mb-1.5 rounded"></span>
-    <span class="block w-6 h-0.5 bg-gray-800 rounded"></span>
-  </button>
+<body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900">
+  <!-- Mobile Hamburger - Using the same approach as dashboard -->
+  <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
+    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
+    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
+    <div class="w-6 h-0.5 bg-gray-800"></div>
+  </div>
 
-  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md md:translate-x-0 transform -translate-x-full transition-transform duration-300 z-40">
+  <!-- Sidebar Navigation -->
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
       <div class="p-5 border-b border-blue-100">
         <h1 class="text-xl font-bold text-gray-800">Koda Compass</h1>
-        <!-- Enhanced close button for mobile -->
-        <button id="closeSidebar" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 md:hidden p-3" style="min-height:44px; min-width:44px;">
-          <i class="fas fa-times text-xl"></i>
+        <!-- Close button for mobile (same as dashboard) -->
+        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden mobile-touch-target">
+          <i class="fas fa-times"></i>
         </button>
       </div>
       <nav class="flex-1 overflow-y-auto py-4">
@@ -627,81 +646,39 @@
         deletePodcast(podcastId);
       }
     });
-    // iOS specific fixes for the hamburger menu
+    // Add standard navigation event handlers - same as dashboard.html
     document.addEventListener('DOMContentLoaded', function() {
       const hamburger = document.getElementById('hamburger');
       const sidebar = document.getElementById('sidebar');
       const closeSidebar = document.getElementById('closeSidebar');
       
-      // Force redraw to fix iOS rendering issues
-      function forceRedraw(element) {
-        if (!element) return;
-        element.style.display = 'none';
-        // This triggers a reflow
-        void element.offsetHeight;
-        element.style.display = '';
+      // Check if user is logged in
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        window.location.href = '/pages/login.html';
+        return;
       }
       
-      // iOS optimized event handler for hamburger
-      function handleHamburgerClick(e) {
-        e.preventDefault();
-        sidebar.classList.toggle('-translate-x-full');
-        forceRedraw(sidebar);
-        return false;
-      }
-      
-      // iOS optimized event handler for close button
-      function handleCloseClick(e) {
-        e.preventDefault();
-        sidebar.classList.add('-translate-x-full');
-        forceRedraw(sidebar);
-        return false;
-      }
-      
-      // Apply multiple event listeners for iOS compatibility
+      // Setup mobile navigation
       if (hamburger) {
-        // Remove any existing listeners
-        hamburger.replaceWith(hamburger.cloneNode(true));
-        const newHamburger = document.getElementById('hamburger');
-        
-        // Add touch and click events
-        newHamburger.addEventListener('touchstart', function(e) {
-          e.preventDefault();
-          this.classList.add('opacity-70');
-        }, {passive: false});
-        
-        newHamburger.addEventListener('touchend', handleHamburgerClick, {passive: false});
-        newHamburger.addEventListener('click', handleHamburgerClick, {passive: false});
+        hamburger.addEventListener('click', function() {
+          sidebar.classList.toggle('-translate-x-full');
+        });
       }
       
       if (closeSidebar) {
-        // Remove any existing listeners
-        closeSidebar.replaceWith(closeSidebar.cloneNode(true));
-        const newCloseSidebar = document.getElementById('closeSidebar');
-        
-        // Add touch and click events
-        newCloseSidebar.addEventListener('touchstart', function(e) {
-          e.preventDefault();
-          this.classList.add('opacity-70');
-        }, {passive: false});
-        
-        newCloseSidebar.addEventListener('touchend', handleCloseClick, {passive: false});
-        newCloseSidebar.addEventListener('click', handleCloseClick, {passive: false});
+        closeSidebar.addEventListener('click', function() {
+          sidebar.classList.add('-translate-x-full');
+        });
       }
       
-      // Add document click handler to close sidebar when clicking outside
-      document.addEventListener('click', function(e) {
-        if (!sidebar.contains(e.target) && e.target !== hamburger && !hamburger.contains(e.target) && !sidebar.classList.contains('-translate-x-full')) {
-          sidebar.classList.add('-translate-x-full');
-        }
-      });
-      
-      // For iOS prevention of ghost clicks
-      document.addEventListener('touchmove', function(e) {
-        if (!sidebar.classList.contains('-translate-x-full')) {
-          e.preventDefault();
-        }
-      }, {passive: false});
+      // Setup dropzone functionality
+      const dropzone = document.querySelector('.cursor-pointer');
+      if (dropzone) {
+        dropzone.addEventListener('click', function() {
+          document.getElementById('pdfInput').click();
+        });
+      }
     });
   </script>
 </body>
