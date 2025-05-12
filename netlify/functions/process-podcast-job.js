@@ -111,7 +111,7 @@ exports.handler = async (event) => {
     
     try {
       // --- 1. Generate Script using OpenAI --- 
-      const intro = "Welcome to your Koda Compass podcast. Today, we'll explore some key concepts.\n\n";
+      const intro = "Welcome to your Koda Tutor podcast. Today, we'll explore some key concepts.\n\n";
       const outro = "\n\nThat concludes our summary. Thanks for listening!";
 
       // Prepare concepts for the prompt

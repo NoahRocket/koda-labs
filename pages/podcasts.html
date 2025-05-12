@@ -2,118 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Podcasts - Koda Compass</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Podcasts - Koda Tutor</title>
   <link rel="stylesheet" href="../styles/main.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="../scripts/utils.js" defer></script>
-  <style>
-    #sidebar {
-      min-width: 14rem;
-    }
-
-    input[type="file"] {
-      margin-bottom: 1.2rem;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    button {
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 0.6rem 1.5rem;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button:disabled {
-      background: #a5b4fc;
-      cursor: not-allowed;
-    }
-    .message {
-      margin-top: 1rem;
-      font-size: 1rem;
-      min-height: 1.5em;
-    }
-    .success {
-      color: #059669;
-    }
-    .error {
-      color: #dc2626;
-    }
-    .podcast-player {
-      margin-top: 1rem;
-      padding: 1rem;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      background: #f9fafb;
-    }
-    .podcast-player audio {
-      width: 100%;
-      margin-bottom: 0.5rem;
-    }
-    .podcast-player a {
-      color: #2563eb;
-      text-decoration: underline;
-    }
-    
-    /* Toast messages */
-    .toast-container {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      z-index: 9999;
-    }
-    .toast {
-      padding: 0.75rem;
-      margin-bottom: 0.5rem;
-      border-radius: 0.25rem;
-      background-color: white;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      min-width: 250px;
-      max-width: 350px;
-    }
-    .toast.info { border-left: 4px solid #3b82f6; }
-    .toast.success { border-left: 4px solid #10b981; }
-    .toast.error { border-left: 4px solid #ef4444; }
-    .toast-content {
-      display: flex;
-      align-items: center;
-    }
-    .toast-content i {
-      margin-right: 0.5rem;
-    }
-    .toast-content .fa-check-circle { color: #10b981; }
-    .toast-content .fa-exclamation-circle { color: #ef4444; }
-
-    @media (max-width: 768px) {
-      body {
-        overflow-x: hidden;
-      }
-      #sidebar {
-        transform: translateX(-100%);
-      }
-      .main-content-area {
-        margin-left: 0 !important;
-        width: 100vw;
-        padding: 1rem;
-      }
-      .mobile-readable {
-        font-size: 1rem;
-      }
-      .mobile-touch-target {
-        min-height: 44px;
-        min-width: 44px;
-        display: flex;
-        align-items: center;
-      }
-    }
-  </style>
 </head>
 <body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900">
   <!-- Mobile Hamburger - Using the same approach as dashboard -->
@@ -126,13 +19,14 @@
   <!-- Sidebar Navigation -->
   <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
-      <div class="p-5 border-b border-blue-100">
-        <h1 class="text-xl font-bold text-gray-800">Koda Compass</h1>
-        <!-- Close button for mobile (same as dashboard) -->
+      <div class="p-5 pt-12 md:pt-5 border-b border-blue-100">
+        <h1 class="text-xl font-bold text-gray-800">Koda Tutor</h1>
+        <!-- Close button for mobile -->
         <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
       </div>
+
       <nav class="flex-1 overflow-y-auto py-4">
         <ul class="space-y-2 px-4">
           <li class="flex-col space-y-2">
@@ -166,92 +60,96 @@
     </div>
   </div>
 
-  <div class="main-content-area flex-1 ml-0 md:ml-56 p-4 md:p-8 flex flex-col min-h-screen">
-    <!-- Upload section -->
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-2xl mx-auto mb-8">
-      <h1 class="text-2xl font-semibold mb-6 text-center">Upload a Podcast PDF</h1>
-      <div class="max-w-md mx-auto">
-        <label class="block mb-6">
-          <div class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 transition-colors bg-gray-50 cursor-pointer">
-            <svg class="w-10 h-10 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-            </svg>
-            <p class="mb-1 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-            <p class="text-xs text-gray-500">PDF files only (Max. 10MB)</p>
-            <input id="pdfInput" type="file" accept="application/pdf" class="hidden" />
-          </div>
-        </label>
-        <div class="flex justify-center">
-          <button id="uploadBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12"></path>
-            </svg>
-            Upload
-          </button>
-        </div>
+  <!-- Main Content Area -->
+  <div class="main-content-area md:ml-56 flex-1 p-4 md:p-6">
+    <!-- Upload Card -->
+    <div class="bg-white p-6 rounded-lg shadow-sm mb-6 max-w-3xl mx-auto">
+      <h1 class="text-2xl md:text-3xl font-bold text-center mb-6">Upload a Podcast PDF</h1>
+
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer mb-6">
+        <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-3"></i>
+        <p class="text-center mb-2">Click to upload or drag and drop</p>
+        <p class="text-sm text-gray-500">PDF files only (Max. 10MB)</p>
+        <input type="file" id="pdfInput" accept=".pdf" class="hidden" />
       </div>
-      <div class="message mt-4 text-sm min-h-[1.5em] text-center" id="message"></div>
-      <div id="extractedText" class="mt-4 p-4 border border-gray-300 rounded-md bg-gray-50 text-left text-sm overflow-auto max-h-60" style="display: none;"></div>
-      <div id="conceptsSection" class="mt-4" style="display: none;"></div>
-      <div id="podcastSection" class="mt-4" style="display: none;"></div>
+
+      <div class="flex justify-center">
+        <button id="uploadButton" class="flex items-center bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-md transition-colors" disabled>
+          <i class="fas fa-upload mr-2"></i> Upload
+        </button>
+      </div>
     </div>
     
-    <!-- Podcast List section -->
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-2xl mx-auto">
-      <h2 class="text-xl font-semibold mb-6 flex items-center">
-        <span>Your Podcasts</span>
-        <button id="refreshPodcastsBtn" class="ml-2 bg-blue-100 hover:bg-blue-200 text-blue-700 p-1.5 rounded-full transition-colors" title="Refresh podcast list">
-          <i class="fas fa-sync-alt"></i>
+    <!-- Message and Loading Indicator -->
+    <div class="message text-center mt-4" id="message"></div>
+
+    <div id="loadingIndicator" class="hidden text-center py-4">
+      <i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i>
+      <p class="text-gray-600 mt-2">Generating your podcast. This may take several minutes...</p>
+    </div>
+
+    <!-- Podcasts List Section -->
+    <div class="bg-white p-6 rounded-lg shadow-sm mt-8 max-w-3xl mx-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl md:text-2xl font-bold">Your Podcasts</h2>
+        <button id="refreshPodcasts" class="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-50 transition-colors">
+          <i class="fas fa-sync"></i>
         </button>
-      </h2>
-      <div id="podcastList" class="space-y-4">
-        <div class="flex justify-center items-center py-4">
-          <i class="fas fa-spinner fa-spin text-blue-500 mr-2"></i>
-          <span>Loading podcasts...</span>
-        </div>
       </div>
+
+      <div id="podcastList" class="space-y-4"></div>
     </div>
   </div>
 
   <script>
     const pdfInput = document.getElementById('pdfInput');
-    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadButton = document.getElementById('uploadButton');
     const messageDiv = document.getElementById('message');
-    const extractedTextDiv = document.getElementById('extractedText');
-    const conceptsSection = document.getElementById('conceptsSection');
-    const podcastSection = document.getElementById('podcastSection');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const podcastList = document.getElementById('podcastList');
 
     function showMessage(msg, type) {
       messageDiv.textContent = msg;
       messageDiv.className = 'message ' + (type || '');
     }
+    
+    // File input change handler
+    pdfInput.addEventListener('change', function() {
+      if (this.files.length > 0) {
+        const file = this.files[0];
+        uploadButton.disabled = false;
+        messageDiv.textContent = `Selected: ${file.name}`;
+        messageDiv.className = 'message';
+      } else {
+        uploadButton.disabled = true;
+        messageDiv.textContent = '';
+      }
+    });
 
-    uploadBtn.addEventListener('click', async () => {
+    uploadButton.addEventListener('click', async () => {
       const file = pdfInput.files[0];
       showMessage('', '');
-      extractedTextDiv.textContent = '';
-      extractedTextDiv.style.display = 'none';
-      conceptsSection.style.display = 'none';
-      conceptsSection.innerHTML = '';
-      podcastSection.style.display = 'none';
-      podcastSection.innerHTML = '';
+      loadingIndicator.classList.remove('hidden');
 
       if (!file) {
         showMessage('Please select a PDF file to upload.', 'error');
+        loadingIndicator.classList.add('hidden');
         return;
       }
       if (file.type !== 'application/pdf') {
         showMessage('Invalid file type. Only PDF files are allowed.', 'error');
+        loadingIndicator.classList.add('hidden');
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
         showMessage('File is too large (max 10MB).', 'error');
+        loadingIndicator.classList.add('hidden');
         return;
       }
 
       const formData = new FormData();
       formData.append('pdf', file);
-      uploadBtn.disabled = true;
+      uploadButton.disabled = true;
       showMessage('Uploading and processing PDF...');
       try {
         const res = await fetch('/.netlify/functions/upload-pdf', {
@@ -264,9 +162,7 @@
         if (res.ok) {
           showMessage('PDF processed successfully!', 'success');
           if (data.extractedText) {
-            extractedTextDiv.textContent = data.extractedText;
-            extractedTextDiv.style.display = 'block';
-            await analyzeConcepts(data.extractedText);
+            // Update UI with extracted text
           } else if (data.error) {
             showMessage(`Processing finished, but: ${data.error}`, 'error');
           } else {
@@ -281,286 +177,67 @@
         console.error('Upload error:', err);
         showMessage('Upload failed due to a network or server issue.', 'error');
       } finally {
-        uploadBtn.disabled = false;
+        uploadButton.disabled = false;
+        loadingIndicator.classList.add('hidden');
       }
     });
 
-    async function analyzeConcepts(text) {
-      if (!text || text.trim().split(/\s+/).length > 10000) {
-        conceptsSection.innerHTML = '<span class="error">Text too long or empty for analysis.</span>';
-        conceptsSection.style.display = 'block';
-        return;
-      }
-      conceptsSection.innerHTML = '<span>Analyzing key concepts...</span>';
-      conceptsSection.style.display = 'block';
-      try {
-        const res = await fetch('/.netlify/functions/analyze-pdf-text', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
-        });
-        const data = await res.json();
-        if (res.ok && data.concepts && Array.isArray(data.concepts) && data.concepts.length > 0) {
-          let html = '<div class="border border-blue-200 rounded-md bg-blue-50 p-4"><h2 class="font-semibold mb-2 text-blue-700">Key Concepts</h2><ul class="space-y-2">';
-          data.concepts.forEach(({ concept, explanation }) => {
-            html += `<li><strong>${escapeHTML(concept)}:</strong> ${escapeHTML(explanation)}</li>`;
-          });
-          html += '</ul></div>';
-          conceptsSection.innerHTML = html;
-          console.log('Concepts generated, triggering podcast generation...');
-          await generatePodcast(data.concepts);
-        } else {
-          conceptsSection.innerHTML = '<span class="error">No key concepts found.</span>';
-          console.log('No key concepts found in response:', data);
-        }
-      } catch (err) {
-        console.error('Concept analysis error:', err);
-        conceptsSection.innerHTML = '<span class="error">Unable to analyze text. Please try again later.</span>';
-      }
-    }
-
-    async function generatePodcast(concepts) {
-        console.log('--- generatePodcast function called with concepts:', concepts);
-        podcastSection.innerHTML = '<span>Queuing podcast generation... <i class="fas fa-spinner fa-spin"></i></span>';
-        podcastSection.style.display = 'block';
-
-        try {
-            const accessToken = localStorage.getItem('accessToken');
-            
-            if (!accessToken) {
-                console.error('No access token found');
-                podcastSection.innerHTML = '<span class="error">Authentication error. Please log in again.</span>';
-                return;
-            }
-
-            // Queue the podcast job instead of generating it directly
-            const response = await fetch('/.netlify/functions/queue-podcast-job', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                body: JSON.stringify({ 
-                    concepts: concepts,
-                    pdfName: pdfInput.files[0]?.name || 'Uploaded PDF'
-                })
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                const errorMsg = data.error || 'Failed to queue podcast generation. Please try again.';
-                podcastSection.innerHTML = `<span class="error">${errorMsg}</span>`;
-                console.log('Podcast queue failed:', data);
-            } else {
-                const data = await response.json();
-                console.log('Job queued, response:', data);
-                if (data.jobId) {
-                    podcastSection.innerHTML = `
-                        <div class="podcast-processing">
-                            <h2 class="font-semibold mb-2 text-blue-700">Podcast Processing</h2>
-                            <p class="text-gray-700 mb-4">Your podcast is being generated. This may take up to a minute.</p>
-                            <div class="flex items-center justify-center">
-                                <i class="fas fa-spinner fa-spin fa-2x text-blue-500"></i>
-                            </div>
-                            <p class="text-sm text-gray-500 mt-4">Job ID: ${escapeHTML(data.jobId)}</p>
-                            <button id="checkStatusBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                                Check Status
-                            </button>
-                        </div>
-                    `;
-                    
-                    // Set up polling to check job status
-                    let jobId = data.jobId;
-                    let pollTimer = setTimeout(function pollJobStatus() {
-                        checkPodcastStatus(jobId);
-                    }, 5000); // First check after 5 seconds
-                    
-                    // Also set up the check status button
-                    document.getElementById('checkStatusBtn').addEventListener('click', () => {
-                        checkPodcastStatus(jobId);
-                    });
-                    
-                    showMessage('Podcast generation has been queued!', 'success');
-                } else {
-                    const errorMsg = data.error || 'Unable to queue podcast generation.';
-                    podcastSection.innerHTML = `<span class="error">${errorMsg}</span>`;
-                }
-            }
-        } catch (err) {
-            console.error('Podcast queue error:', err);
-            podcastSection.innerHTML = '<span class="error">Unable to queue podcast. Please try again later.</span>';
-            showMessage('Failed to queue podcast generation.', 'error');
-        }
-    }
-    
-    async function checkPodcastStatus(jobId) {
-        if (!jobId) {
-            console.error('No job ID provided');
-            return;
-        }
-        
-        try {
-            const accessToken = localStorage.getItem('accessToken');
-            if (!accessToken) {
-                console.error('No access token found');
-                return;
-            }
-            
-            const response = await fetch(`/.netlify/functions/check-podcast-status?jobId=${jobId}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to check job status');
-            }
-            
-            const data = await response.json();
-            console.log('Job status:', data);
-            
-            if (data.status === 'completed' && data.podcastUrl) {
-                // Podcast is ready - update UI
-                podcastSection.innerHTML = `
-                    <div class="podcast-player">
-                        <h2 class="font-semibold mb-2 text-blue-700">Generated Podcast</h2>
-                        <audio controls src="${escapeHTML(data.podcastUrl)}"></audio>
-                        <a href="${escapeHTML(data.podcastUrl)}" download="podcast.mp3">Download Podcast</a>
-                    </div>
-                `;
-                showMessage('Podcast generated successfully!', 'success');
-            } else if (data.status === 'failed') {
-                // Podcast generation failed
-                podcastSection.innerHTML = `
-                    <div class="error">
-                        <h2 class="font-semibold mb-2 text-red-700">Generation Failed</h2>
-                        <p>${data.error || 'An unknown error occurred during podcast generation.'}</p>
-                        <button id="retryBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                            Retry
-                        </button>
-                    </div>
-                `;
-                
-                // Set up retry button
-                document.getElementById('retryBtn').addEventListener('click', () => {
-                    // Use the stored concepts from conceptsSection
-                    const conceptsHTML = conceptsSection.querySelector('ul')?.innerHTML;
-                    if (conceptsHTML) {
-                        const concepts = Array.from(conceptsSection.querySelectorAll('li')).map(li => {
-                            const [concept, explanation] = li.innerHTML.split(':</strong> ');
-                            return {
-                                concept: concept.replace('<strong>', ''),
-                                explanation: explanation
-                            };
-                        });
-                        if (concepts.length > 0) {
-                            generatePodcast(concepts);
-                        }
-                    }
-                });
-            } else if (data.status !== 'completed' && data.status !== 'failed') { 
-                // Job is still in progress - update UI with status and poll again
-                podcastSection.innerHTML = `
-                    <div class="podcast-processing">
-                        <h2 class="font-semibold mb-2 text-blue-700">Podcast Processing</h2>
-                        <p class="text-gray-700 mb-4">Status: ${data.status}</p>
-                        <div class="flex items-center justify-center">
-                            <i class="fas fa-spinner fa-spin fa-2x text-blue-500"></i>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-4">Job ID: ${escapeHTML(jobId)}</p>
-                        <button id="checkStatusBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                            Check Status
-                        </button>
-                    </div>
-                `;
-                
-                document.getElementById('checkStatusBtn').addEventListener('click', () => {
-                    checkPodcastStatus(jobId);
-                });
-                
-                // Poll again after a delay
-                setTimeout(() => {
-                    checkPodcastStatus(jobId);
-                }, 10000); // Poll every 10 seconds
-            }
-        } catch (err) {
-            console.error('Error checking job status:', err);
-            // Show error but provide a button to check again
-            const currentContent = podcastSection.innerHTML;
-            podcastSection.innerHTML = `
-                <div class="error mb-4">Failed to check podcast status. Please try again.</div>
-                ${currentContent}
-            `;
-        }
-    }
-
-    function escapeHTML(str) {
-      return String(str).replace(/[&<>"']/g, function (c) {
-        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '\'' })[c];
-      });
-    }
     // Function to load user's generated podcasts
     async function loadPodcasts() {
-      const podcastList = document.getElementById('podcastList');
-      
       try {
         const accessToken = localStorage.getItem('accessToken');
         if (!accessToken) {
           podcastList.innerHTML = '<div class="text-center py-4 text-red-600">Please log in to view your podcasts</div>';
           return;
         }
-        
-        podcastList.innerHTML = `
-          <div class="flex justify-center items-center py-4">
-            <i class="fas fa-spinner fa-spin text-blue-500 mr-2"></i>
-            <span>Loading podcasts...</span>
-          </div>
-        `;
-        
+
         const response = await fetch('/.netlify/functions/list-podcasts', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to load podcasts');
         }
-        
+
         const data = await response.json();
-        
+
         if (!data.podcasts || data.podcasts.length === 0) {
           podcastList.innerHTML = '<div class="text-center py-4 text-gray-500">No podcasts found. Upload a PDF to generate your first podcast!</div>';
           return;
         }
-        
+
         // Render podcasts
         let podcastsHTML = '';
         data.podcasts.forEach(podcast => {
           const date = new Date(podcast.created_at).toLocaleDateString();
-          const concepts = podcast.concepts && podcast.concepts.length > 0 
-            ? `<div class="text-sm text-gray-500 mt-1">Topics: ${podcast.concepts.map(c => c.concept).join(', ')}</div>` 
-            : '';
-            
+          const topicsHtml = podcast.topics ? `
+            <div class="flex flex-wrap gap-1 mt-2">
+              ${podcast.topics.split(',').map(topic => topic.trim()).map(topic => `<span class="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded">${topic}</span>`).join('')}
+            </div>
+          ` : '';
+
           podcastsHTML += `
-            <div class="podcast-item border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
-                <h3 class="font-medium text-blue-800">${escapeHTML(podcast.title)}</h3>
-                <span class="text-xs text-gray-500">${date}</span>
-              </div>
-              ${concepts}
-              <div class="mt-3">
-                <audio controls class="w-full" src="${escapeHTML(podcast.url)}"></audio>
-              </div>
-              <div class="mt-2 flex justify-end space-x-3">
-                <button class="delete-podcast-btn bg-transparent text-gray-600 hover:text-red-600 text-sm transition-colors px-2 py-1 rounded-md border border-transparent outline-none focus:outline-none" data-podcast-id="${podcast.id}">
-                  <i class="fas fa-trash-alt"></i>
+            <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="text-lg font-semibold">${podcast.title || 'Untitled Podcast'}</h3>
+                  <p class="text-xs text-gray-500">${date}</p>
+                  ${topicsHtml}
+                </div>
+                <button class="delete-podcast text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50" data-id="${podcast.job_id}">
+                  <i class="fas fa-trash"></i>
                 </button>
-                <a href="${escapeHTML(podcast.url)}" download="${escapeHTML(podcast.title)}.mp3" class="bg-transparent text-gray-600 hover:text-blue-600 text-sm transition-colors px-2 py-1 rounded-md border border-transparent">
-                  <i class="fas fa-download"></i>
-                </a>
+              </div>
+              <div class="podcast-player mt-3">
+                <audio controls src="${podcast.audio_url}"></audio>
+                <div class="flex justify-end">
+                  <a href="${podcast.audio_url}" download target="_blank" class="inline-flex items-center">
+                    <i class="fas fa-download mr-1"></i> Download
+                  </a>
+                </div>
               </div>
             </div>
           `;
@@ -659,24 +336,64 @@
         return;
       }
       
-      // Setup mobile navigation
+      // Setup mobile navigation (consistent with dashboard.html)
       if (hamburger) {
         hamburger.addEventListener('click', function() {
-          sidebar.classList.toggle('-translate-x-full');
+          sidebar.classList.toggle('translate-x-0');
         });
       }
       
       if (closeSidebar) {
         closeSidebar.addEventListener('click', function() {
-          sidebar.classList.add('-translate-x-full');
+          sidebar.classList.remove('translate-x-0');
         });
       }
       
-      // Setup dropzone functionality
-      const dropzone = document.querySelector('.cursor-pointer');
-      if (dropzone) {
+      // Setup drag-and-drop functionality
+      const dropzone = document.querySelector('.border-dashed');
+      const pdfInput = document.getElementById('pdfInput');
+      
+      if (dropzone && pdfInput) {
+        // Click to select file
         dropzone.addEventListener('click', function() {
-          document.getElementById('pdfInput').click();
+          pdfInput.click();
+        });
+        
+        // Drag over
+        dropzone.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('border-blue-400');
+          dropzone.classList.add('bg-blue-50');
+        });
+        
+        // Drag leave
+        dropzone.addEventListener('dragleave', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('border-blue-400');
+          dropzone.classList.remove('bg-blue-50');
+        });
+        
+        // Drop
+        dropzone.addEventListener('drop', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('border-blue-400');
+          dropzone.classList.remove('bg-blue-50');
+          
+          if (e.dataTransfer.files.length > 0) {
+            // Check if it's a PDF
+            const file = e.dataTransfer.files[0];
+            if (file.type === 'application/pdf') {
+              pdfInput.files = e.dataTransfer.files;
+              // Trigger the change event
+              const event = new Event('change');
+              pdfInput.dispatchEvent(event);
+            } else {
+              showMessage('Only PDF files are allowed.', 'error');
+            }
+          }
         });
       }
     });

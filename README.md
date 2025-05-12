@@ -1,6 +1,6 @@
 # Koda Labs
 
-Koda Compass is a personal knowledge companion that helps users learn, remember, and organize information effectively through AI assistance and knowledge management tools.
+Koda Tutor is a personal knowledge companion that helps users learn, remember, and organize information effectively through AI assistance and knowledge management tools.
 
 ## Features
 

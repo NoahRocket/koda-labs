@@ -1,8 +1,8 @@
-# Product Requirements Document: Koda Compass
+# Product Requirements Document: Koda Tutor
 
 ## 1. Introduction
 
-Koda Compass is a web application designed to be a personal knowledge companion. It aims to help users learn, remember, and organize information effectively by integrating AI assistance, content saving, and learning techniques like active recall.
+Koda Tutor is a web application designed to be a personal knowledge companion. It aims to help users learn, remember, and organize information effectively by integrating AI assistance, content saving, and learning techniques like active recall.
 
 ## 2. Goals
 
