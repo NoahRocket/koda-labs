@@ -7,57 +7,172 @@
   <link rel="stylesheet" href="../styles/main.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="../scripts/utils.js" defer></script>
-  <style>
-    /* Animations */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
 
-    /* Scrollbar styling */
-    .tab-content::-webkit-scrollbar {
-      width: 6px;
-    }
+<style>
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
 
-    .tab-content::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 10px;
-    }
+  /* Scrollbar styling */
+  .tab-content::-webkit-scrollbar {
+    width: 6px;
+  }
 
-    .tab-content::-webkit-scrollbar-thumb {
-      background: #d1d5db;
-      border-radius: 10px;
-    }
+  .tab-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
 
-    .tab-content::-webkit-scrollbar-thumb:hover {
-      background: #9ca3af;
-    }
+  .tab-content::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+  }
 
-    /* Line clamp for multi-line text truncation */
-    .line-clamp-1 {
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      line-clamp: 1;
-    }
+  .tab-content::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
 
-    .line-clamp-2 {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      line-clamp: 2;
-    }
+  /* Line clamp for multi-line text truncation */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-clamp: 1;
+  }
 
-  </style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-clamp: 2;
+  }
+  
+  /* Sidebar Styles */
+  .app-sidebar {
+    background-color: #2D3748;
+    color: #FFFFFF;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .logo-container {
+    padding: 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .app-logo {
+    font-family: 'Merriweather', serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #FFFFFF;
+  }
+  
+  .app-logo span {
+    color: #00A3E0;
+  }
+  
+  .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.25rem;
+    color: #A0AEC0;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  
+  .nav-link:hover, 
+  .nav-link.active {
+    color: #FFFFFF;
+  }
+  
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0.5rem;
+    left: 1rem;
+    width: 0;
+    height: 2px;
+    background-color: #00A3E0;
+    transition: width 0.2s ease;
+  }
+  
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    width: calc(100% - 2rem);
+  }
+  
+  .nav-link i {
+    margin-right: 0.75rem;
+    font-size: 1.1rem;
+    width: 1.5rem;
+    text-align: center;
+  }
+  
+  .logout-btn {
+    background-color: #E53E3E;
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    transition: background-color 0.2s;
+  }
+  
+  .logout-btn:hover {
+    background-color: #C53030;
+  }
+  
+  .logout-btn i {
+    margin-right: 0.5rem;
+  }
+  
+  /* New Topic Button Styling */
+  .new-topic-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #00A3E0;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .new-topic-btn:hover {
+    background-color: #0082b3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 163, 224, 0.3);
+  }
+  
+  .new-topic-btn i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: white;
+    border-radius: 50%;
+    color: #00A3E0;
+  }
+</style>
 </head>
 
-<body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900">
+<body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900" style="background: linear-gradient(180deg, #F7F7F7 0%, #FFFFFF 100%);">
   <!-- Mobile Hamburger -->
   <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
     <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
@@ -66,49 +181,49 @@
   </div>
 
   <!-- Sidebar Navigation -->
-  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
-      <div class="p-5 pt-12 md:pt-5 border-b border-blue-100">
-        <h1 class="text-xl font-bold text-gray-800">Koda Tutor</h1>
-        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden mobile-touch-target">
+      <div class="logo-container pt-12 md:pt-5">
+        <h1 class="app-logo">Koda <span>Tutor</span></h1>
+        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-300 hover:text-white md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
       </div>
       
       <nav class="flex-1 overflow-y-auto py-4">
-        <ul class="space-y-2 px-4">
-          <li id="loggedInNav" class="hidden flex-col space-y-2">
-            <a href="dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-blue-100 text-blue-800 mobile-touch-target">
+        <ul class="space-y-1 px-4">
+          <li id="loggedInNav" class="hidden flex-col space-y-1">
+            <a href="dashboard.html" class="nav-link active">
               <i class="fas fa-compass"></i>
               <span class="mobile-readable">Dashboard</span>
             </a>
-            <a href="chat.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="chat.html" class="nav-link">
               <i class="fas fa-comments"></i>
               <span class="mobile-readable">Chat</span>
             </a>
-            <a href="bookmarks.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="bookmarks.html" class="nav-link">
               <i class="fas fa-bookmark"></i>
               <span class="mobile-readable">Bookmarks</span>
             </a>
-            <a href="#" id="notesToggle" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="#" id="notesToggle" class="nav-link">
               <i class="fas fa-sticky-note"></i>
               <span class="mobile-readable">Notes</span>
             </a>
-            <a href="podcasts.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="podcasts.html" class="nav-link">
               <i class="fas fa-podcast"></i>
               <span class="mobile-readable">Podcasts</span>
             </a>
-            <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="settings.html" class="nav-link">
               <i class="fas fa-cog"></i>
               <span class="mobile-readable">Settings</span>
             </a>
           </li>
-          <li id="loggedOutNav" class="hidden flex-col space-y-2">
-            <a href="login.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+          <li id="loggedOutNav" class="hidden flex-col space-y-1">
+            <a href="login.html" class="nav-link">
               <i class="fas fa-sign-in-alt"></i>
               <span>Login</span>
             </a>
-            <a href="signup.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="signup.html" class="nav-link">
               <i class="fas fa-user-plus"></i>
               <span>Sign Up</span>
             </a>
@@ -116,8 +231,8 @@
         </ul>
       </nav>
       
-      <div class="p-4 border-t border-blue-100">
-        <button id="logout" class="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
+      <div class="p-4 border-t border-gray-700">
+        <button id="logout" class="logout-btn w-full">
           <i class="fas fa-sign-out-alt"></i>
           <span>Logout</span>
         </button>
@@ -128,12 +243,13 @@
   <!-- Main Content -->
   <div class="flex-1 ml-0 md:ml-56 p-4 md:p-8 min-h-screen">
     <div class="text-center mb-8">
-      <h1 class="text-4xl font-bold text-gray-800 mb-2">Welcome Back!</h1>
-      <p class="text-lg text-gray-600 mb-6">Here are your conversation topics</p>
-      <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors duration-200" id="showAddTopicModal">
-        <i class="fas fa-plus mr-2"></i> New Topic
-      </button>
-    </div>
+  <h1 class="text-4xl font-bold text-gray-800 mb-2" style="border-bottom: 2px solid #00A3E0; display: inline-block; padding-bottom: 4px;">Welcome Back!</h1>
+  <p class="text-lg text-gray-600 mb-6">Here are your conversation topics</p>
+  <button class="new-topic-btn" id="showAddTopicModal">
+    <i class="fas fa-plus"></i>
+    <span>New Topic</span>
+  </button>
+</div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 my-8" id="topicsGrid">
       <!-- Topics will be loaded here -->
@@ -700,7 +816,9 @@
     // Function to create topic cards
     function createTopicCard(topic) {
       const card = document.createElement('div');
-      card.className = 'bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden cursor-pointer';
+      card.className = 'bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden cursor-pointer border-l-4';
+card.style.borderLeft = '4px solid #00A3E0';
+card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
       card.id = `topic-${topic.id}`;
       card.dataset.topicId = topic.id;
       
@@ -730,7 +848,9 @@
               </div>
             </div>
           </div>
-          <p class="text-gray-600 text-sm mb-4">${topic.description || 'No description'}</p>
+          <p class="text-gray-600 text-sm mb-4" style="color: #6B7280;">
+  ${topic.description ? topic.description : '<span contenteditable="true" class="italic text-gray-400" style="color:#6B7280;">Add a description…</span>'}
+</p>
           <div class="flex justify-between items-center text-xs text-gray-500">
             <span><i class="fas fa-calendar-alt mr-1"></i> ${formattedDate}</span>
             <span><i class="fas fa-comment mr-1"></i> ${topic.conversation_count || 0} conversation${topic.conversation_count !== 1 ? 's' : ''}</span>
@@ -944,7 +1064,7 @@
     function formatDate(dateString) {
       if (!dateString) return 'N/A';
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid date';
+      if (isNaN(date.getTime())) return '<span style="font-size:12px;font-style:italic;color:#6B7280;">Invalid Date</span>';
       return date.toLocaleString();
     }
 

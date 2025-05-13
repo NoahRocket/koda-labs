@@ -6,7 +6,11 @@
   <title>Login - Koda Tutor</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="../styles/main.css">
+  <link rel="stylesheet" href="../styles/navbar.css">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
 </head>
 <body class="bg-gray-50 font-eb-garamond min-h-screen flex">
   <!-- Mobile Hamburger -->
@@ -17,10 +21,10 @@
   </div>
 
   <!-- Sidebar Navigation -->
-  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
-      <div class="p-5 pt-12 md:pt-5 border-b border-blue-100">
-        <h1 class="text-xl font-bold text-gray-800">Koda Tutor</h1>
+      <div class="logo-container pt-12 md:pt-5">
+        <h1 class="app-logo">Koda <span>Tutor</span></h1>
         <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
@@ -28,34 +32,34 @@
       
       <nav class="flex-1 overflow-y-auto py-4">
         <ul class="space-y-2 px-4">
-          <li id="loggedInNav" class="hidden flex-col space-y-2">
-            <a href="dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+          <li id="loggedInNav" class="hidden flex-col space-y-1">
+            <a href="dashboard.html" class="nav-link">
               <i class="fas fa-compass"></i>
-              <span>Dashboard</span>
+              <span class="mobile-readable">Dashboard</span>
             </a>
-            <a href="chat.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="chat.html" class="nav-link">
               <i class="fas fa-comments"></i>
-              <span>Chat</span>
+              <span class="mobile-readable">Chat</span>
             </a>
-            <a href="bookmarks.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="bookmarks.html" class="nav-link">
               <i class="fas fa-bookmark"></i>
-              <span>Bookmarks</span>
+              <span class="mobile-readable">Bookmarks</span>
             </a>
-            <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="settings.html" class="nav-link">
               <i class="fas fa-cog"></i>
-              <span>Settings</span>
+              <span class="mobile-readable">Settings</span>
             </a>
           </li>
-          <li id="loggedOutNav" class="flex-col space-y-2">
-            <a href="/" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+          <li id="loggedOutNav" class="flex-col space-y-1">
+            <a href="/" class="nav-link">
               <i class="fas fa-home"></i>
               <span class="mobile-readable">Home</span>
             </a>
-            <a href="login.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-blue-100 text-blue-800 mobile-touch-target">
+            <a href="login.html" class="nav-link active">
               <i class="fas fa-sign-in-alt"></i>
               <span class="mobile-readable">Log In</span>
             </a>
-            <a href="signup.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="signup.html" class="nav-link">
               <i class="fas fa-user-plus"></i>
               <span class="mobile-readable">Sign Up</span>
             </a>
@@ -63,8 +67,8 @@
         </ul>
       </nav>
       
-      <div id="logoutContainer" class="p-4 border-t border-blue-100 hidden">
-        <button id="logout" class="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
+      <div id="logoutContainer" class="p-4 border-t border-gray-700 hidden">
+        <button id="logout" class="logout-btn w-full">
           <i class="fas fa-sign-out-alt"></i>
           <span>Logout</span>
         </button>

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings - Koda Tutor</title>
   <link rel="stylesheet" href="../styles/main.css">
+  <link rel="stylesheet" href="../styles/navbar.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="../scripts/utils.js" defer></script>
 </head>
@@ -17,49 +18,49 @@
   </div>
 
   <!-- Sidebar Navigation -->
-  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-blue-50 shadow-md transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
-      <div class="p-5 pt-12 md:pt-5 border-b border-blue-100">
-        <h1 class="text-xl font-bold text-gray-800">Koda Tutor</h1>
-        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden mobile-touch-target">
+      <div class="logo-container pt-12 md:pt-5">
+        <h1 class="app-logo">Koda <span>Tutor</span></h1>
+        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-300 hover:text-white md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
       </div>
       
       <nav class="flex-1 overflow-y-auto py-4">
-        <ul class="space-y-2 px-4">
-          <li id="loggedInNav" class="hidden flex-col space-y-2">
-            <a href="dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+        <ul class="space-y-1 px-4">
+          <li id="loggedInNav" class="hidden flex-col space-y-1">
+            <a href="dashboard.html" class="nav-link">
               <i class="fas fa-compass"></i>
               <span class="mobile-readable">Dashboard</span>
             </a>
-            <a href="chat.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="chat.html" class="nav-link">
               <i class="fas fa-comments"></i>
               <span class="mobile-readable">Chat</span>
             </a>
-            <a href="bookmarks.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="bookmarks.html" class="nav-link">
               <i class="fas fa-bookmark"></i>
               <span class="mobile-readable">Bookmarks</span>
             </a>
-            <a href="#" id="notesToggle" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="#" id="notesToggle" class="nav-link">
               <i class="fas fa-sticky-note"></i>
               <span class="mobile-readable">Notes</span>
             </a>
-            <a href="podcasts.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors mobile-touch-target">
+            <a href="podcasts.html" class="nav-link">
               <i class="fas fa-podcast"></i>
               <span class="mobile-readable">Podcasts</span>
             </a>
-            <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-blue-100 text-blue-800 mobile-touch-target">
+            <a href="settings.html" class="nav-link active">
               <i class="fas fa-cog"></i>
               <span class="mobile-readable">Settings</span>
             </a>
           </li>
-          <li id="loggedOutNav" class="hidden flex-col space-y-2">
-            <a href="login.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+          <li id="loggedOutNav" class="hidden flex-col space-y-1">
+            <a href="login.html" class="nav-link">
               <i class="fas fa-sign-in-alt"></i>
               <span>Login</span>
             </a>
-            <a href="signup.html" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+            <a href="signup.html" class="nav-link">
               <i class="fas fa-user-plus"></i>
               <span>Sign Up</span>
             </a>
@@ -67,8 +68,8 @@
         </ul>
       </nav>
       
-      <div class="p-4 border-t border-blue-100">
-        <button id="logout" class="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
+      <div class="p-4 border-t border-gray-700">
+        <button id="logout" class="logout-btn w-full">
           <i class="fas fa-sign-out-alt"></i>
           <span>Logout</span>
         </button>
@@ -86,21 +87,22 @@
           <div class="font-medium text-gray-800">Manage Topics</div>
           <div class="text-sm text-gray-600 mt-1">Create, edit, or delete your conversation topics</div>
         </div>
-        <button id="manageTopicsBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center">
+        <button id="manageTopicsBtn" style="background-color:#00A3E0;" class="hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center">
           <i class="fas fa-cog mr-2"></i> Manage
         </button>
       </div>
       <div class="topic-management hidden mt-6" id="topicManagement">
         <div class="flex gap-4 mb-4">
           <input type="text" id="newTopicInput" placeholder="Enter new topic name" class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <button id="addTopicBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200">Add Topic</button>
+          <button id="addTopicBtn" style="background-color:#00A3E0;" class="hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors duration-200">Add Topic</button>
         </div>
         <div class="topic-list" id="topicList">
           <!-- Topics will be loaded here -->
         </div>
       </div>
     </div>
-
+    <!-- Blue Divider -->
+    <hr style="border:none; height:1px; background-color:#00A3E0; margin:32px 0;">
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 class="text-xl font-semibold mb-4 text-gray-700">Account Settings</h2>
       <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg mb-4">
@@ -108,7 +110,7 @@
           <div class="font-medium text-gray-800">Change Password</div>
           <div class="text-sm text-gray-600 mt-1">Update your account password</div>
         </div>
-        <button id="changePassword" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center">
+        <button id="changePassword" style="background-color:#00A3E0;" class="hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center">
           <i class="fas fa-key mr-2"></i> Update
         </button>
       </div>
@@ -117,7 +119,7 @@
           <div class="font-medium text-gray-800">Delete Account</div>
           <div class="text-sm text-gray-600 mt-1">Permanently delete your account and all associated data</div>
         </div>
-        <button id="deleteAccount" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center">
+        <button id="deleteAccount" style="background-color:#E53E3E;" class="hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center">
           <i class="fas fa-trash mr-2"></i> Delete
         </button>
       </div>
