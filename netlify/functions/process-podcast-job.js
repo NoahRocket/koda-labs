@@ -136,7 +136,7 @@ Generate only the script body.`;
                   'Authorization': `Bearer ${OPENAI_API_KEY}`
               },
               body: JSON.stringify({
-                  model: 'o3-mini-2025-01-31',
+                  model: 'gpt-4o-mini-2024-07-18',
                   messages: [{ role: 'user', content: prompt }],
                   max_completion_tokens: 800 // Using correct parameter for the model
               })
