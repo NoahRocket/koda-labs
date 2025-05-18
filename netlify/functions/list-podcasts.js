@@ -67,10 +67,11 @@ exports.handler = async (event) => {
       statusCode: 200,
       body: JSON.stringify({ 
         podcasts: data.map(podcast => ({
-          id: podcast.job_id,
+          id: podcast.job_id, 
+          job_id: podcast.job_id, 
           title: podcast.filename || 'Untitled Podcast',
           created_at: podcast.created_at,
-          url: podcast.podcast_url,
+          audio_url: podcast.podcast_url, 
           // Add other relevant fields as needed
           concepts: podcast.concepts || []
         }))

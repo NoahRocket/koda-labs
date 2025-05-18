@@ -78,6 +78,52 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       border: 1px solid rgba(168, 213, 186, 0.3);
     }
+    
+    /* Centralized styles */
+    .btn {
+      background-color: #00A3E0;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      width: 90%;
+    }
+    .hidden {
+      display: none;
+    }
+    .textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: vertical;
+    }
+    .textarea:focus {
+      outline: none;
+      border-color: #00A3E0;
+      box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.2);
+    }
   </style>
 </head>
 <body class="font-eb-garamond min-h-screen flex" style="background: linear-gradient(to bottom, #F7F7F7, #FFFFFF)">
@@ -171,10 +217,7 @@
                 <textarea 
                   id="messageInput" 
                   placeholder="Type your message..." 
-                  class="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg resize-none h-12 max-h-32 transition-all duration-200"
-                  style="box-shadow: 0 0 0 rgba(0, 163, 224, 0); transition: box-shadow 0.3s ease;"
-                  onfocus="this.style.boxShadow='0 0 5px rgba(0, 163, 224, 0.3)'; this.style.borderColor='#00A3E0'" 
-                  onblur="this.style.boxShadow='0 0 0 rgba(0, 163, 224, 0)'; this.style.borderColor=''" 
+                  class="textarea"
                   rows="1"
                 ></textarea>
                 <button id="sendMessage" class="absolute right-2 inset-y-0 my-auto flex items-center justify-center w-10 h-10 transition-colors" style="color: #00A3E0;">
@@ -233,27 +276,107 @@
   </div>
 
   <script>
-    // Get user info from localStorage
-    const userId = localStorage.getItem('userId');
-    const accessToken = localStorage.getItem('accessToken');
-    
-    // Check if user is logged in
-    function updateNavigation() {
-      const loggedInNav = document.getElementById('loggedInNav');
-      const loggedOutNav = document.getElementById('loggedOutNav');
-      
-      if (userId && accessToken) {
-        loggedInNav.classList.remove('hidden');
-        loggedOutNav.classList.add('hidden');
-      } else {
-        loggedInNav.classList.add('hidden');
-        loggedOutNav.classList.remove('hidden');
-        window.location.href = '/pages/login.html';
+    // Constants for styles and strings
+    const STYLES = {
+      PRIMARY_COLOR: '#00A3E0',
+      SECONDARY_COLOR: '#6c757d',
+      FONT_FAMILY: 'Arial, sans-serif'
+    };
+    const CLASS_NAMES = {
+      ACTIVE: 'active',
+      HIDDEN: 'hidden',
+      LOADING: 'loading'
+    };
+
+    // Utility function for API calls
+    async function makeApiCall(url, options) {
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`API call failed with status ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        console.error('API Error:', error);
+        throw error;
       }
     }
-    
-    // Initialize the page when DOM is loaded
+
+    // Template for buttons
+    function createButton(text, id, classes = '') {
+      return `<button id="${id}" class="btn ${classes}">${text}</button>`;
+    }
+
+    // Template for modals
+    function createModal(id, title, content) {
+      return `
+        <div id="${id}" class="modal ${CLASS_NAMES.HIDDEN}">
+          <div class="modal-content">
+            <h2>${title}</h2>
+            ${content}
+          </div>
+        </div>
+      `;
+    }
+
+    // Modular event listener setup
+    function setupEventListeners() {
+      setupNavigationListeners();
+      setupNotesListeners();
+      setupChatListeners();
+    }
+
+    function setupNavigationListeners() {
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function() {
+          // Handle navigation
+          document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove(CLASS_NAMES.ACTIVE));
+          this.classList.add(CLASS_NAMES.ACTIVE);
+        });
+      });
+    }
+
+    function setupNotesListeners() {
+      document.getElementById('notesToggle')?.addEventListener('click', function() {
+        // Toggle notes panel
+        document.getElementById('notesPanel')?.classList.toggle(CLASS_NAMES.HIDDEN);
+      });
+    }
+
+    function setupChatListeners() {
+      document.getElementById('sendMessage')?.addEventListener('click', function() {
+        // Send message logic
+        const textarea = document.getElementById('messageInput');
+        const message = textarea.value.trim();
+        if (message) {
+          // Process message
+          textarea.value = '';
+        }
+      });
+    }
+
+    // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
+      setupEventListeners();
+
+      // Get user info from localStorage
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      
+      // Check if user is logged in
+      function updateNavigation() {
+        const loggedInNav = document.getElementById('loggedInNav');
+        const loggedOutNav = document.getElementById('loggedOutNav');
+        
+        if (userId && accessToken) {
+          loggedInNav.classList.remove(CLASS_NAMES.HIDDEN);
+          loggedOutNav.classList.add(CLASS_NAMES.HIDDEN);
+        } else {
+          loggedInNav.classList.add(CLASS_NAMES.HIDDEN);
+          loggedOutNav.classList.remove(CLASS_NAMES.HIDDEN);
+          window.location.href = '/pages/login.html';
+        }
+      }
+      
+      // Initialize the page when DOM is loaded
       updateNavigation();
       
       // Mobile navigation
@@ -283,7 +406,6 @@
       
       // Chat functionality
       const messageInput = document.getElementById('messageInput');
-      const sendButton = document.getElementById('sendMessage');
       const chatContainer = document.getElementById('chatContainer');
       const conversationType = document.getElementById('conversationType');
       const saveConversationBtn = document.getElementById('saveConversation');
@@ -305,11 +427,6 @@
             sendMessage();
           }
         });
-      }
-      
-      // Send message on button click
-      if (sendButton) {
-        sendButton.addEventListener('click', sendMessage);
       }
       
       async function sendMessage() {
@@ -494,17 +611,24 @@
           const modalContent = document.createElement('div');
           modalContent.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
           modalContent.innerHTML = `
-            <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
               <h3 class="text-lg font-semibold text-gray-800 mb-4">Save Conversation to Topic</h3>
-              <div id="topicSelectContainer">
+              <div id="topicSelectContainer" class="mb-4">
                 ${loadingDiv.outerHTML}
               </div>
               <div class="flex justify-end gap-3 mt-4">
                 <button class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors" id="cancelSave">Cancel</button>
-                <button class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-colors" id="confirmSave">Save to Topic</button>
+                <button class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors shadow" id="confirmSave">Save to Topic</button>
               </div>
             </div>
           `;
+          
+          // Add direct handler for the cancel button to ensure it works
+          modalContent.addEventListener('click', (e) => {
+            if (e.target === modalContent) {
+              modalContent.remove();
+            }
+          });
           
           document.body.appendChild(modalContent);
           
@@ -543,6 +667,8 @@
               ).join('') + `<option value="new_topic">+ Create New Topic</option>`;
               
               selectContainer.appendChild(topicSelect);
+              // Make sure topic select is visible
+              topicSelect.style.display = 'block';
               
               // Add new topic input field (hidden by default)
               const newTopicInput = document.createElement('input');
@@ -565,6 +691,12 @@
               
               // Handle save confirmation
               const confirmBtn = modalContent.querySelector('#confirmSave');
+              // Ensure button is visible
+              confirmBtn.style.display = 'block';
+              
+              // Ensure Save to Topic button is prominent
+              confirmBtn.style.fontWeight = 'bold';
+              confirmBtn.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
               confirmBtn.addEventListener('click', async () => {
                 const selectedTopicId = topicSelect.value;
                 let finalTopicId = selectedTopicId;
@@ -662,15 +794,15 @@
       if (notesToggle && notesPanel && closeNotes) {
         notesToggle.addEventListener('click', (e) => {
           e.preventDefault();
-          notesPanel.classList.toggle('translate-x-full');
-          if (!notesPanel.classList.contains('translate-x-full')) {
+          notesPanel.classList.toggle(CLASS_NAMES.HIDDEN);
+          if (!notesPanel.classList.contains(CLASS_NAMES.HIDDEN)) {
             loadNotesTopics();
             loadNotes();
           }
         });
         
         closeNotes.addEventListener('click', () => {
-          notesPanel.classList.toggle('translate-x-full');
+          notesPanel.classList.toggle(CLASS_NAMES.HIDDEN);
         });
       }
       

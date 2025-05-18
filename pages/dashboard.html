@@ -169,6 +169,89 @@
       border-radius: 50%;
       color: #00A3E0;
     }
+    
+    /* Toast Notification Styles */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000; /* High z-index to ensure it's on top */
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background-color: #fff;
+      color: #333;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0;
+      transform: translateX(100%); /* Start off-screen */
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      min-width: 250px;
+      max-width: 350px;
+    }
+
+    .toast.active {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    
+    .toast.toast-closing {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+
+    .toast-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toast .fas {
+      font-size: 1.2em;
+    }
+
+    .toast.success {
+      border-left: 4px solid #4CAF50; /* Green for success */
+    }
+    .toast.success .fa-check-circle {
+      color: #4CAF50;
+    }
+
+    .toast.error {
+      border-left: 4px solid #F44336; /* Red for error */
+    }
+    .toast.error .fa-exclamation-circle {
+      color: #F44336;
+    }
+
+    .toast.info {
+      border-left: 4px solid #2196F3; /* Blue for info */
+    }
+    /* Add fa-info-circle styling if you use it for info toasts */
+    /* .toast.info .fa-info-circle { color: #2196F3; } */
+
+    .toast-close-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 1.5em;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 0 0 15px; /* Add some padding to make it easier to click */
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+    }
+
+    .toast-close-btn:hover {
+      opacity: 1;
+    }
   </style>
 </head>
 
@@ -263,7 +346,7 @@
   </div>
 
   <!-- Topic Modal -->
-  <div class="modal fixed inset-0 z-50Für flex items-center justify-center bg-black bg-opacity-40 hidden" id="topicModal">
+  <div class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden" id="topicModal">
     <div class="bg-white w-11/12 max-w-4xl mx-auto rounded-xl shadow-lg max-h-[90vh] overflow-hidden transition-all duration-300 flex flex-col" id="modalContent">
       <div class="p-6 border-b border-gray-200">
         <div class="flex justify-between items-center">
@@ -353,6 +436,22 @@
             <p>Last updated: <span id="summaryLastUpdated"></span></p>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Topic Modal -->
+  <div class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden" id="addTopicModal">
+    <div class="bg-white w-11/12 max-w-md mx-auto rounded-xl shadow-lg overflow-hidden transition-all duration-300 flex flex-col" id="addTopicModalContent">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-800">Create New Topic</h2>
+          <button id="closeAddTopicModal" class="text-2xl text-gray-500 hover:text-gray-700">×</button>
+        </div>
+      </div>
+      <div class="p-6">
+        <input type="text" id="newTopicInputDashboard" placeholder="Enter new topic name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4">
+        <button id="submitNewTopicBtn" style="background-color:#00A3E0;" class="w-full hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors duration-200">Add Topic</button>
       </div>
     </div>
   </div>
@@ -993,7 +1092,7 @@
         } else {
           conversationsList.innerHTML = `
             <div class="flex flex-col items-center justify-center py-12 text-gray-400 text-center">
-              <i class="fas fa-comment text-4xl mb-4"></i>
+              <i class="fas fa-comment text-4xl"></i>
               <p>No conversations in this topic yet.</p>
             </div>
           `;
@@ -1051,7 +1150,7 @@
         } else {
           bookmarksList.innerHTML = `
             <div class="flex flex-col items-center justify-center py-12 text-gray-400 text-center">
-              <i class="fas fa-bookmark text-4xl mb-4"></i>
+              <i class="fas fa-bookmark text-4xl"></i>
               <p>No bookmarks in this topic yet.</p>
             </div>
           `;
@@ -1104,6 +1203,61 @@
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '<span style="font-size:12px;font-style:italic;color:#6B7280;">Invalid Date</span>';
       return date.toLocaleString();
+    }
+
+    // Delete Topic Functionality
+    async function deleteTopic(topicId) {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+
+      if (!userId || !accessToken) {
+        showToast('User not authenticated. Please log in.', 'error');
+        // Optionally redirect to login
+        // window.location.href = '/pages/login.html';
+        return;
+      }
+
+      // Confirmation is already handled in createTopicCard, but good for direct calls if any
+      // if (!confirm('Are you sure you want to delete this topic? This action cannot be undone.')) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'deleteTopic',
+            userId,
+            topicId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        const result = await response.json(); // Always parse JSON response
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to delete topic');
+        }
+
+        const topicCard = document.getElementById(`topic-${topicId}`);
+        if (topicCard) {
+          topicCard.remove();
+        }
+        showToast('Topic deleted successfully!', 'success');
+        
+        // Optional: If you have a counter or a message for no topics, update it here
+        // checkTopicDisplay(); 
+
+      } catch (error) {
+        console.error('Error deleting topic:', error);
+        showToast(error.message || 'Failed to delete topic. Please try again.', 'error');
+      }
+    }
+
+    // Rename Topic Functionality (Placeholder, can be expanded from createTopicCard if needed globally)
+    async function renameTopic(topicId, newName) {
+      // TO DO: Implement rename topic functionality
     }
 
     // Setup event listeners
@@ -1217,6 +1371,93 @@
           });
         });
       }
+
+      // --- Add Topic Modal Functionality (Dashboard) ---
+      const showAddTopicModalBtn = document.getElementById('showAddTopicModal');
+      const addTopicModal = document.getElementById('addTopicModal');
+      const closeAddTopicModalBtn = document.getElementById('closeAddTopicModal');
+      const newTopicInputDashboard = document.getElementById('newTopicInputDashboard');
+      const submitNewTopicBtn = document.getElementById('submitNewTopicBtn');
+
+      if (showAddTopicModalBtn && addTopicModal && closeAddTopicModalBtn && newTopicInputDashboard && submitNewTopicBtn) {
+        showAddTopicModalBtn.addEventListener('click', () => {
+          addTopicModal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden'; // Prevent background scroll
+          const modalContent = document.getElementById('addTopicModalContent');
+          modalContent.classList.remove('opacity-0', 'translate-y-5'); // Reset animation classes
+        });
+
+        closeAddTopicModalBtn.addEventListener('click', () => {
+          const modalContent = document.getElementById('addTopicModalContent');
+          modalContent.classList.add('opacity-0', 'translate-y-5');
+          setTimeout(() => {
+            addTopicModal.classList.add('hidden');
+            document.body.style.overflow = '';
+          }, 300);
+        });
+
+        // Close modal if clicked outside
+        window.addEventListener('click', (e) => {
+          if (e.target === addTopicModal) {
+            closeAddTopicModalBtn.click();
+          }
+        });
+
+        submitNewTopicBtn.addEventListener('click', async () => {
+          const topicName = newTopicInputDashboard.value.trim();
+          const userId = localStorage.getItem('userId');
+          const accessToken = localStorage.getItem('accessToken');
+
+          if (!topicName) {
+            showToast('Please enter a topic name', 'error');
+            return;
+          }
+
+          if (!userId || !accessToken) {
+            showToast('User not authenticated. Please log in.', 'error');
+            window.location.href = '/pages/login.html';
+            return;
+          }
+
+          try {
+            const response = await fetch('/.netlify/functions/dashboard', {
+              method: 'POST',
+              body: JSON.stringify({
+                action: 'addTopic',
+                userId,
+                topicName
+              }),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+              }
+            });
+
+            const result = await response.json(); // Always parse JSON
+
+            if (!response.ok) {
+              throw new Error(result.error || 'Failed to add topic');
+            }
+
+            newTopicInputDashboard.value = ''; // Clear the input
+            closeAddTopicModalBtn.click(); // Close the modal
+            // Assuming loadTopics() is a function that re-fetches and displays topics on the dashboard
+            if (typeof loadTopics === 'function') {
+                loadTopics(); 
+            } else if (typeof fetchTopics === 'function') {
+                fetchTopics(); // Fallback if loadTopics isn't available
+            } else {
+                console.warn('loadTopics or fetchTopics function not found. UI may not update immediately.');
+                 window.location.reload(); // Last resort, reload the page
+            }
+            showToast('Topic added successfully!', 'success');
+          } catch (error) {
+            console.error('Error adding topic:', error);
+            showToast(error.message || 'Failed to add topic. Please try again.', 'error');
+          }
+        });
+      }
+      // --- End Add Topic Modal Functionality ---
 
       console.log('Event listeners set up.');
     }
