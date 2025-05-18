@@ -8,168 +8,168 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="../scripts/utils.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
 
-<style>
-  /* Animations */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-  }
+  <style>
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
 
-  /* Scrollbar styling */
-  .tab-content::-webkit-scrollbar {
-    width: 6px;
-  }
+    /* Scrollbar styling */
+    .tab-content::-webkit-scrollbar {
+      width: 6px;
+    }
 
-  .tab-content::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-  }
+    .tab-content::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
 
-  .tab-content::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 10px;
-  }
+    .tab-content::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 10px;
+    }
 
-  .tab-content::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
-  }
+    .tab-content::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
 
-  /* Line clamp for multi-line text truncation */
-  .line-clamp-1 {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-clamp: 1;
-  }
+    /* Line clamp for multi-line text truncation */
+    .line-clamp-1 {
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-clamp: 1;
+    }
 
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-clamp: 2;
-  }
-  
-  /* Sidebar Styles */
-  .app-sidebar {
-    background-color: #2D3748;
-    color: #FFFFFF;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .logo-container {
-    padding: 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .app-logo {
-    font-family: 'Merriweather', serif;
-    font-weight: 700;
-    font-size: 1.5rem;
-    color: #FFFFFF;
-  }
-  
-  .app-logo span {
-    color: #00A3E0;
-  }
-  
-  .nav-link {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 0.25rem;
-    color: #A0AEC0;
-    transition: all 0.2s ease;
-    position: relative;
-  }
-  
-  .nav-link:hover, 
-  .nav-link.active {
-    color: #FFFFFF;
-  }
-  
-  .nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: 0.5rem;
-    left: 1rem;
-    width: 0;
-    height: 2px;
-    background-color: #00A3E0;
-    transition: width 0.2s ease;
-  }
-  
-  .nav-link:hover::after,
-  .nav-link.active::after {
-    width: calc(100% - 2rem);
-  }
-  
-  .nav-link i {
-    margin-right: 0.75rem;
-    font-size: 1.1rem;
-    width: 1.5rem;
-    text-align: center;
-  }
-  
-  .logout-btn {
-    background-color: #E53E3E;
-    color: #FFFFFF;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    transition: background-color 0.2s;
-  }
-  
-  .logout-btn:hover {
-    background-color: #C53030;
-  }
-  
-  .logout-btn i {
-    margin-right: 0.5rem;
-  }
-  
-  /* New Topic Button Styling */
-  .new-topic-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: #00A3E0;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-  }
-  
-  .new-topic-btn:hover {
-    background-color: #0082b3;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0, 163, 224, 0.3);
-  }
-  
-  .new-topic-btn i {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.5rem;
-    height: 1.5rem;
-    background-color: white;
-    border-radius: 50%;
-    color: #00A3E0;
-  }
-</style>
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-clamp: 2;
+    }
+    
+    /* Sidebar Styles */
+    .app-sidebar {
+      background-color: #2D3748;
+      color: #FFFFFF;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .logo-container {
+      padding: 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .app-logo {
+      font-family: 'Merriweather', serif;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: #FFFFFF;
+    }
+    
+    .app-logo span {
+      color: #00A3E0;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 0.25rem;
+      color: #A0AEC0;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    
+    .nav-link:hover, 
+    .nav-link.active {
+      color: #FFFFFF;
+    }
+    
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: 0.5rem;
+      left: 1rem;
+      width: 0;
+      height: 2px;
+      background-color: #00A3E0;
+      transition: width 0.2s ease;
+    }
+    
+    .nav-link:hover::after,
+    .nav-link.active::after {
+      width: calc(100% - 2rem);
+    }
+    
+    .nav-link i {
+      margin-right: 0.75rem;
+      font-size: 1.1rem;
+      width: 1.5rem;
+      text-align: center;
+    }
+    
+    .logout-btn {
+      background-color: #E53E3E;
+      color: #FFFFFF;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+    
+    .logout-btn:hover {
+      background-color: #C53030;
+    }
+    
+    .logout-btn i {
+      margin-right: 0.5rem;
+    }
+    
+    /* New Topic Button Styling */
+    .new-topic-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: #00A3E0;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .new-topic-btn:hover {
+      background-color: #0082b3;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0, 163, 224, 0.3);
+    }
+    
+    .new-topic-btn i {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      background-color: white;
+      border-radius: 50%;
+      color: #00A3E0;
+    }
+  </style>
 </head>
 
 <body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900" style="background: linear-gradient(180deg, #F7F7F7 0%, #FFFFFF 100%);">
@@ -243,13 +243,13 @@
   <!-- Main Content -->
   <div class="flex-1 ml-0 md:ml-56 p-4 md:p-8 min-h-screen">
     <div class="text-center mb-8">
-  <h1 class="text-4xl font-bold text-gray-800 mb-2" style="border-bottom: 2px solid #00A3E0; display: inline-block; padding-bottom: 4px;">Welcome Back!</h1>
-  <p class="text-lg text-gray-600 mb-6">Here is what you're currently learning about:</p>
-  <button class="new-topic-btn" id="showAddTopicModal">
-    <i class="fas fa-plus"></i>
-    <span>New Topic</span>
-  </button>
-</div>
+      <h1 class="text-4xl font-bold text-gray-800 mb-2" style="border-bottom: 2px solid #00A3E0; display: inline-block; padding-bottom: 4px;">Welcome Back!</h1>
+      <p class="text-lg text-gray-600 mb-6">Here is what you're currently learning about:</p>
+      <button class="new-topic-btn" id="showAddTopicModal">
+        <i class="fas fa-plus"></i>
+        <span>New Topic</span>
+      </button>
+    </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 my-8" id="topicsGrid">
       <!-- Topics will be loaded here -->
@@ -263,12 +263,12 @@
   </div>
 
   <!-- Topic Modal -->
-  <div class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden" id="topicModal">
+  <div class="modal fixed inset-0 z-50Für flex items-center justify-center bg-black bg-opacity-40 hidden" id="topicModal">
     <div class="bg-white w-11/12 max-w-4xl mx-auto rounded-xl shadow-lg max-h-[90vh] overflow-hidden transition-all duration-300 flex flex-col" id="modalContent">
       <div class="p-6 border-b border-gray-200">
         <div class="flex justify-between items-center">
           <h2 id="modalTopicName" class="text-2xl font-bold text-gray-800"></h2>
-          <button id="closeTopicModal" class="text-2xl text-gray-500 hover:text-gray-700">&times;</button>
+          <button id="closeTopicModal" class="text-2xl text-gray-500 hover:text-gray-700">×</button>
         </div>
       </div>
       
@@ -293,27 +293,18 @@
         <div class="tab-content block" id="conversationsTab">
           <div id="conversationsList" class="space-y-4">
             <!-- Conversations will be loaded here -->
-            <div class="flex justify-center items-center py-8">
-              <i class="fas fa-circle-notch fa-spin fa-2x text-gray-300"></i>
-            </div>
           </div>
         </div>
         
         <div class="tab-content hidden" id="bookmarksTab">
           <div id="bookmarksList" class="space-y-4">
             <!-- Bookmarks will be loaded here -->
-            <div class="flex justify-center items-center py-8">
-              <i class="fas fa-circle-notch fa-spin fa-2x text-gray-300"></i>
-            </div>
           </div>
         </div>
         
         <div class="tab-content hidden" id="notesTab">
           <div id="topicNotesList" class="space-y-4">
             <!-- Notes will be loaded here -->
-            <div class="flex justify-center items-center py-8">
-              <i class="fas fa-circle-notch fa-spin fa-2x text-gray-300"></i>
-            </div>
           </div>
           
           <div class="mt-6">
@@ -372,7 +363,7 @@
       <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
         <i class="fas fa-sticky-note text-yellow-400"></i> Quick Notes
       </h2>
-      <button class="text-2xl text-gray-500 hover:text-gray-700 transition-colors" id="closeNotesBtn">&times;</button>
+      <button class="text-2xl text-gray-500 hover:text-gray-700 transition-colors" id="closeNotesBtn">×</button>
     </div>
     
     <div class="flex-1 flex flex-col overflow-hidden">
@@ -433,39 +424,105 @@
     let topics = [];
     let currentTopicId = null;
     
-    // Defensive: Prevent JS errors from blocking summary loading
+    // Defensive checks for missing functions
     if (typeof loadNotes !== 'function') {
-      window.loadNotes = function() { console.warn('loadNotes() is not implemented on this page.'); };
+      window.loadNotes = function() { console.warn('loadNotes is not implemented'); };
     }
-    if (typeof setupEventListeners !== 'function') {
-      window.setupEventListeners = function() { console.warn('setupEventListeners() is not implemented on this page.'); };
+    if (typeof loadTopicNotes !== 'function') {
+      window.loadTopicNotes = function() { console.warn('loadTopicNotes is not implemented'); };
+    }
+    if (typeof handleSaveNote !== 'function') {
+      window.handleSaveNote = function() { console.warn('handleSaveNote is not implemented'); };
+    }
+    if (typeof createNewTopic !== 'function') {
+      window.createNewTopic = function() { console.warn('createNewTopic is not implemented'); };
+    }
+    if (typeof renameTopic !== 'function') {
+      window.renameTopic = function() { console.warn('renameTopic is not implemented'); };
+    }
+    if (typeof deleteTopic !== 'function') {
+      window.deleteTopic = function() { console.warn('deleteTopic is not implemented'); };
+    }
+
+    // Toast notification placeholder
+    function showToast(message, type = 'info') {
+      console.log(`Toast [${type}]: ${message}`);
+      const toast = document.createElement('div');
+      toast.className = `fixed bottom-4 right-4 p-4 rounded-lg text-white ${type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Centralized API error handling
+    function handleApiError(container, error, retryCallback) {
+      container.innerHTML = `
+        <div class="text-center py-8">
+          <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
+          <h3 class="text-xl font-semibold text-gray-700 mb-2">Error loading data</h3>
+          <p class="text-gray-500 mb-4">${error.message || 'Please try again later'}</p>
+          <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors retry-btn">
+            <i class="fas fa-redo mr-2"></i> Retry
+          </button>
+        </div>
+      `;
+      const retryBtn = container.querySelector('.retry-btn');
+      if (retryBtn && retryCallback) {
+        retryBtn.addEventListener('click', retryCallback);
+      }
+    }
+
+    // Set loading state using template
+    function setLoadingState(containerId) {
+      const container = document.getElementById(containerId);
+      if (container) {
+        const template = document.getElementById('loadingSpinnerTemplate');
+        container.innerHTML = template.innerHTML;
+      }
     }
 
     // Document ready function
     document.addEventListener('DOMContentLoaded', function() {
       console.log('DOM fully loaded');
-      
-      // Check if user is logged in
+
+      // Check authentication
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
-      
       if (!userId || !accessToken) {
         console.log('User not logged in, redirecting');
         window.location.href = '/';
         return;
       }
-      
+
       // Update navigation
       updateNavigation();
-      
+
       // Load topics
       loadTopics();
-      
-      // Add event listeners
+
+      // Setup event listeners
       setupEventListeners();
     });
-    
-    // Function to load topics
+
+    // Update navigation based on login status
+    function updateNavigation() {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      const isLoggedIn = userId && accessToken;
+      const loggedInNav = document.getElementById('loggedInNav');
+      const loggedOutNav = document.getElementById('loggedOutNav');
+      
+      if (isLoggedIn) {
+        loggedInNav.style.display = 'block';
+        loggedOutNav.style.display = 'none';
+      } else {
+        loggedInNav.style.display = 'none';
+        loggedOutNav.style.display = 'block';
+        window.location.href = '/pages/login.html';
+      }
+    }
+
+    // Load topics
     async function loadTopics() {
       console.log('Loading topics...');
       
@@ -481,12 +538,8 @@
         const userId = localStorage.getItem('userId');
         const accessToken = localStorage.getItem('accessToken');
         
-        // Show loading
-        if (topicsLoading) {
-          topicsLoading.style.display = 'flex';
-        }
+        topicsLoading.style.display = 'flex';
         
-        // Make API call
         const response = await fetch('/.netlify/functions/dashboard', {
           method: 'POST',
           headers: {
@@ -506,23 +559,17 @@
         const result = await response.json();
         console.log('Topics loaded:', result);
         
-        // Hide loading
-        if (topicsLoading) {
-          topicsLoading.style.display = 'none';
-        }
+        topicsLoading.style.display = 'none';
         
-        // Clear existing topics
         Array.from(topicsGrid.children).forEach(child => {
           if (child.id !== 'topicsLoading') {
             child.remove();
           }
         });
         
-        // Store topics
         topics = result.topics || [];
         
         if (topics.length === 0) {
-          // Show empty state
           const emptyState = document.createElement('div');
           emptyState.className = 'col-span-3 text-center py-8';
           emptyState.innerHTML = `
@@ -538,19 +585,16 @@
           
           topicsGrid.appendChild(emptyState);
           
-          // Add event listener 
           document.getElementById('createFirstTopic')?.addEventListener('click', () => {
             document.getElementById('showAddTopicModal').click();
           });
         } else {
-          // Display topics
           topics.forEach((topic, index) => {
             const card = createTopicCard(topic);
             card.style.opacity = '0';
             card.style.transform = 'translateY(20px)';
             topicsGrid.appendChild(card);
             
-            // Add animation
             setTimeout(() => {
               card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
               card.style.opacity = '1';
@@ -560,269 +604,20 @@
         }
       } catch (error) {
         console.error('Error loading topics:', error);
-        
-        // Hide loading
-        if (topicsLoading) {
-          topicsLoading.style.display = 'none';
-        }
-        
-        // Show error
-        const errorState = document.createElement('div');
-        errorState.className = 'col-span-3 text-center py-8';
-        errorState.innerHTML = `
-          <div class="text-center py-8">
-            <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
-            <h3 class="text-xl font-semibold text-gray-700 mb-2">Error loading topics</h3>
-            <p class="text-gray-500 mb-4">${error.message || 'Please try again later'}</p>
-            <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors" id="retryLoadTopics">
-              <i class="fas fa-redo mr-2"></i> Retry
-            </button>
-          </div>
-        `;
-        
-        topicsGrid.appendChild(errorState);
-        
-        // Add retry event listener
-        document.getElementById('retryLoadTopics')?.addEventListener('click', loadTopics);
-      }
-    }
-    
-    // Check if user is logged in
-    const userId = localStorage.getItem('userId');
-    const accessToken = localStorage.getItem('accessToken');
-    
-    // Check login status and update navigation
-    function updateNavigation() {
-      const isLoggedIn = userId && accessToken;
-      const loggedInNav = document.getElementById('loggedInNav');
-      const loggedOutNav = document.getElementById('loggedOutNav');
-      
-      if (isLoggedIn) {
-        loggedInNav.style.display = 'block';
-        loggedOutNav.style.display = 'none';
-      } else {
-        loggedInNav.style.display = 'none';
-        loggedOutNav.style.display = 'block';
-        // Redirect to login page if not logged in
-        window.location.href = '/pages/login.html';
+        topicsLoading.style.display = 'none';
+        handleApiError(topicsGrid, error, loadTopics);
       }
     }
 
-    // Hamburger menu toggle
-    const hamburger = document.getElementById('hamburger');
-    const nav = document.getElementById('sidebar');
-    const closeBtn = document.getElementById('closeSidebar');
-
-    hamburger.addEventListener('click', () => {
-      nav.classList.toggle('translate-x-0');
-    });
-
-    closeBtn.addEventListener('click', () => {
-      nav.classList.remove('translate-x-0');
-    });
-
-    // Logout functionality
-    document.getElementById('logout').addEventListener('click', () => {
-      localStorage.removeItem('userId');
-      localStorage.removeItem('accessToken');
-      window.location.href = '/';
-    });
-    
-    // Setup Add Topic Modal functionality
-    const addTopicModal = document.getElementById('addTopicModal');
-    const closeAddTopicModal = document.querySelector('#addTopicModal .close-modal');
-    const addTopicForm = document.getElementById('addTopicForm');
-    const showAddTopicModalBtn = document.getElementById('showAddTopicModal');
-    
-    if (showAddTopicModalBtn) {
-      showAddTopicModalBtn.addEventListener('click', () => {
-        if (addTopicModal) {
-          addTopicModal.classList.add('active');
-          document.getElementById('newTopicName').focus();
-        }
-      });
-    }
-    
-    if (closeAddTopicModal) {
-      closeAddTopicModal.addEventListener('click', () => {
-        addTopicModal.classList.remove('active');
-      });
-    }
-    
-    if (addTopicForm) {
-      addTopicForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const topicName = document.getElementById('newTopicName').value.trim();
-        if (!topicName) return;
-        
-        const submitButton = addTopicForm.querySelector('button[type="submit"]');
-        const originalText = submitButton.textContent;
-        
-        // Show loading state
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        submitButton.disabled = true;
-
-        const userId = localStorage.getItem('userId');
-        const accessToken = localStorage.getItem('accessToken');
-        
-        try {
-          const response = await fetch('/.netlify/functions/dashboard', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-              action: 'addTopic',
-              userId,
-              name: topicName
-            })
-          });
-          
-          const result = await response.json();
-          
-          if (response.ok) {
-            // Success animation
-            submitButton.innerHTML = '<i class="fas fa-check"></i>';
-            submitButton.classList.add('success');
-            
-            setTimeout(() => {
-              addTopicModal.classList.remove('active');
-              submitButton.textContent = originalText;
-              submitButton.classList.remove('success');
-              submitButton.disabled = false;
-            
-              // Show success toast
-              showToast('Topic created successfully!', 'success');
-              
-              // Reload topics with animation
-              loadTopics();
-            }, 1000);
-          } else {
-            submitButton.textContent = originalText;
-            submitButton.disabled = false;
-            showToast('Failed to create topic: ' + result.error, 'error');
-          }
-        } catch (error) {
-          console.error('Error creating topic:', error);
-          submitButton.textContent = originalText;
-          submitButton.disabled = false;
-          showToast('Error connecting to server. Please try again.', 'error');
-        }
-      });
-    }
-    
-    // Notes toggle functionality
-    const notesToggle = document.getElementById('notesToggle');
-    const notesPanel = document.getElementById('notesPanel');
-    const closeNotes = document.getElementById('closeNotesBtn');
-    
-    if (notesToggle && notesPanel && closeNotes) {
-      notesToggle.addEventListener('click', (e) => {
-        e.preventDefault();
-        notesPanel.classList.toggle('translate-x-full');
-        if (!notesPanel.classList.contains('translate-x-full')) {
-          loadNotesTopics();
-          loadNotes();
-        }
-      });
-      
-      closeNotes.addEventListener('click', () => {
-        notesPanel.classList.add('translate-x-full');
-      });
-    }
-    
-    // Set up save note functionality
-    const saveNoteBtn = document.getElementById('saveNote');
-    if (saveNoteBtn) {
-      saveNoteBtn.addEventListener('click', saveNote);
-    }
-    
-    // Set up note filter change event
-    const noteFilter = document.getElementById('noteFilter');
-    if (noteFilter) {
-      noteFilter.addEventListener('change', loadNotes);
-    }
-
-    // Modal functionality
-    const modal = document.getElementById('topicModal');
-    const closeModal = document.querySelector('.close-modal');
-    
-    if (modal && closeModal) {
-      closeModal.addEventListener('click', () => {
-        // Add exit animation
-        const modalContent = document.getElementById('modalContent');
-        modalContent.classList.add('animate-fade-out');
-        
-        setTimeout(() => {
-          modal.classList.remove('active');
-          modalContent.classList.remove('animate-fade-out', 'animate-scale');
-        }, 300);
-      });
-
-      window.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          closeModal.click();
-        }
-      });
-    }
-
-    // Delete topic button
-    const deleteTopicBtn = document.getElementById('deleteTopic');
-    if (deleteTopicBtn) {
-      deleteTopicBtn.addEventListener('click', async () => {
-        if (!currentTopicId) return;
-        
-        // Show confirmation with animation
-        const deleteButton = document.getElementById('deleteTopic');
-        const originalText = deleteButton.innerHTML;
-        
-        deleteButton.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Confirm Delete?';
-        deleteButton.classList.add('confirm-delete');
-        
-        // Create cancel option
-        const cancelButton = document.createElement('button');
-        cancelButton.className = 'btn-secondary cancel-delete animate-[fadeIn_0.3s_ease-out_forwards]';
-        cancelButton.innerHTML = 'Cancel';
-        deleteButton.parentNode.insertBefore(cancelButton, deleteButton.nextSibling);
-        
-        // Handle cancel
-        cancelButton.addEventListener('click', () => {
-          deleteButton.innerHTML = originalText;
-          deleteButton.classList.remove('confirm-delete');
-          cancelButton.classList.add('animate-[fadeOut_0.3s_ease-out_forwards]');
-          setTimeout(() => cancelButton.remove(), 300);
-        });
-        
-        // Handle confirmation
-        function handleDeleteConfirm() {
-          // Remove listeners
-          deleteButton.removeEventListener('click', handleDeleteConfirm);
-          
-          // Show loading state
-          deleteButton.innerHTML = '<span class="loading-spinner w-5 h-5"></span>';
-          deleteButton.disabled = true;
-          cancelButton.remove();
-          
-          deleteTopic(currentTopicId);
-        }
-        
-        // Add confirmation listener
-        deleteButton.addEventListener('click', handleDeleteConfirm);
-      });
-    }
-    
-    // Function to create topic cards
+    // Create topic card
     function createTopicCard(topic) {
       const card = document.createElement('div');
       card.className = 'bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden cursor-pointer border-l-4';
-card.style.borderLeft = '4px solid #00A3E0';
-card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+      card.style.borderLeft = '4px solid #00A3E0';
+      card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
       card.id = `topic-${topic.id}`;
       card.dataset.topicId = topic.id;
       
-      // Format date
       const createdDate = new Date(topic.created_at);
       const formattedDate = createdDate.toLocaleDateString('en-US', {
         month: 'short',
@@ -849,8 +644,8 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
             </div>
           </div>
           <p class="text-gray-600 text-sm mb-4" style="color: #6B7280;">
-  ${topic.description ? topic.description : '<span contenteditable="true" class="italic text-gray-400" style="color:#6B7280;">Add a description…</span>'}
-</p>
+            ${topic.description ? topic.description : '<span contenteditable="true" class="italic text-gray-400" style="color:#6B7280;">Add a description…</span>'}
+          </p>
           <div class="flex justify-between items-center text-xs text-gray-500">
             <span><i class="fas fa-calendar-alt mr-1"></i> ${formattedDate}</span>
             <span><i class="fas fa-comment mr-1"></i> ${topic.conversation_count || 0} conversation${topic.conversation_count !== 1 ? 's' : ''}</span>
@@ -858,14 +653,12 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         </div>
       `;
       
-      // Add click event listener to open modal
       card.addEventListener('click', (e) => {
         if (!e.target.closest('.dropdown')) {
           openTopicModal(topic.id);
         }
       });
       
-      // Menu toggle
       const menuBtn = card.querySelector('.topic-menu-btn');
       const dropdownMenu = card.querySelector('.dropdown-menu');
       
@@ -874,12 +667,10 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         dropdownMenu.classList.toggle('hidden');
       });
       
-      // Close dropdown when clicking outside
       document.addEventListener('click', () => {
         dropdownMenu.classList.add('hidden');
       });
       
-      // Rename topic
       const renameBtn = card.querySelector('.rename-topic');
       renameBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -892,7 +683,6 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         }
       });
       
-      // Delete topic
       const deleteBtn = card.querySelector('.delete-topic');
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -905,7 +695,7 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
       return card;
     }
 
-    // Function to open topic modal
+    // Open topic modal
     function openTopicModal(topicId) {
       console.log('Opening topic modal for:', topicId);
       
@@ -922,63 +712,44 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
       const modalTopicName = document.getElementById('modalTopicName');
       const summaryContent = document.getElementById('summaryContent');
       
-      // Clear any existing summary content to prevent showing stale data
       if (summaryContent) {
         summaryContent.innerHTML = '';
       }
       
-      // Set the topic ID on the modal for later use (especially for summary generation)
       topicModal.setAttribute('data-topic-id', topicId);
       
-      // Get topic data
       const topic = topics.find(t => t.id === topicId);
       if (!topic) {
         console.error('Topic not found:', topicId);
         return;
       }
       
-      // Set topic name in modal
       modalTopicName.textContent = topic.name;
       
-      // Show modal with animation
       topicModal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
       
-      // Add entrance animation
       setTimeout(() => {
         modalContent.classList.remove('opacity-0', 'translate-y-5');
       }, 10);
       
-      // Reset tabs to conversations tab
       const tabBtns = document.querySelectorAll('[data-tab]'); 
       const tabContents = document.querySelectorAll('.tab-content');
       
-      tabBtns.forEach(btn => {
-        btn.classList.remove('active');
-      });
+      tabBtns.forEach(btn => btn.classList.remove('active'));
+      tabContents.forEach(content => content.classList.add('hidden'));
       
-      tabContents.forEach(content => {
-        content.classList.add('hidden');
-      });
-      
-      // Set conversations tab as active
       document.querySelector('[data-tab="conversations"]').classList.add('active');
       document.getElementById('conversationsTab').classList.remove('hidden');
       
-      // Load data for this topic
       currentTopicId = topicId;
       loadConversations(topicId);
       loadBookmarks(topicId);
-      
-      // Only call loadTopicNotes if it exists
-      if (typeof loadTopicNotes === 'function') {
-        loadTopicNotes(topicId);
-      }
-      
+      loadTopicNotes(topicId);
       loadTopicSummary(topicId); 
     }
 
-    // Function to load existing summary for a topic
+    // Load topic summary
     async function loadTopicSummary(topicId) {
       console.log('[DEBUG] Calling loadTopicSummary for topic:', topicId);
       const userId = localStorage.getItem('userId');
@@ -991,12 +762,10 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         return;
       }
 
-      // Show loading state
       if (summaryLoading) summaryLoading.style.display = 'flex';
-      summaryContent.innerHTML = '<div class="flex justify-center items-center py-8"><i class="fas fa-circle-notch fa-spin fa-2x text-gray-300"></i></div>';
+      setLoadingState('summaryContent');
 
       try {
-        console.log(`[DEBUG] Fetching summary for topic_id: ${topicId}, user_id: ${userId}`);
         const response = await fetch('/.netlify/functions/summary', {
           method: 'POST',
           headers: {
@@ -1004,8 +773,8 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
             'Authorization': `Bearer ${accessToken}`
           },
           body: JSON.stringify({
-            action: 'getSummary',  // Important: this tells the backend what to do
-            topic_id: topicId,     // Must match parameter names in the database schema
+            action: 'getSummary',
+            topic_id: topicId,
             user_id: userId
           })
         });
@@ -1018,7 +787,6 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
           throw new Error(result.error || 'Failed to fetch summary');
         }
         
-        // Always hide loading state
         if (summaryLoading) summaryLoading.style.display = 'none';
         
         if (result.summary && result.summary.highlights && result.summary.highlights.length > 0) {
@@ -1034,7 +802,6 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
           highlightCards.forEach(card => summaryContent.appendChild(card));
           summaryContent.style.display = 'block';
           
-          // Show last updated time if available
           const summaryMeta = document.getElementById('summaryMeta');
           const summaryLastUpdated = document.getElementById('summaryLastUpdated');
           
@@ -1048,47 +815,17 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         } else {
           summaryContent.innerHTML = '<p class="text-gray-500">No summary found for this topic. Click Generate Summary to create one!</p>';
           summaryContent.style.display = 'block';
-          // Hide summary meta if no summary
           const summaryMeta = document.getElementById('summaryMeta');
           if (summaryMeta) summaryMeta.style.display = 'none';
         }
       } catch (error) {
         console.error('Error loading summary:', error);
         if (summaryLoading) summaryLoading.style.display = 'none';
-        summaryContent.innerHTML = `<p class="text-red-500">Error loading summary: ${error.message}</p>`;
-        summaryContent.style.display = 'block';
+        handleApiError(summaryContent, error, () => loadTopicSummary(topicId));
       }
     }
 
-    // Helper function to format dates consistently
-    function formatDate(dateString) {
-      if (!dateString) return 'N/A';
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '<span style="font-size:12px;font-style:italic;color:#6B7280;">Invalid Date</span>';
-      return date.toLocaleString();
-    }
-
-    // Close Topic Modal
-    const closeTopicModalBtn = document.getElementById('closeTopicModal');
-    const topicModal = document.getElementById('topicModal');
-    
-    if (closeTopicModalBtn && topicModal) {
-      closeTopicModalBtn.addEventListener('click', () => {
-        console.log('Close button clicked');
-        const modalContent = document.getElementById('modalContent');
-        
-        // Add exit animation
-        modalContent.classList.add('opacity-0', 'translate-y-5');
-        
-        // Hide modal after animation
-        setTimeout(() => {
-          topicModal.classList.add('hidden');
-          document.body.style.overflow = '';
-        }, 300);
-      });
-    }
-    
-    // Generate or regenerate summary function
+    // Generate summary
     async function generateSummary() {
       console.log('[Debug] Starting summary generation...');
       const summaryContent = document.getElementById('summaryContent');
@@ -1096,7 +833,6 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
       const summaryMeta = document.getElementById('summaryMeta');
       const generateBtn = document.getElementById('generateSummaryBtn');
       
-      // Get the topic ID from the modal - this is crucial!
       const topicId = document.getElementById('topicModal').getAttribute('data-topic-id');
       console.log('[Debug] Topic ID from modal attribute:', topicId);
       
@@ -1105,25 +841,16 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         return;
       }
       
-      // Show loading state
       generateBtn.disabled = true;
       generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
       summaryContent.style.display = 'none';
-      if (summaryLoading) {
-        summaryLoading.style.display = 'flex';
-      }
-      if (summaryMeta) {
-        summaryMeta.style.display = 'none';
-      }
+      if (summaryLoading) summaryLoading.style.display = 'flex';
+      if (summaryMeta) summaryMeta.style.display = 'none';
       
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
       
-      console.log('[Debug] User ID:', userId);
-      console.log('[Debug] Making API request with params:', { action: 'generateSummary', user_id: userId, topic_id: topicId });
-      
       try {
-        // IMPORTANT: Use user_id and topic_id as parameter names to match Supabase schema
         const response = await fetch('/.netlify/functions/summary', {
           method: 'POST',
           body: JSON.stringify({
@@ -1137,11 +864,7 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
           }
         });
         
-        console.log('[Debug] API Response Status:', response.status);
-        
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[Debug] API Error Response:', errorText);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
@@ -1161,7 +884,6 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
           highlightCards.forEach(card => summaryContent.appendChild(card));
           summaryContent.style.display = 'block';
           
-          // Show the last updated timestamp
           if (summaryMeta && result.summary.last_source_updated_at) {
             const lastUpdatedEl = document.getElementById('summaryLastUpdated');
             if (lastUpdatedEl) {
@@ -1172,16 +894,9 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
           
           showToast('Summary generated successfully', 'success');
         } else {
-          const errorMessage = result.error || 'Unknown error';
-          console.error('[Debug] Summary generation error:', errorMessage);
-          
-          if (result.details) {
-            console.error('[Debug] Error details:', result.details);
-          }
-          
-          summaryContent.innerHTML = `<p class="text-red-500">Failed to generate summary: ${errorMessage}</p>`;
+          summaryContent.innerHTML = `<p class="text-red-500">Failed to generate summary: ${result.error || 'Unknown error'}</p>`;
           summaryContent.style.display = 'block';
-          showToast(`Summary generation failed: ${errorMessage}`, 'error');
+          showToast(`Summary generation failed: ${result.error || 'Unknown error'}`, 'error');
         }
       } catch (error) {
         console.error('[Debug] Error generating summary:', error);
@@ -1189,175 +904,13 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         summaryContent.style.display = 'block';
         showToast('Network error. Please check your internet connection.', 'error');
       } finally {
-        // Reset UI
-        if (summaryLoading) {
-          summaryLoading.style.display = 'none';
-        }
+        if (summaryLoading) summaryLoading.style.display = 'none';
         generateBtn.disabled = false;
         generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
       }
     }
 
-    // Initialize everything when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      // Check authentication
-      const userId = localStorage.getItem('userId');
-      const accessToken = localStorage.getItem('accessToken');
-      
-      if (!userId || !accessToken) {
-        window.location.href = '/';
-        return;
-      }
-      
-      // Load topics
-      loadTopics();
-      
-      // Add event listener to generate summary button
-      const generateSummaryBtn = document.getElementById('generateSummaryBtn');
-      if (generateSummaryBtn) {
-        generateSummaryBtn.addEventListener('click', generateSummary);
-        console.log('Added event listener to Generate Summary button');
-      }
-      
-      // Add event listener for new topic button
-      const newTopicBtn = document.getElementById('newTopicBtn');
-      if (newTopicBtn) {
-        newTopicBtn.addEventListener('click', () => {
-          const topicName = prompt('Enter a name for the new topic:');
-          if (topicName && topicName.trim()) {
-            createNewTopic(topicName.trim());
-          }
-        });
-      }
-    });
-
-    // Add click handlers for topic modal tabs
-    document.addEventListener('DOMContentLoaded', function() {
-      // Get all tab buttons
-      const tabButtons = document.querySelectorAll('[data-tab]'); 
-      
-      // Add click event to each tab button
-      tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          console.log('Tab clicked:', this.getAttribute('data-tab'));
-          
-          // Remove active class from all buttons
-          tabButtons.forEach(btn => btn.classList.remove('active'));
-          
-          // Add active class to clicked button
-          this.classList.add('active');
-          
-          // Hide all tab contents
-          const tabContents = document.querySelectorAll('.tab-content');
-          tabContents.forEach(content => content.classList.add('hidden'));
-          
-          // Show the selected tab content
-          const selectedTab = document.getElementById(this.getAttribute('data-tab') + 'Tab');
-          if (selectedTab) {
-            selectedTab.classList.remove('hidden');
-            selectedTab.classList.add('block');
-          }
-        });
-      });
-      
-      // Close modal button
-      const closeModalBtn = document.getElementById('closeTopicModal');
-      if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', function() {
-          const modal = document.getElementById('topicModal');
-          if (modal) {
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-          }
-        });
-      }
-      
-      // Generate summary button
-      const generateSummaryBtn = document.getElementById('generateSummaryBtn');
-      if (generateSummaryBtn) {
-        generateSummaryBtn.addEventListener('click', function() {
-          console.log('Generate summary button clicked');
-          
-          // Get the topic ID from the modal
-          const topicId = document.getElementById('topicModal').getAttribute('data-topic-id');
-          if (!topicId) {
-            console.error('No topic ID found on modal');
-            return;
-          }
-          
-          // Show loading state
-          this.disabled = true;
-          this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-          const summaryContent = document.getElementById('summaryContent');
-          const summaryLoading = document.getElementById('summaryLoading');
-          
-          if (summaryContent) summaryContent.style.display = 'none';
-          if (summaryLoading) summaryLoading.style.display = 'flex';
-          
-          // Make the API request
-          const userId = localStorage.getItem('userId');
-          const accessToken = localStorage.getItem('accessToken');
-          
-          fetch('/.netlify/functions/summary', {
-            method: 'POST',
-            body: JSON.stringify({
-              action: 'generateSummary',
-              user_id: userId,
-              topic_id: topicId
-            }),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            }
-          })
-          .then(response => {
-            if (!response.ok) {
-              return response.text().then(text => {
-                throw new Error(`HTTP error! status: ${response.status}, message: ${text}`);
-              });
-            }
-            return response.json();
-          })
-          .then(data => {
-            // Update the UI with the summary
-            if (summaryContent) {
-              if (data.summary) {
-                const highlightCards = data.summary.highlights.map(highlight => {
-                  const template = document.getElementById('highlightCardTemplate');
-                  const clone = template.content.cloneNode(true);
-                  clone.querySelector('.font-bold').textContent = highlight.concept;
-                  clone.querySelector('.text-gray-700').textContent = highlight.description;
-                  clone.querySelector('.text-xs').textContent = highlight.source;
-                  return clone;
-                });
-                summaryContent.innerHTML = '';
-                highlightCards.forEach(card => summaryContent.appendChild(card));
-                showToast('Summary generated successfully', 'success');
-              } else {
-                summaryContent.innerHTML = '<p class="text-red-500">No summary data returned</p>';
-              }
-              summaryContent.style.display = 'block';
-            }
-          })
-          .catch(error => {
-            console.error('Error generating summary:', error);
-            if (summaryContent) {
-              summaryContent.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
-              summaryContent.style.display = 'block';
-            }
-            showToast('Error generating summary', 'error');
-          })
-          .finally(() => {
-            // Reset UI
-            this.disabled = false;
-            this.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
-            if (summaryLoading) summaryLoading.style.display = 'none';
-          });
-        });
-      }
-    });
-
-    // Load conversations for a topic
+    // Load conversations
     async function loadConversations(topicId) {
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
@@ -1366,12 +919,7 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         console.error('Conversations list container not found');
         return;
       }
-      // Show loading state
-      conversationsList.innerHTML = `
-        <div class="flex justify-center items-center py-8">
-          <i class="fas fa-circle-notch fa-spin fa-2x text-gray-300"></i>
-        </div>
-      `;
+      setLoadingState('conversationsList');
       try {
         const response = await fetch('/.netlify/functions/dashboard', {
           method: 'POST',
@@ -1394,7 +942,6 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
           result.conversations.forEach(conversation => {
             const conversationItem = document.createElement('div');
             conversationItem.className = 'rounded-lg mb-4 p-4 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md';
-            // Truncate long content (300 characters)
             const fullContent = conversation.content;
             const isTruncated = fullContent.length > 300;
             const displayContent = isTruncated ? fullContent.substring(0, 300) + '...' : fullContent;
@@ -1419,7 +966,6 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
               </div>
             `;
             conversationsList.appendChild(conversationItem);
-            // Add event listeners for show more/less buttons
             if (isTruncated) {
               const showMoreBtn = conversationItem.querySelector('.show-more-btn');
               const showLessBtn = conversationItem.querySelector('.show-less-btn');
@@ -1436,7 +982,6 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
                 fullContentDiv.classList.add('hidden');
               });
             }
-            // Add delete event listener
             conversationItem.querySelector('.delete-conversation-btn').addEventListener('click', (e) => {
               e.stopPropagation();
               const conversationId = e.currentTarget.getAttribute('data-id');
@@ -1455,17 +1000,11 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         }
       } catch (error) {
         console.error('Error loading conversations:', error);
-        conversationsList.innerHTML = `
-          <div class="text-center py-8">
-            <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
-            <h3 class="text-xl font-semibold text-gray-700 mb-2">Error loading conversations</h3>
-            <p class="text-gray-500 mb-4">${error.message || 'Please try again later'}</p>
-          </div>
-        `;
+        handleApiError(conversationsList, error, () => loadConversations(topicId));
       }
     }
 
-    // Load bookmarks for a topic
+    // Load bookmarks
     async function loadBookmarks(topicId) {
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
@@ -1474,12 +1013,7 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         console.error('Bookmarks list container not found');
         return;
       }
-      // Show loading state
-      bookmarksList.innerHTML = `
-        <div class="flex justify-center items-center py-8">
-          <i class="fas fa-circle-notch fa-spin fa-2x text-gray-300"></i>
-        </div>
-      `;
+      setLoadingState('bookmarksList');
       try {
         const response = await fetch('/.netlify/functions/dashboard', {
           method: 'POST',
@@ -1503,7 +1037,7 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
             const bookmarkItem = document.createElement('div');
             bookmarkItem.className = 'rounded-lg mb-4 p-4 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md';
             bookmarkItem.innerHTML = `
-              <div class="bookmark-header">
+              <div class="bookmark blå-header">
                 <span class="bookmark-date">${new Date(bookmark.created_at).toLocaleDateString()}</span>
               </div>
               <div class="bookmark-content">
@@ -1524,28 +1058,17 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         }
       } catch (error) {
         console.error('Error loading bookmarks:', error);
-        bookmarksList.innerHTML = `
-          <div class="text-center py-8">
-            <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
-            <h3 class="text-xl font-semibold text-gray-700 mb-2">Error loading bookmarks</h3>
-            <p class="text-gray-500 mb-4">${error.message || 'Please try again later'}</p>
-          </div>
-        `;
+        handleApiError(bookmarksList, error, () => loadBookmarks(topicId));
       }
     }
-  </script>
-  
-  <!-- Delete a conversation -->
-  <script>
-    // Delete a conversation
+
+    // Delete conversation
     async function deleteConversation(conversationId) {
       const accessToken = localStorage.getItem('accessToken');
       
       try {
-        // Show loading toast
         showToast('Deleting conversation...', 'info');
         
-        // Send delete request to API
         const response = await fetch('/.netlify/functions/chatgpt', {
           method: 'POST',
           body: JSON.stringify({
@@ -1562,8 +1085,7 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         
         if (response.ok) {
           showToast('Conversation deleted successfully', 'success');
-          // Reload the current topic to refresh the conversation list
-          const currentTopicId = document.querySelector('.topic-modal').getAttribute('data-topic-id');
+          const currentTopicId = document.getElementById('topicModal').getAttribute('data-topic-id');
           if (currentTopicId) {
             loadConversations(currentTopicId);
           }
@@ -1575,14 +1097,33 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
         showToast('Error connecting to server', 'error');
       }
     }
-  </script>
-  
-  <script>
-    // Function to set up general event listeners
+
+    // Format date
+    function formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '<span style="font-size:12px;font-style:italic;color:#6B7280;">Invalid Date</span>';
+      return date.toLocaleString();
+    }
+
+    // Setup event listeners
     function setupEventListeners() {
       console.log('Setting up event listeners...');
-      
-      // Logout button
+
+      // Hamburger menu
+      const hamburger = document.getElementById('hamburger');
+      const nav = document.getElementById('sidebar');
+      const closeBtn = document.getElementById('closeSidebar');
+      if (hamburger && nav && closeBtn) {
+        hamburger.addEventListener('click', () => {
+          nav.classList.toggle('translate-x-0');
+        });
+        closeBtn.addEventListener('click', () => {
+          nav.classList.remove('translate-x-0');
+        });
+      }
+
+      // Logout
       const logoutBtn = document.getElementById('logout');
       if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
@@ -1591,72 +1132,81 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
           window.location.href = '/';
         });
       }
-      
-      // Add Topic Modal
-      const addTopicModal = document.getElementById('addTopicModal');
-      const showAddTopicModalBtn = document.getElementById('showAddTopicModal');
-      const closeAddTopicModalBtn = document.getElementById('closeAddTopicModal');
-      const addTopicForm = document.getElementById('addTopicForm');
-      
-      if (showAddTopicModalBtn && addTopicModal && closeAddTopicModalBtn) {
-        showAddTopicModalBtn.addEventListener('click', () => {
-          addTopicModal.classList.remove('hidden');
-        });
-        closeAddTopicModalBtn.addEventListener('click', () => {
-          addTopicModal.classList.add('hidden');
-        });
-      }
-      
-      if (addTopicForm) {
-        addTopicForm.addEventListener('submit', handleAddTopicSubmit);
-      }
-      
-      // Close Topic Modal
+
+      // Topic modal close
       const closeTopicModalBtn = document.getElementById('closeTopicModal');
       const topicModal = document.getElementById('topicModal');
       if (closeTopicModalBtn && topicModal) {
         closeTopicModalBtn.addEventListener('click', () => {
-          topicModal.classList.add('hidden');
-          document.body.style.overflow = ''; // Restore body scroll
+          const modalContent = document.getElementById('modalContent');
+          modalContent.classList.add('opacity-0', 'translate-y-5');
+          setTimeout(() => {
+            topicModal.classList.add('hidden');
+            document.body.style.overflow = '';
+          }, 300);
+        });
+        window.addEventListener('click', (e) => {
+          if (e.target === topicModal) {
+            closeTopicModalBtn.click();
+          }
         });
       }
-      
-      // Generate Summary Button
+
+      // Generate summary
       const generateSummaryBtn = document.getElementById('generateSummaryBtn');
       if (generateSummaryBtn) {
         generateSummaryBtn.addEventListener('click', generateSummary);
       }
-      
-      // Save Note Button (within modal)
+
+      // Save note (in modal)
       const saveNoteBtn = document.getElementById('saveNoteBtn');
       if (saveNoteBtn) {
-        // Check if the function exists before attaching it
-        if (typeof handleSaveNote === 'function') {
-          saveNoteBtn.addEventListener('click', handleSaveNote);
-        } else {
-          // Provide a placeholder function to prevent errors
-          saveNoteBtn.addEventListener('click', () => {
-            console.warn('handleSaveNote function is not defined');
-            showToast('Note saving is not available', 'error');
-          });
-        }
+        saveNoteBtn.addEventListener('click', () => {
+          handleSaveNote();
+          showToast('Note saving is not fully implemented', 'error');
+        });
       }
-      
-      // Tab switching inside the modal
+
+      // Notes panel
+      const notesToggle = document.getElementById('notesToggle');
+      const notesPanel = document.getElementById('notesPanel');
+      const closeNotes = document.getElementById('closeNotesBtn');
+      if (notesToggle && notesPanel && closeNotes) {
+        notesToggle.addEventListener('click', (e) => {
+          e.preventDefault();
+          notesPanel.classList.toggle('translate-x-full');
+          if (!notesPanel.classList.contains('translate-x-full')) {
+            loadNotesTopics();
+            loadNotes();
+          }
+        });
+        closeNotes.addEventListener('click', () => {
+          notesPanel.classList.add('translate-x-full');
+        });
+      }
+
+      // Save note (in notes panel)
+      const saveNoteBtnPanel = document.getElementById('saveNote');
+      if (saveNoteBtnPanel) {
+        saveNoteBtnPanel.addEventListener('click', saveNote);
+      }
+
+      // Note filter
+      const noteFilter = document.getElementById('noteFilter');
+      if (noteFilter) {
+        noteFilter.addEventListener('change', loadNotes);
+      }
+
+      // Tab switching
       const modal = document.getElementById('topicModal');
       if (modal) {
         const tabButtons = modal.querySelectorAll('.tab-button');
         const tabContents = modal.querySelectorAll('.tab-content');
-
         tabButtons.forEach(button => {
           button.addEventListener('click', () => {
             const tabName = button.getAttribute('data-tab');
-            
-            // Update button states
             tabButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
-            
-            // Update content visibility
             tabContents.forEach(content => {
               if (content.id === `${tabName}Tab`) {
                 content.classList.remove('hidden');
@@ -1664,13 +1214,10 @@ card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
                 content.classList.add('hidden');
               }
             });
-            
-            // Special loading logic if needed (already handled in openTopicModal)
-            // Example: if (tabName === 'summary' && !summaryLoaded) loadSummary(); 
           });
         });
       }
-      
+
       console.log('Event listeners set up.');
     }
   </script>
