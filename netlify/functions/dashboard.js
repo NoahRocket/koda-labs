@@ -506,68 +506,37 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ notes: formattedNotes }) 
       };
     } else {
-      // Get topics with conversation and bookmark counts
-      const { data: topics, error: topicsError } = await supabase
+      // Get topics with conversation, bookmark, and note counts
+      const { data: rawTopics, error: topicsError } = await supabase
         .from('topics')
         .select(`
           id,
           name,
-          user_id
+          user_id,
+          conversations:conversations!conversations_topic_id_fkey(count),
+          bookmarks:bookmarks!bookmarks_topic_id_fkey(count),
+          notes:notes!notes_topic_id_fkey(count)
         `)
         .eq('user_id', authUserId);
 
       if (topicsError) {
-        console.error(`[GET_TOPICS] Error fetching topics: ${topicsError.message}`);
+        console.error(`[GET_TOPICS_WITH_COUNTS] Error fetching topics:`, topicsError);
         return { 
           statusCode: 500, 
-          body: JSON.stringify({ error: `Failed to fetch topics: ${topicsError.message}` }) 
+          body: JSON.stringify({ error: `Failed to fetch topics with counts: ${topicsError.message}` }) 
         };
       }
       
-      // Fetch conversation counts separately
-      const conversationCountPromises = topics.map(async topic => {
-        const { count, error } = await supabase
-          .from('conversations')
-          .select('*', { count: 'exact', head: true })
-          .eq('topic_id', topic.id);
-          
-        return error ? 0 : (count || 0);
-      });
-      
-      // Fetch bookmark counts separately
-      const bookmarkCountPromises = topics.map(async topic => {
-        const { count, error } = await supabase
-          .from('bookmarks')
-          .select('*', { count: 'exact', head: true })
-          .eq('topic_id', topic.id);
-          
-        return error ? 0 : (count || 0);
-      });
-      
-      // Fetch note counts separately
-      const noteCountPromises = topics.map(async topic => {
-        const { count, error } = await supabase
-          .from('notes')
-          .select('*', { count: 'exact', head: true })
-          .eq('topic_id', topic.id);
-          
-        return error ? 0 : (count || 0);
-      });
-      
-      // Wait for all count queries to complete
-      const conversationCounts = await Promise.all(conversationCountPromises);
-      const bookmarkCounts = await Promise.all(bookmarkCountPromises);
-      const noteCounts = await Promise.all(noteCountPromises);
-      
-      // Combine topics with their counts
-      const transformedTopics = topics.map((topic, index) => ({
-        ...topic,
-        conversation_count: conversationCounts[index],
-        bookmark_count: bookmarkCounts[index],
-        note_count: noteCounts[index]
+      const transformedTopics = rawTopics.map(topic => ({
+        id: topic.id,
+        name: topic.name,
+        user_id: topic.user_id,
+        conversation_count: topic.conversations ? topic.conversations[0]?.count || 0 : 0,
+        bookmark_count: topic.bookmarks ? topic.bookmarks[0]?.count || 0 : 0,
+        note_count: topic.notes ? topic.notes[0]?.count || 0 : 0,
       }));
       
-      console.log(`[GET_TOPICS] Found ${transformedTopics.length} topics`);
+      console.log(`[GET_TOPICS_WITH_COUNTS] Found ${transformedTopics.length} topics with their counts`);
 
       return {
         statusCode: 200,

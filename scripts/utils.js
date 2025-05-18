@@ -131,7 +131,10 @@ function handleMenuEvent(event, action) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  refreshSession();
+  const currentPage = window.location.pathname.split('/').pop();
+  if (currentPage !== 'login.html' && currentPage !== 'signup.html') {
+    refreshSession();
+  }
   
   // Mobile Menu Behavior
   const hamburger = document.getElementById('hamburger');
