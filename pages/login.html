@@ -82,7 +82,8 @@
       <form id="loginForm" class="space-y-4">
         <input type="email" id="email" placeholder="Email" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
         <input type="password" id="password" placeholder="Password" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Login</button>
+        <button type="submit" id="loginButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Login</button>
+        <div id="loginStatus" class="text-center text-sm hidden"></div>
       </form>
       <p class="mt-4 text-center text-sm">Need an account? <a href="signup.html" class="text-blue-500 hover:underline">Sign up</a></p>
     </div>
@@ -107,23 +108,75 @@
 
     // Login form functionality
     const form = document.getElementById('loginForm');
+    const loginButton = document.getElementById('loginButton');
+    const loginStatus = document.getElementById('loginStatus');
+    
+    function updateLoginStatus(message, isError = false) {
+      loginStatus.textContent = message;
+      loginStatus.className = `text-center text-sm ${isError ? 'text-red-500' : 'text-blue-500'}`;
+      loginStatus.classList.remove('hidden');
+    }
+    
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      
+      // Disable button and show loading state
+      loginButton.disabled = true;
+      loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+      updateLoginStatus('Connecting to authentication service...');
+      
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      const response = await fetch('/.netlify/functions/auth', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'login', email, password }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const result = await response.json();
-      if (response.ok) {
-        localStorage.setItem('userId', result.user.id);
-        localStorage.setItem('accessToken', result.session.access_token);
-        localStorage.setItem('refreshToken', result.session.refresh_token);
-        window.location.href = 'dashboard.html';
-      } else {
-        showToast('Login failed: ' + (result.error || 'Unknown error'), 'error');
+      
+      // Add timeout for the fetch
+      const timeoutDuration = 10000; // 10 seconds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+      
+      try {
+        updateLoginStatus('Sending credentials...');
+        const startTime = Date.now();
+        
+        const response = await fetch('/.netlify/functions/auth', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'login', email, password }),
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal
+        });
+        
+        const timeTaken = Date.now() - startTime;
+        updateLoginStatus(`Received response in ${timeTaken}ms, processing...`);
+        
+        clearTimeout(timeoutId);
+        const result = await response.json();
+        
+        if (response.ok) {
+          updateLoginStatus('Login successful! Redirecting...');
+          localStorage.setItem('userId', result.user.id);
+          localStorage.setItem('accessToken', result.session.access_token);
+          localStorage.setItem('refreshToken', result.session.refresh_token);
+          
+          // Small delay to show success message
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 500);
+        } else {
+          updateLoginStatus(`Login failed: ${result.error || 'Unknown error'}`, true);
+          showToast('Login failed: ' + (result.error || 'Unknown error'), 'error');
+          loginButton.disabled = false;
+          loginButton.textContent = 'Login';
+        }
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          updateLoginStatus('Login request timed out after 10 seconds. Please try again.', true);
+          showToast('Login request timed out. Check your network connection.', 'error');
+        } else {
+          updateLoginStatus(`Error: ${error.message}`, true);
+          showToast(`Login error: ${error.message}`, 'error');
+        }
+        loginButton.disabled = false;
+        loginButton.textContent = 'Login';
       }
     });
   </script>

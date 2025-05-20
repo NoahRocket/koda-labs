@@ -503,8 +503,127 @@ exports.handler = async (event, context) => {
       
       return { 
         statusCode: 200, 
-        body: JSON.stringify({ notes: formattedNotes }) 
+        body: JSON.stringify({ notes: formattedNotes })
       };
+    } else if (action === 'updateAvatar') {
+      // Check if required fields are present
+      const { avatarId, avatarUrl } = JSON.parse(event.body);
+      
+      console.log('[updateAvatar] Processing avatar update, avatarId:', avatarId, 'avatarUrl provided:', !!avatarUrl);
+      
+      if (!avatarId && !avatarUrl) {
+        console.error('[updateAvatar] Missing required field avatarId or avatarUrl');
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
+      }
+      
+      const finalAvatarUrl = avatarUrl || `../assets/avatars/${avatarId}.png`;
+      console.log(`[updateAvatar] Updating avatar for user ${authUserId} to ${finalAvatarUrl}`);
+      
+      try {
+        console.log('[updateAvatar] Updating avatar for user:', authUserId);
+        
+        // Convert the avatarId to a number
+        const avatarIdNum = parseInt(avatarId, 10);
+        
+        if (isNaN(avatarIdNum) || avatarIdNum < 1 || avatarIdNum > 4) {
+          console.error('[updateAvatar] Invalid avatar ID:', avatarId);
+          return { statusCode: 400, body: JSON.stringify({ error: 'Invalid avatar ID' }) };
+        }
+        
+        // First check if user_settings record exists
+        const { data: existingSettings, error: checkError } = await supabase
+          .from('user_settings')
+          .select('id')
+          .eq('user_id', authUserId)
+          .maybeSingle();
+        
+        let result;
+        
+        if (checkError) {
+          console.error('[updateAvatar] Error checking settings:', checkError.message);
+          return { statusCode: 500, body: JSON.stringify({ error: `Error checking settings: ${checkError.message}` }) };
+        }
+        
+        // Insert or update based on whether record exists
+        if (!existingSettings) {
+          console.log('[updateAvatar] No existing settings found, creating new record with avatar_id:', avatarIdNum);
+          // Create new record
+          result = await supabase
+            .from('user_settings')
+            .insert([{
+              user_id: authUserId,
+              avatar_id: avatarIdNum,
+              created_at: new Date().toISOString()
+            }]);
+        } else {
+          console.log('[updateAvatar] Updating existing settings record with avatar_id:', avatarIdNum);
+          // Update existing record
+          result = await supabase
+            .from('user_settings')
+            .update({
+              avatar_id: avatarIdNum,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', authUserId);
+        }
+        
+        if (result.error) {
+          console.error('[updateAvatar] Error saving avatar:', result.error.message);
+          return { statusCode: 500, body: JSON.stringify({ error: `Failed to save avatar: ${result.error.message}` }) };
+        }
+        
+        // Map avatar ID to URL
+        const avatarMap = {
+          1: '../assets/avatars/default.png',
+          2: '../assets/avatars/zara.png',
+          3: '../assets/avatars/luna.png',
+          4: '../assets/avatars/max.png'
+        };
+        const avatarUrl = avatarMap[avatarIdNum] || '../assets/avatars/default.png';
+        
+        console.log('[updateAvatar] Successfully saved avatar with ID:', avatarIdNum);
+        return { statusCode: 200, body: JSON.stringify({ avatarId: avatarIdNum, avatarUrl: avatarUrl }) };
+      } catch (e) {
+        console.error('[updateAvatar] Unexpected error:', e.message || e);
+        return { statusCode: 500, body: JSON.stringify({ error: `Unexpected error: ${e.message || 'Unknown error'}` }) };
+      }
+      
+      // This code is now unreachable since we're returning directly from the try block above
+      // Keeping this comment for documentation purposes
+    } else if (action === 'getAvatar') {
+      try {
+        console.log('[getAvatar] Getting avatar for user:', authUserId);
+        
+        // Get user settings from the user_settings table
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('avatar_id')
+          .eq('user_id', authUserId)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('[getAvatar] Error fetching avatar from settings:', error.message);
+          return { statusCode: 200, body: JSON.stringify({ avatarId: 1, avatarUrl: '../assets/avatars/default.png' }) };
+        }
+        
+        // If no data or no avatar_id set, return default
+        const avatarId = data?.avatar_id || 1;
+        console.log('[getAvatar] Found avatar ID in settings:', avatarId);
+        
+        // Map avatar ID to URL
+        const avatarMap = {
+          1: '../assets/avatars/default.png',
+          2: '../assets/avatars/zara.png',
+          3: '../assets/avatars/luna.png',
+          4: '../assets/avatars/max.png'
+        };
+        const avatarUrl = avatarMap[avatarId] || '../assets/avatars/default.png';
+        console.log(`[getAvatar] Fetched avatar for user ${authUserId}: ${avatarUrl}`);
+        return { statusCode: 200, body: JSON.stringify({ avatarId: avatarId, avatarUrl: avatarUrl }) };
+      } catch (e) {
+        console.error('[getAvatar] Unexpected error:', e.message || e);
+        return { statusCode: 200, body: JSON.stringify({ avatarUrl: '../assets/avatars/default.png' }) };
+      }
     } else {
       // Get topics with conversation, bookmark, and note counts
       const { data: rawTopics, error: topicsError } = await supabase

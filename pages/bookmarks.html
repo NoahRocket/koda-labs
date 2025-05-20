@@ -44,13 +44,24 @@
   </div>
 
   <!-- Sidebar Navigation -->
-  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-64 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
       <div class="logo-container pt-12 md:pt-5">
         <h1 class="app-logo">Koda <span>Tutor</span></h1>
         <button id="closeSidebar" class="absolute top-5 right-4 text-gray-300 hover:text-white md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
+      </div>
+      
+      <!-- User Avatar Display -->
+      <div class="p-4 flex justify-center border-b border-gray-700">
+        <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden" id="bookmarksAvatarContainer">
+          <img id="bookmarksSidebarUserAvatar" src="" alt="User Avatar" class="w-full h-full object-cover opacity-0 transition-opacity duration-300">
+          <!-- Loading indicator -->
+          <div id="bookmarksAvatarLoading" class="absolute">
+            <i class="fas fa-circle-notch fa-spin text-gray-400"></i>
+          </div>
+        </div>
       </div>
       
       <nav class="flex-1 overflow-y-auto py-4">
@@ -103,7 +114,7 @@
     </div>
   </div>
   <!-- Main Content -->
-  <div class="md:ml-56 flex-1 flex flex-col h-screen">
+  <div class="md:ml-64 flex-1 flex flex-col h-screen">
     <div class="flex-1 flex flex-col p-8 pt-20 md:pt-8">
       <div class="max-w-4xl mx-auto w-full">
         <h1 class="text-3xl font-semibold text-gray-800 mb-6">Bookmarks</h1>
@@ -156,6 +167,93 @@
     const userId = localStorage.getItem('userId');
     const accessToken = localStorage.getItem('accessToken');
     
+    // Helper function to display default avatar
+    function showDefaultAvatar(imgElement, loadingElement) {
+      if (!imgElement) return;
+      
+      imgElement.src = '../assets/avatars/default.png';
+      imgElement.onload = () => {
+        imgElement.classList.remove('opacity-0');
+        imgElement.classList.add('opacity-100');
+        if (loadingElement) loadingElement.style.display = 'none';
+      };
+    }
+    
+    // Function to load avatar from localStorage or backend
+    async function loadTutorAvatar() {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      const sidebarAvatarImg = document.getElementById('bookmarksSidebarUserAvatar');
+      const avatarLoading = document.getElementById('bookmarksAvatarLoading');
+      
+      // Check for cached avatar URL first
+      const cachedAvatarUrl = localStorage.getItem('userAvatarUrl');
+      
+      if (!userId || !accessToken) {
+        console.warn('User not authenticated, cannot load avatar.');
+        showDefaultAvatar(sidebarAvatarImg, avatarLoading);
+        return;
+      }
+
+      if (!sidebarAvatarImg) {
+        console.error('Sidebar avatar image element not found.');
+        return;
+      }
+      
+      // Use cached avatar if available (prevents flashing)
+      if (cachedAvatarUrl) {
+        sidebarAvatarImg.src = cachedAvatarUrl;
+        sidebarAvatarImg.onload = () => {
+          sidebarAvatarImg.classList.remove('opacity-0');
+          sidebarAvatarImg.classList.add('opacity-100');
+          if (avatarLoading) avatarLoading.style.display = 'none';
+        };
+      }
+      
+      try {
+        // Still fetch fresh avatar from server in case it changed
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'getAvatar',
+            userId: userId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        const result = await response.json();
+        if (response.ok && result.avatarUrl) {
+          // Cache the avatar URL
+          localStorage.setItem('userAvatarUrl', result.avatarUrl);
+          
+          // If URL is different from cached version, update the display
+          if (sidebarAvatarImg.src !== result.avatarUrl) {
+            sidebarAvatarImg.src = result.avatarUrl;
+            sidebarAvatarImg.onload = () => {
+              sidebarAvatarImg.classList.remove('opacity-0');
+              sidebarAvatarImg.classList.add('opacity-100');
+              if (avatarLoading) avatarLoading.style.display = 'none';
+            };
+          } else if (sidebarAvatarImg.classList.contains('opacity-0')) {
+            // In case the image was already loaded but not made visible
+            sidebarAvatarImg.classList.remove('opacity-0');
+            sidebarAvatarImg.classList.add('opacity-100');
+            if (avatarLoading) avatarLoading.style.display = 'none';
+          }
+        } else {
+          throw new Error(result.error || 'Failed to load avatar URL');
+        }
+      } catch (error) {
+        console.error('Error loading tutor avatar:', error);
+        // Only show default if there's no cached avatar already displayed
+        if (!cachedAvatarUrl) {
+          showDefaultAvatar(sidebarAvatarImg, avatarLoading);
+        }
+      }
+    }
+    
     // Check if user is logged in
     function updateNavigation() {
       const loggedInNav = document.getElementById('loggedInNav');
@@ -174,7 +272,7 @@
     // Initialize the page when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
       updateNavigation();
-      
+      loadTutorAvatar();
       // Mobile navigation
       const hamburger = document.getElementById('hamburger');
       const sidebar = document.getElementById('sidebar');

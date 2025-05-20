@@ -46,13 +46,24 @@
   </div>
 
   <!-- Sidebar Navigation -->
-  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-64 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
       <div class="logo-container pt-12 md:pt-5">
         <h1 class="app-logo">Koda <span>Tutor</span></h1>
         <button id="closeSidebar" class="absolute top-5 right-4 text-gray-300 hover:text-white md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
+      </div>
+      
+      <!-- User Avatar Display -->
+      <div class="p-4 flex justify-center border-b border-gray-700">
+        <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden" id="podcastsAvatarContainer">
+          <img id="podcastsSidebarUserAvatar" src="" alt="User Avatar" class="w-full h-full object-cover opacity-0 transition-opacity duration-300">
+          <!-- Loading indicator -->
+          <div id="podcastsAvatarLoading" class="absolute">
+            <i class="fas fa-circle-notch fa-spin text-gray-400"></i>
+          </div>
+        </div>
       </div>
       
       <nav class="flex-1 overflow-y-auto py-4">
@@ -96,14 +107,14 @@
   </div>
 
   <!-- Main Content Area -->
-  <div class="main-content-area md:ml-56 flex-1 p-4 md:p-6">
+  <div class="main-content-area md:ml-64 flex-1 p-4 md:p-6">
     <!-- Upload Card -->
     <div class="bg-white p-6 rounded-lg shadow-sm mb-6 max-w-3xl mx-auto">
       <h1 class="text-2xl md:text-3xl font-bold text-center mb-6">Upload a Podcast PDF</h1>
 
       <!-- File upload area with label for improved functionality -->
       <label for="pdfInput" class="block w-full cursor-pointer">
-        <div class="border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer mb-6 upload-dropzone" style="border-color: #00A3E0;">
+        <div id="uploadDropzone" class="border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer mb-6 upload-dropzone" style="border-color: #00A3E0;">
           <i class="fas fa-cloud-upload-alt text-3xl mb-4" style="color: #00A3E0;"></i>
           <p class="text-center mb-2">Click to upload or drag and drop</p>
           <p class="text-sm text-gray-500">PDF files only (Max. 10MB)</p>
@@ -154,6 +165,97 @@
     const loadingIndicator = document.getElementById('loadingIndicator');
     const podcastList = document.getElementById('podcastList');
     const uploadDropzone = document.getElementById('uploadDropzone');
+    
+    // Helper function to display default avatar
+    function showDefaultAvatar(imgElement, loadingElement) {
+      console.log('[Podcasts] showDefaultAvatar called for element:', imgElement); // Added for debugging
+      if (!imgElement) return;
+      
+      imgElement.src = '/assets/avatars/default.png'; // Use an absolute path for the default avatar
+      console.log('[Podcasts] showDefaultAvatar - setting src to:', imgElement.src); // Added for debugging
+
+      imgElement.onload = () => {
+        imgElement.classList.remove('opacity-0');
+        imgElement.classList.add('opacity-100');
+        if (loadingElement) loadingElement.style.display = 'none';
+      };
+    }
+    
+    // Function to load avatar from localStorage or backend
+    async function loadTutorAvatar() {
+      console.log('[Podcasts] loadTutorAvatar called'); // Added for debugging
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      const sidebarAvatarImg = document.getElementById('podcastsSidebarUserAvatar');
+      const avatarLoading = document.getElementById('podcastsAvatarLoading');
+      
+      // Check for cached avatar URL first
+      const cachedAvatarUrl = localStorage.getItem('userAvatarUrl');
+      
+      if (!userId || !accessToken) {
+        console.warn('User not authenticated, cannot load avatar.');
+        showDefaultAvatar(sidebarAvatarImg, avatarLoading);
+        return;
+      }
+
+      if (!sidebarAvatarImg) {
+        console.error('Sidebar avatar image element not found.');
+        return;
+      }
+      
+      // Use cached avatar if available (prevents flashing)
+      if (cachedAvatarUrl) {
+        sidebarAvatarImg.src = cachedAvatarUrl;
+        sidebarAvatarImg.onload = () => {
+          sidebarAvatarImg.classList.remove('opacity-0');
+          sidebarAvatarImg.classList.add('opacity-100');
+          if (avatarLoading) avatarLoading.style.display = 'none';
+        };
+      }
+      
+      try {
+        // Still fetch fresh avatar from server in case it changed
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'getAvatar',
+            userId: userId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        const result = await response.json();
+        if (response.ok && result.avatarUrl) {
+          // Cache the avatar URL
+          localStorage.setItem('userAvatarUrl', result.avatarUrl);
+          
+          // If URL is different from cached version, update the display
+          if (sidebarAvatarImg.src !== result.avatarUrl) {
+            sidebarAvatarImg.src = result.avatarUrl;
+            sidebarAvatarImg.onload = () => {
+              sidebarAvatarImg.classList.remove('opacity-0');
+              sidebarAvatarImg.classList.add('opacity-100');
+              if (avatarLoading) avatarLoading.style.display = 'none';
+            };
+          } else if (sidebarAvatarImg.classList.contains('opacity-0')) {
+            // In case the image was already loaded but not made visible
+            sidebarAvatarImg.classList.remove('opacity-0');
+            sidebarAvatarImg.classList.add('opacity-100');
+            if (avatarLoading) avatarLoading.style.display = 'none';
+          }
+        } else {
+          throw new Error(result.error || 'Failed to load avatar URL');
+        }
+      } catch (error) {
+        console.error('Error loading tutor avatar:', error);
+        // Only show default if there's no cached avatar already displayed
+        if (!cachedAvatarUrl) {
+          showDefaultAvatar(sidebarAvatarImg, avatarLoading);
+        }
+      }
+    }
 
     function showMessage(msg, type) {
       messageDiv.textContent = msg;
@@ -312,23 +414,7 @@
     
     // Load podcasts when page loads
     document.addEventListener('DOMContentLoaded', loadPodcasts);
-    
-    // Also load podcasts when a new one is successfully created
-    function reloadPodcastsAfterCreation() {
-      setTimeout(loadPodcasts, 1000); // Delay to ensure database is updated
-    }
-    
-    // Modify the checkPodcastStatus function to reload podcast list when complete
-    const originalCheckPodcastStatus = checkPodcastStatus;
-    checkPodcastStatus = async function(jobId) {
-      await originalCheckPodcastStatus(jobId);
-      // Check if we have a completed podcast and reload list
-      const podcastPlayerElement = document.querySelector('.podcast-player');
-      if (podcastPlayerElement) {
-        reloadPodcastsAfterCreation();
-      }
-    };
-    
+
     // Function to handle podcast deletion
     async function deletePodcast(podcastId) {
       if (!podcastId) return;
@@ -378,16 +464,28 @@
     function initializeUpload() {
       console.log('Initializing upload functionality');
       
+      const dropzone = document.getElementById('uploadDropzone');
+      const fileInput = document.getElementById('pdfInput');
+      const uploadButton = document.getElementById('uploadButton');
+      const uploadStatus = document.getElementById('fileSelection');
+      const successMessage = document.getElementById('message');
+      const errorMessage = document.getElementById('message');
+
+      if (!dropzone || !fileInput || !uploadButton || !uploadStatus || !successMessage || !errorMessage) {
+        console.error('[Podcasts] InitializeUpload: One or more essential DOM elements for upload functionality are missing. Upload feature may not work.');
+        return; // Exit if essential elements are missing
+      }
+
       // Direct click handler for upload dropzone
-      document.getElementById('uploadDropzone').addEventListener('click', function(e) {
+      dropzone.addEventListener('click', function(e) {
         console.log('Upload area clicked');
-        document.getElementById('pdfInput').click();
+        fileInput.click();
         e.preventDefault();
         e.stopPropagation();
       });
       
       // Log when file input changes
-      document.getElementById('pdfInput').addEventListener('change', function() {
+      fileInput.addEventListener('change', function() {
         console.log('File selected:', this.files[0]?.name || 'No file');
       });
     }
@@ -406,6 +504,9 @@
         window.location.href = '/pages/login.html';
         return;
       }
+      
+      // Load user avatar
+      loadTutorAvatar();
       
       // Mobile navigation
       const hamburger = document.getElementById('hamburger');

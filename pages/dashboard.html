@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - Koda Tutor</title>
   <link rel="stylesheet" href="../styles/main.css">
+  <link rel="stylesheet" href="../styles/navbar.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="../scripts/utils.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -56,88 +57,6 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       line-clamp: 2;
-    }
-    
-    /* Sidebar Styles */
-    .app-sidebar {
-      background-color: #2D3748;
-      color: #FFFFFF;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-    
-    .logo-container {
-      padding: 1.25rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .app-logo {
-      font-family: 'Merriweather', serif;
-      font-weight: 700;
-      font-size: 1.5rem;
-      color: #FFFFFF;
-    }
-    
-    .app-logo span {
-      color: #00A3E0;
-    }
-    
-    .nav-link {
-      display: flex;
-      align-items: center;
-      padding: 0.75rem 1rem;
-      border-radius: 0.5rem;
-      margin-bottom: 0.25rem;
-      color: #A0AEC0;
-      transition: all 0.2s ease;
-      position: relative;
-    }
-    
-    .nav-link:hover, 
-    .nav-link.active {
-      color: #FFFFFF;
-    }
-    
-    .nav-link::after {
-      content: '';
-      position: absolute;
-      bottom: 0.5rem;
-      left: 1rem;
-      width: 0;
-      height: 2px;
-      background-color: #00A3E0;
-      transition: width 0.2s ease;
-    }
-    
-    .nav-link:hover::after,
-    .nav-link.active::after {
-      width: calc(100% - 2rem);
-    }
-    
-    .nav-link i {
-      margin-right: 0.75rem;
-      font-size: 1.1rem;
-      width: 1.5rem;
-      text-align: center;
-    }
-    
-    .logout-btn {
-      background-color: #E53E3E;
-      color: #FFFFFF;
-      border-radius: 8px;
-      padding: 0.5rem 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      transition: background-color 0.2s;
-    }
-    
-    .logout-btn:hover {
-      background-color: #C53030;
-    }
-    
-    .logout-btn i {
-      margin-right: 0.5rem;
     }
     
     /* New Topic Button Styling */
@@ -264,7 +183,7 @@
   </div>
 
   <!-- Sidebar Navigation -->
-  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-64 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
       <div class="logo-container pt-12 md:pt-5">
         <h1 class="app-logo">Koda <span>Tutor</span></h1>
@@ -272,45 +191,54 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+      <!-- User Avatar Display -->
+      <div class="p-4 flex justify-center border-b border-gray-700">
+        <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden" id="avatarContainer">
+          <img id="dashboardSidebarUserAvatar" src="" alt="User Avatar" class="w-full h-full object-cover opacity-0 transition-opacity duration-300">
+          <!-- Loading indicator -->
+          <div id="avatarLoading" class="absolute">
+            <i class="fas fa-circle-notch fa-spin text-gray-400"></i>
+          </div>
+        </div>
+      </div>
       <nav class="flex-1 overflow-y-auto py-4">
         <ul class="space-y-1 px-4">
-          <li id="loggedInNav" class="hidden flex-col space-y-1">
-            <a href="dashboard.html" class="nav-link active">
-              <i class="fas fa-compass"></i>
-              <span class="mobile-readable">Dashboard</span>
-            </a>
-            <a href="chat.html" class="nav-link">
-              <i class="fas fa-comments"></i>
-              <span class="mobile-readable">Chat</span>
-            </a>
-            <a href="bookmarks.html" class="nav-link">
-              <i class="fas fa-bookmark"></i>
-              <span class="mobile-readable">Bookmarks</span>
-            </a>
-            <a href="#" id="notesToggle" class="nav-link">
-              <i class="fas fa-sticky-note"></i>
-              <span class="mobile-readable">Notes</span>
-            </a>
-            <a href="podcasts.html" class="nav-link">
-              <i class="fas fa-podcast"></i>
-              <span class="mobile-readable">Podcasts</span>
-            </a>
-            <a href="settings.html" class="nav-link">
-              <i class="fas fa-cog"></i>
-              <span class="mobile-readable">Settings</span>
-            </a>
-          </li>
-          <li id="loggedOutNav" class="hidden flex-col space-y-1">
-            <a href="login.html" class="nav-link">
-              <i class="fas fa-sign-in-alt"></i>
-              <span>Login</span>
-            </a>
-            <a href="signup.html" class="nav-link">
-              <i class="fas fa-user-plus"></i>
-              <span>Sign Up</span>
-            </a>
-          </li>
+        <li id="loggedInNav" class="hidden flex-col space-y-1">
+          <a href="dashboard.html" class="nav-link active">
+            <i class="fas fa-compass"></i>
+            <span class="mobile-readable">Dashboard</span>
+          </a>
+          <a href="chat.html" class="nav-link">
+            <i class="fas fa-comments"></i>
+            <span class="mobile-readable">Chat</span>
+          </a>
+          <a href="bookmarks.html" class="nav-link">
+            <i class="fas fa-bookmark"></i>
+            <span class="mobile-readable">Bookmarks</span>
+          </a>
+          <a href="#" id="notesToggle" class="nav-link">
+            <i class="fas fa-sticky-note"></i>
+            <span class="mobile-readable">Notes</span>
+          </a>
+          <a href="podcasts.html" class="nav-link">
+            <i class="fas fa-podcast"></i>
+            <span class="mobile-readable">Podcasts</span>
+          </a>
+          <a href="settings.html" class="nav-link">
+            <i class="fas fa-cog"></i>
+            <span class="mobile-readable">Settings</span>
+          </a>
+        </li>
+        <li id="loggedOutNav" class="hidden flex-col space-y-1">
+          <a href="login.html" class="nav-link">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Login</span>
+          </a>
+          <a href="signup.html" class="nav-link">
+            <i class="fas fa-user-plus"></i>
+            <span>Sign Up</span>
+          </a>
+        </li>
         </ul>
       </nav>
       
@@ -324,7 +252,7 @@
   </div>
 
   <!-- Main Content -->
-  <div class="flex-1 ml-0 md:ml-56 p-4 md:p-8 min-h-screen">
+  <div class="md:ml-64 flex-1 p-4 md:p-8 min-h-screen">
     <div class="text-center mb-8">
       <h1 class="text-4xl font-bold text-gray-800 mb-2" style="border-bottom: 2px solid #00A3E0; display: inline-block; padding-bottom: 4px;">Welcome Back!</h1>
       <p class="text-lg text-gray-600 mb-6">Here is what you're currently learning about:</p>
@@ -601,6 +529,7 @@
 
       // Setup event listeners
       setupEventListeners();
+      loadTutorAvatar();
     });
 
     // Update navigation based on login status
@@ -1433,7 +1362,7 @@
               }
             });
 
-            const result = await response.json(); // Always parse JSON
+            const result = await response.json(); // Always parse JSON response
 
             if (!response.ok) {
               throw new Error(result.error || 'Failed to add topic');
@@ -1460,6 +1389,92 @@
       // --- End Add Topic Modal Functionality ---
 
       console.log('Event listeners set up.');
+    }
+
+    async function loadTutorAvatar() {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      const sidebarAvatarImg = document.getElementById('dashboardSidebarUserAvatar');
+      const avatarLoading = document.getElementById('avatarLoading');
+      
+      // Check for cached avatar URL first
+      const cachedAvatarUrl = localStorage.getItem('userAvatarUrl');
+      
+      if (!userId || !accessToken) {
+        console.warn('User not authenticated, cannot load avatar.');
+        showDefaultAvatar(sidebarAvatarImg, avatarLoading);
+        return;
+      }
+
+      if (!sidebarAvatarImg) {
+        console.error('Sidebar avatar image element not found.');
+        return;
+      }
+      
+      // Use cached avatar if available (prevents flashing)
+      if (cachedAvatarUrl) {
+        sidebarAvatarImg.src = cachedAvatarUrl;
+        sidebarAvatarImg.onload = () => {
+          sidebarAvatarImg.classList.remove('opacity-0');
+          sidebarAvatarImg.classList.add('opacity-100');
+          if (avatarLoading) avatarLoading.style.display = 'none';
+        };
+      }
+      
+      try {
+        // Still fetch fresh avatar from server in case it changed
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'getAvatar',
+            userId: userId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        const result = await response.json();
+        if (response.ok && result.avatarUrl) {
+          // Cache the avatar URL
+          localStorage.setItem('userAvatarUrl', result.avatarUrl);
+          
+          // If URL is different from cached version, update the display
+          if (sidebarAvatarImg.src !== result.avatarUrl) {
+            sidebarAvatarImg.src = result.avatarUrl;
+            sidebarAvatarImg.onload = () => {
+              sidebarAvatarImg.classList.remove('opacity-0');
+              sidebarAvatarImg.classList.add('opacity-100');
+              if (avatarLoading) avatarLoading.style.display = 'none';
+            };
+          } else if (sidebarAvatarImg.classList.contains('opacity-0')) {
+            // In case the image was already loaded but not made visible
+            sidebarAvatarImg.classList.remove('opacity-0');
+            sidebarAvatarImg.classList.add('opacity-100');
+            if (avatarLoading) avatarLoading.style.display = 'none';
+          }
+        } else {
+          throw new Error(result.error || 'Failed to load avatar URL');
+        }
+      } catch (error) {
+        console.error('Error loading tutor avatar:', error);
+        // Only show default if there's no cached avatar already displayed
+        if (!cachedAvatarUrl) {
+          showDefaultAvatar(sidebarAvatarImg, avatarLoading);
+        }
+      }
+    }
+    
+    // Helper function to display default avatar
+    function showDefaultAvatar(imgElement, loadingElement) {
+      if (!imgElement) return;
+      
+      imgElement.src = '../assets/avatars/default.png';
+      imgElement.onload = () => {
+        imgElement.classList.remove('opacity-0');
+        imgElement.classList.add('opacity-100');
+        if (loadingElement) loadingElement.style.display = 'none';
+      };
     }
   </script>
 </body>

@@ -135,13 +135,24 @@
   </div>
 
   <!-- Sidebar Navigation -->
-  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-64 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
       <div class="logo-container pt-12 md:pt-5">
         <h1 class="app-logo">Koda <span>Tutor</span></h1>
         <button id="closeSidebar" class="absolute top-5 right-4 text-gray-300 hover:text-white md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
+      </div>
+      
+      <!-- User Avatar Display -->
+      <div class="p-4 flex justify-center border-b border-gray-700">
+        <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden" id="chatAvatarContainer">
+          <img id="chatSidebarUserAvatar" src="" alt="User Avatar" class="w-full h-full object-cover opacity-0 transition-opacity duration-300" title="Yo what's up?">
+          <!-- Loading indicator -->
+          <div id="chatAvatarLoading" class="absolute">
+            <i class="fas fa-circle-notch fa-spin text-gray-400"></i>
+          </div>
+        </div>
       </div>
       
       <nav class="flex-1 overflow-y-auto py-4">
@@ -195,12 +206,14 @@
   </div>
 
   <!-- Main Content -->
-  <div class="md:ml-56 flex-1 flex flex-col h-screen">
+  <div class="md:ml-64 flex-1 flex flex-col h-screen">
     <div class="flex-1 flex flex-col pt-20 md:pt-0">
       <div class="flex-1 flex flex-col bg-white">
         <!-- Chat Header -->
         <div class="p-6 border-b border-gray-200">
-          <h1 class="text-3xl font-semibold text-gray-800 mb-2">Chat with Koda</h1>
+          <div class="mb-4">
+            <h1 class="text-2xl font-semibold text-gray-800">Chat with Koda</h1>
+          </div>
           <p class="text-gray-600 mb-4">I'm your friendly learning companion! Ask me questions, explore new topics, or discuss ideas you're curious about.</p>
         </div>
 
@@ -450,9 +463,11 @@
         // Show loading state
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'flex justify-start';
+        const avatarSrc = document.getElementById('chatSidebarUserAvatar')?.src || '../assets/avatars/default.png';
+        
         loadingDiv.innerHTML = `
           <div class="bg-gray-100 rounded-lg p-3 flex items-center gap-2 max-w-[80%] typing-indicator">
-            <img src="../images/koda-avatar.png" alt="Koda" class="w-8 h-8 rounded-full" onerror="this.src='../images/favicon.ico'">
+            <img src="${avatarSrc}" alt="Koda" class="w-8 h-8 rounded-full object-cover" onerror="this.src='../assets/avatars/default.png'">
             <div class="flex flex-col">
               <span class="text-xs text-gray-500 mb-1">Koda is typing...</span>
               <div class="flex gap-1">
@@ -535,6 +550,22 @@
       function addMessageToChat(type, content) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} opacity-0 transform translate-y-4 transition-all duration-300`;
+        
+        // For AI messages, add the avatar
+        if (type === 'ai') {
+          const avatarContainer = document.createElement('div');
+          avatarContainer.className = 'flex-shrink-0 mr-2 self-end';
+          
+          // Get avatar from sidebar to ensure consistency
+          const avatar = document.createElement('img');
+          avatar.src = document.getElementById('chatSidebarUserAvatar')?.src || '../assets/avatars/default.png';
+          avatar.alt = 'Koda';
+          avatar.className = 'w-8 h-8 rounded-full object-cover';
+          avatar.onerror = function() { this.src = '../assets/avatars/default.png'; };
+          
+          avatarContainer.appendChild(avatar);
+          messageDiv.appendChild(avatarContainer);
+        }
         
         const messageBubble = document.createElement('div');
         messageBubble.className = type === 'user' 
@@ -1035,6 +1066,104 @@
         
         greetingElement.textContent = greeting;
       }
+      
+      // Function to load avatar from localStorage or backend
+      async function loadTutorAvatar() {
+        try {
+          const userId = localStorage.getItem('userId');
+          const accessToken = localStorage.getItem('accessToken');
+          const chatSidebarUserAvatar = document.getElementById('chatSidebarUserAvatar');
+          const chatAvatarLoading = document.getElementById('chatAvatarLoading');
+          
+          // Check for cached avatar URL first
+          const cachedAvatarUrl = localStorage.getItem('userAvatarUrl');
+
+          if (!userId || !accessToken) {
+            console.warn('No user ID or access token found for avatar fetch');
+            showDefaultAvatar(chatSidebarUserAvatar, chatAvatarLoading);
+            return;
+          }
+          
+          // Use cached avatar if available (prevents flashing)
+          if (cachedAvatarUrl) {
+            chatSidebarUserAvatar.src = cachedAvatarUrl;
+            chatSidebarUserAvatar.onload = () => {
+              chatSidebarUserAvatar.classList.remove('opacity-0');
+              chatSidebarUserAvatar.classList.add('opacity-100');
+              if (chatAvatarLoading) chatAvatarLoading.style.display = 'none';
+            };
+          }
+
+          // Fetch avatar from database
+          const response = await fetch('/.netlify/functions/dashboard', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+              action: 'getAvatar',
+              userId: userId
+            })
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.avatarUrl) {
+            // Cache the avatar URL
+            localStorage.setItem('userAvatarUrl', result.avatarUrl);
+            
+            // Update sidebar avatar if it's different
+            if (chatSidebarUserAvatar) {
+              if (chatSidebarUserAvatar.src !== result.avatarUrl) {
+                chatSidebarUserAvatar.src = result.avatarUrl;
+                chatSidebarUserAvatar.onload = () => {
+                  chatSidebarUserAvatar.classList.remove('opacity-0');
+                  chatSidebarUserAvatar.classList.add('opacity-100');
+                  if (chatAvatarLoading) chatAvatarLoading.style.display = 'none';
+                };
+              } else if (chatSidebarUserAvatar.classList.contains('opacity-0')) {
+                // In case the image was already loaded but not made visible
+                chatSidebarUserAvatar.classList.remove('opacity-0');
+                chatSidebarUserAvatar.classList.add('opacity-100');
+                if (chatAvatarLoading) chatAvatarLoading.style.display = 'none';
+              }
+              console.log('Avatar loaded from database:', result.avatarUrl);
+            } else {
+              console.warn('User avatar element not found');
+            }
+          } else {
+            console.warn('Avatar fetch returned no URL or error:', result);
+            // Only show default if no cached avatar already displayed
+            if (!cachedAvatarUrl && chatSidebarUserAvatar) {
+              showDefaultAvatar(chatSidebarUserAvatar, chatAvatarLoading);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading user avatar from database:', error);
+          const chatSidebarUserAvatar = document.getElementById('chatSidebarUserAvatar');
+          const chatAvatarLoading = document.getElementById('chatAvatarLoading');
+          // Only show default if no cached avatar
+          if (!localStorage.getItem('userAvatarUrl') && chatSidebarUserAvatar) {
+            showDefaultAvatar(chatSidebarUserAvatar, chatAvatarLoading);
+          }
+        }
+      }
+
+      // Helper function to display default avatar
+      function showDefaultAvatar(imgElement, loadingElement) {
+        if (!imgElement) return;
+        
+        imgElement.src = '../assets/avatars/default.png';
+        imgElement.onload = () => {
+          imgElement.classList.remove('opacity-0');
+          imgElement.classList.add('opacity-100');
+          if (loadingElement) loadingElement.style.display = 'none';
+        };
+      }
+      
+      // Call loadTutorAvatar on page load
+      window.addEventListener('load', loadTutorAvatar);
     });
   </script>
 </body>

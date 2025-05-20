@@ -8,8 +8,71 @@
   <link rel="stylesheet" href="../styles/navbar.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="../scripts/utils.js" defer></script>
+  <style>
+    /* Toast styling */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      max-width: 300px;
+    }
+    
+    .toast {
+      margin-bottom: 10px;
+      padding: 12px;
+      border-radius: 4px;
+      color: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.3s, transform 0.3s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .toast.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .toast.toast-closing {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    
+    .toast.success {
+      background-color: #4caf50;
+    }
+    
+    .toast.error {
+      background-color: #f44336;
+    }
+    
+    .toast.info {
+      background-color: #2196f3;
+    }
+    
+    .toast-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .toast-close-btn {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0;
+    }
+  </style>
 </head>
 <body class="bg-gray-50 font-eb-garamond min-h-screen flex">
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
   <!-- Mobile Hamburger -->
   <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
     <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
@@ -18,13 +81,24 @@
   </div>
 
   <!-- Sidebar Navigation -->
-  <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-64 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
       <div class="logo-container pt-12 md:pt-5">
         <h1 class="app-logo">Koda <span>Tutor</span></h1>
         <button id="closeSidebar" class="absolute top-5 right-4 text-gray-300 hover:text-white md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
+      </div>
+      
+      <!-- User Avatar Display -->
+      <div class="p-4 flex justify-center border-b border-gray-700">
+        <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden" id="settingsAvatarContainer">
+          <img id="settingsSidebarUserAvatar" src="" alt="User Avatar" class="w-full h-full object-cover opacity-0 transition-opacity duration-300" title="Avatar">
+          <!-- Loading indicator -->
+          <div id="settingsAvatarLoading" class="absolute">
+            <i class="fas fa-circle-notch fa-spin text-gray-400"></i>
+          </div>
+        </div>
       </div>
       
       <nav class="flex-1 overflow-y-auto py-4">
@@ -77,8 +151,25 @@
     </div>
   </div>
 
-  <main class="md:ml-56 flex-1 p-8 pt-20 md:pt-8">
+  <main class="md:ml-64 flex-1 p-8 pt-20 md:pt-8">
     <h1 class="text-3xl font-bold mb-8 text-gray-800">Settings</h1>
+    
+    <!-- Tutor Avatar Settings -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 text-gray-700">Your Koda</h2>
+      <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
+        <div>
+          <div class="font-medium text-gray-800">Customize Avatar</div>
+          <div class="text-sm text-gray-600 mt-1">Personalize your Tutor's appearance.</div>
+        </div>
+        <button id="showCustomizeAvatarModalSettings" style="background-color:#00A3E0;" class="hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center">
+          <i class="fas fa-user-edit mr-2"></i> Customize
+        </button>
+      </div>
+    </div>
+    
+    <!-- Blue Divider -->
+    <hr style="border:none; height:1px; background-color:#00A3E0; margin:32px 0;">
     
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 class="text-xl font-semibold mb-4 text-gray-700">Topic Management</h2>
@@ -131,6 +222,13 @@
     const userId = localStorage.getItem('userId');
     const accessToken = localStorage.getItem('accessToken');
     
+    // Avatar customization elements
+    const showCustomizeAvatarModalSettingsBtn = document.getElementById('showCustomizeAvatarModalSettings');
+    const customizeAvatarModalSettings = document.getElementById('customizeAvatarModalSettings');
+    const closeCustomizeAvatarModalSettingsBtn = document.getElementById('closeCustomizeAvatarModalSettings');
+    const settingsPreviewImage = document.getElementById('settingsPreviewImage');
+    const saveAvatarBtnSettings = document.getElementById('saveAvatarBtnSettings');
+    
     // Check if user is logged in
     function updateNavigation() {
       const loggedInNav = document.getElementById('loggedInNav');
@@ -150,6 +248,9 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Call updateNavigation on page load
       updateNavigation();
+      
+      // Load avatar on page load
+      loadSidebarUserAvatarOnSettingsPage();
 
       // Mobile navigation
       const hamburger = document.getElementById('hamburger');
@@ -303,21 +404,6 @@
               editBtn.addEventListener('click', () => {
                 const nameDisplay = topicItem.querySelector('.topic-name-display');
                 const currentName = topicItem.querySelector('.topic-name').textContent;
-                
-                nameDisplay.innerHTML = `
-                  <input type="text" class="edit-topic-input px-3 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="${currentName}">
-                  <div class="flex mt-2 gap-2">
-                    <button class="save-topic-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition-colors duration-200 text-sm">Save</button>
-                    <button class="cancel-topic-btn bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded transition-colors duration-200 text-sm">Cancel</button>
-                  </div>
-                `;
-                
-                const saveBtn = topicItem.querySelector('.save-topic-btn');
-                const cancelBtn = topicItem.querySelector('.cancel-topic-btn');
-                const input = topicItem.querySelector('.edit-topic-input');
-                
-                // Focus the input
-                input.focus();
                 
                 // Save button
                 saveBtn.addEventListener('click', async () => {
@@ -721,6 +807,303 @@
         showToast('Error connecting to server. Please try again.', 'error');
       }
     }
+    
+    // --- BEGIN AVATAR CUSTOMIZATION FOR SETTINGS PAGE ---
+    async function loadSidebarUserAvatarOnSettingsPage() {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      const settingsSidebarUserAvatar = document.getElementById('settingsSidebarUserAvatar');
+      const settingsAvatarLoading = document.getElementById('settingsAvatarLoading');
+      
+      // Check for cached avatar URL first
+      const cachedAvatarUrl = localStorage.getItem('userAvatarUrl');
+
+      if (!userId || !accessToken) {
+        console.warn('User not authenticated, cannot load avatar for settings sidebar.');
+        showDefaultAvatar(settingsSidebarUserAvatar, settingsAvatarLoading);
+        return;
+      }
+
+      if (!settingsSidebarUserAvatar) {
+        console.error('Settings sidebar avatar image element not found.');
+        return;
+      }
+      
+      // Use cached avatar if available (prevents flashing)
+      if (cachedAvatarUrl) {
+        settingsSidebarUserAvatar.src = cachedAvatarUrl;
+        settingsSidebarUserAvatar.onload = () => {
+          settingsSidebarUserAvatar.classList.remove('opacity-0');
+          settingsSidebarUserAvatar.classList.add('opacity-100');
+          if (settingsAvatarLoading) settingsAvatarLoading.style.display = 'none';
+        };
+      }
+
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'getAvatar',
+            userId: userId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        const result = await response.json();
+        if (response.ok && result.avatarUrl) {
+          // Cache the avatar URL
+          localStorage.setItem('userAvatarUrl', result.avatarUrl);
+          
+          // If URL is different from cached version, update the display
+          if (settingsSidebarUserAvatar.src !== result.avatarUrl) {
+            settingsSidebarUserAvatar.src = result.avatarUrl;
+            settingsSidebarUserAvatar.onload = () => {
+              settingsSidebarUserAvatar.classList.remove('opacity-0');
+              settingsSidebarUserAvatar.classList.add('opacity-100');
+              if (settingsAvatarLoading) settingsAvatarLoading.style.display = 'none';
+            };
+          } else if (settingsSidebarUserAvatar.classList.contains('opacity-0')) {
+            // In case the image was already loaded but not made visible
+            settingsSidebarUserAvatar.classList.remove('opacity-0');
+            settingsSidebarUserAvatar.classList.add('opacity-100');
+            if (settingsAvatarLoading) settingsAvatarLoading.style.display = 'none';
+          }
+        } else {
+          console.error('Failed to load avatar for settings sidebar:', result.error);
+          // Only show default if there's no cached avatar already displayed
+          if (!cachedAvatarUrl) {
+            showDefaultAvatar(settingsSidebarUserAvatar, settingsAvatarLoading);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading avatar for settings sidebar:', error);
+        // Only show default if there's no cached avatar already displayed
+        if (!cachedAvatarUrl) {
+          showDefaultAvatar(settingsSidebarUserAvatar, settingsAvatarLoading);
+        }
+      }
+    }
+
+    // Helper function to display default avatar
+    function showDefaultAvatar(imgElement, loadingElement) {
+      if (!imgElement) return;
+      
+      imgElement.src = '../assets/avatars/default.png';
+      imgElement.onload = () => {
+        imgElement.classList.remove('opacity-0');
+        imgElement.classList.add('opacity-100');
+        if (loadingElement) loadingElement.style.display = 'none';
+      };
+    }
+
+    function loadAvatarIntoModalPreview() {
+      const settingsSidebarUserAvatar = document.getElementById('settingsSidebarUserAvatar');
+      const settingsPreviewImage = document.getElementById('settingsPreviewImage');
+      
+      if (!settingsSidebarUserAvatar) {
+        console.error('Sidebar avatar element not found');
+        return;
+      }
+      
+      if (!settingsPreviewImage) {
+        console.error('Preview image element not found');
+        return;
+      }
+      
+      settingsPreviewImage.src = settingsSidebarUserAvatar.src;
+      const currentAvatarFileName = settingsSidebarUserAvatar.src.split('/').pop();
+      const currentAvatarId = currentAvatarFileName ? currentAvatarFileName.split('.')[0] : 'default';
+      settingsPreviewImage.dataset.avatarId = currentAvatarId;
+      
+      console.log('Loaded current avatar into preview:', currentAvatarId);
+      
+      // Reset any selected state
+      const allAvatars = document.querySelectorAll('.avatar-option');
+      allAvatars.forEach(avatar => {
+        avatar.classList.remove('border-blue-500');
+        avatar.classList.add('border-transparent');
+        
+        // Highlight the currently active avatar
+        if (avatar.dataset.avatarId === currentAvatarId) {
+          avatar.classList.remove('border-transparent');
+          avatar.classList.add('border-blue-500');
+        }
+      });
+    }
+
+    // Window-level function to update the preview image
+    window.updateSettingsPreview = function(imgElement) {
+      const settingsPreviewImage = document.getElementById('settingsPreviewImage');
+      if (settingsPreviewImage) {
+        settingsPreviewImage.src = imgElement.src;
+        settingsPreviewImage.dataset.avatarId = imgElement.dataset.avatarId;
+        console.log('Avatar preview updated to:', imgElement.dataset.avatarId);
+        
+        // Add visual indicator for selection
+        const allAvatars = document.querySelectorAll('.avatar-option');
+        allAvatars.forEach(avatar => {
+          avatar.classList.remove('border-blue-500');
+          avatar.classList.add('border-transparent');
+        });
+        imgElement.classList.remove('border-transparent');
+        imgElement.classList.add('border-blue-500');
+      } else {
+        console.error("Settings preview image element not found.");
+      }
+    }
+
+    async function saveSettingsAvatar() {
+      // Get the selected avatar
+      const selectedAvatar = document.querySelector('.avatar-option.selected');
+      if (!selectedAvatar) {
+        showToast('Please select an avatar', 'error');
+        return;
+      }
+
+      const avatarId = selectedAvatar.dataset.avatarId;
+      
+      // Get the user ID and access token from localStorage
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      
+      if (!userId || !accessToken) {
+        showToast('You must be logged in to set an avatar', 'error');
+        return;
+      }
+
+      // Show loading state
+      const saveButton = document.querySelector('#saveAvatarBtnSettings');
+      const originalText = saveButton.textContent;
+      saveButton.textContent = 'Saving...';
+      saveButton.disabled = true;
+      
+      try {
+        // Send the avatarId to the server to save in the database
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            action: 'updateAvatar',
+            userId: userId,
+            avatarId: avatarId
+          })
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to update avatar');
+        }
+        
+        console.log('Avatar saved to database:', avatarId);
+        
+        // Update the sidebar avatar with the URL returned from the server
+        const settingsSidebarUserAvatar = document.getElementById('settingsSidebarUserAvatar');
+        if (settingsSidebarUserAvatar && result.avatarUrl) {
+          settingsSidebarUserAvatar.src = result.avatarUrl;
+        }
+
+        // Close the modal
+        const customizeAvatarModalSettings = document.getElementById('customizeAvatarModalSettings');
+        customizeAvatarModalSettings.classList.add('hidden');
+        document.body.style.overflow = '';
+        
+        showToast('Avatar updated successfully!', 'success');
+      } catch (error) {
+        console.error('Error saving avatar:', error);
+        showToast(`Failed to update avatar. Details: ${error.message || 'Unknown error'}`, 'error');
+      } finally {
+        // Reset button state
+        saveButton.textContent = originalText;
+        saveButton.disabled = false;
+      }
+    }
+
+    // Function to handle avatar selection in the modal
+    function setupAvatarSelection() {
+      const avatarOptions = document.querySelectorAll('.avatar-option');
+      
+      avatarOptions.forEach(option => {
+        option.addEventListener('click', function() {
+          // Remove selected class from all options
+          avatarOptions.forEach(opt => opt.classList.remove('selected', 'border-blue-500', 'border-2'));
+          
+          // Add selected class to clicked option
+          this.classList.add('selected', 'border-blue-500', 'border-2');
+          
+          // Update preview image
+          const avatarImg = this.querySelector('img');
+          const previewImg = document.getElementById('settingsPreviewImage');
+          if (avatarImg && previewImg) {
+            previewImg.src = avatarImg.src;
+          }
+        });
+      });
+    }
+
+    // Initialize all event listeners after DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, setting up avatar customization');
+      setupAvatarSelection();
+      
+      // Button to open the customization modal
+      const showCustomizeAvatarModalSettingsBtn = document.getElementById('showCustomizeAvatarModalSettings');
+      const customizeAvatarModalSettings = document.getElementById('customizeAvatarModalSettings');
+      
+      if (showCustomizeAvatarModalSettingsBtn && customizeAvatarModalSettings) {
+        showCustomizeAvatarModalSettingsBtn.addEventListener('click', function() {
+          console.log('Opening avatar customization modal');
+          loadAvatarIntoModalPreview();
+          customizeAvatarModalSettings.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        });
+      } else {
+        console.error('Customize button or modal not found', {
+          button: showCustomizeAvatarModalSettingsBtn,
+          modal: customizeAvatarModalSettings
+        });
+      }
+      
+      // Save button in the modal
+      const saveAvatarBtnSettings = document.getElementById('saveAvatarBtnSettings');
+      if (saveAvatarBtnSettings) {
+        saveAvatarBtnSettings.addEventListener('click', function() {
+          console.log('Save avatar button clicked');
+          saveSettingsAvatar();
+        });
+      } else {
+        console.error('Save avatar button not found');
+      }
+      
+      // Close button for modal
+      const closeCustomizeAvatarModalSettingsBtn = document.getElementById('closeCustomizeAvatarModalSettings');
+      if (closeCustomizeAvatarModalSettingsBtn) {
+        closeCustomizeAvatarModalSettingsBtn.addEventListener('click', () => {
+          console.log('Close avatar modal button clicked');
+          customizeAvatarModalSettings.classList.add('hidden');
+          document.body.style.overflow = '';
+        });
+      } else {
+        console.error('Close button not found');
+      }
+      
+      // Allow clicking outside modal to close it
+      window.addEventListener('click', (event) => {
+        if (event.target === customizeAvatarModalSettings) {
+          console.log('Clicked outside modal, closing');
+          customizeAvatarModalSettings.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      });
+    });
+
+    // Close button and overlay click handlers are set in the DOM ready event listener
+    // --- END AVATAR CUSTOMIZATION FOR SETTINGS PAGE ---
   </script>
 
   <!-- Notes Panel -->
@@ -760,5 +1143,118 @@
       </div>
     </div>
   </div>
+  <!-- Customize Avatar Modal -->
+  <div id="customizeAvatarModalSettings" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
+    <div class="modal-content bg-white p-6 rounded-lg shadow-lg max-w-lg w-full relative">
+      <button id="closeCustomizeAvatarModalSettings" class="absolute top-3 right-3 text-2xl text-gray-500 hover:text-gray-700">&times;</button>
+      <h2 class="text-2xl font-bold mb-4">Customize Your Tutor Avatar</h2>
+      <p class="text-gray-600 mb-4">Make your Koda Tutor one-of-a-kind!</p>
+      <div class="flex flex-col md:flex-row gap-6">
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold mb-2">Preview</h3>
+          <div id="avatarPreviewSettings" class="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center mx-auto" style="background-size: cover; background-position: center;">
+            <img id="settingsPreviewImage" src="../assets/avatars/default.png" alt="Avatar Preview" class="w-full h-full rounded-full object-cover">
+          </div>
+        </div>
+        <div class="flex-1">
+          <div class="avatar-options flex flex-wrap gap-4 justify-center mt-4">
+            <div class="avatar-option cursor-pointer rounded-full p-1" data-avatar-id="2">
+              <img src="../assets/avatars/zara.png" alt="Zara Avatar" class="w-16 h-16 rounded-full">
+            </div>
+            <div class="avatar-option cursor-pointer rounded-full p-1" data-avatar-id="4">
+              <img src="../assets/avatars/max.png" alt="Max Avatar" class="w-16 h-16 rounded-full">
+            </div>
+            <div class="avatar-option cursor-pointer rounded-full p-1" data-avatar-id="3">
+              <img src="../assets/avatars/luna.png" alt="Luna Avatar" class="w-16 h-16 rounded-full">
+            </div>
+            <div class="avatar-option cursor-pointer rounded-full p-1" data-avatar-id="1">
+              <img src="../assets/avatars/default.png" alt="Default Avatar" class="w-16 h-16 rounded-full">
+            </div>
+          </div>
+          <button id="saveAvatarBtnSettings" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors duration-200">Save Avatar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Improved Toast Notification Function
+    function showToast(message, type = 'info') {
+      console.log(`Toast [${type}]: ${message}`);
+      
+      const toastContainer = document.getElementById('toastContainer');
+      console.log('Toast container:', toastContainer);
+      
+      if (!toastContainer) {
+        console.error('Toast container not found');
+        return;
+      }
+      
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      // Icons based on type
+      let icon;
+      switch(type) {
+        case 'success':
+          icon = '<i class="fas fa-check-circle"></i>';
+          break;
+        case 'error':
+          icon = '<i class="fas fa-exclamation-circle"></i>';
+          break;
+        default:
+          icon = '<i class="fas fa-info-circle"></i>';
+      }
+      
+      toast.innerHTML = `
+        <div class="toast-content">
+          ${icon}
+          <span>${message}</span>
+        </div>
+        <button class="toast-close-btn">&times;</button>
+      `;
+      
+      // Add to container
+      toastContainer.appendChild(toast);
+      
+      // Force browser reflow to ensure transition works
+      toast.offsetHeight;
+      
+      // Add active class after a brief delay to trigger the animation
+      setTimeout(() => {
+        toast.classList.add('active');
+      }, 10);
+      
+      // Add event listener to close button
+      const closeBtn = toast.querySelector('.toast-close-btn');
+      closeBtn.addEventListener('click', () => {
+        closeToast(toast);
+      });
+      
+      // Auto close after 4 seconds
+      const timeoutId = setTimeout(() => {
+        closeToast(toast);
+      }, 4000);
+      
+      // Store timeout ID to clear if manually closed
+      toast.dataset.timeoutId = timeoutId;
+      
+      function closeToast(toastElement) {
+        // Clear timeout if exists
+        const timeoutId = toastElement.dataset.timeoutId;
+        if (timeoutId) clearTimeout(parseInt(timeoutId));
+        
+        // Add closing animation
+        toastElement.classList.remove('active');
+        toastElement.classList.add('toast-closing');
+        
+        // Remove after animation completes
+        setTimeout(() => {
+          toastElement.remove();
+        }, 300);
+      }
+    }
+  </script>
 </body>
 </html>
