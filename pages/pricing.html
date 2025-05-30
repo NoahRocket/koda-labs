@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koda Labs - Pricing</title>
+  <link rel="stylesheet" href="../styles/main.css">
+  <link rel="stylesheet" href="../styles/navbar.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="../scripts/utils.js" defer></script>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900" style="background: linear-gradient(180deg, #F7F7F7 0%, #FFFFFF 100%);">
+  <!-- Mobile Hamburger - Using the same approach as dashboard -->
+  <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
+    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
+    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
+    <div class="w-6 h-0.5 bg-gray-800"></div>
+  </div>
+
+  <!-- Sidebar Navigation -->
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-64 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+    <div class="flex flex-col h-full">
+      <div class="logo-container pt-12 md:pt-5">
+        <h1 class="app-logo">Koda <span>Tutor</span></h1>
+        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-300 hover:text-white md:hidden mobile-touch-target">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <!-- User Avatar Display -->
+      <div class="p-4 flex justify-center border-b border-gray-700">
+        <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden" id="pricingAvatarContainer">
+          <img id="pricingSidebarUserAvatar" src="" alt="User Avatar" class="w-full h-full object-cover opacity-0 transition-opacity duration-300">
+          <!-- Loading indicator -->
+          <div id="pricingAvatarLoading" class="absolute">
+            <i class="fas fa-circle-notch fa-spin text-gray-400"></i>
+          </div>
+        </div>
+      </div>
+      
+      <nav class="flex-1 overflow-y-auto py-4">
+        <ul class="space-y-1 px-4">
+          <li id="navItems" class="flex-col space-y-1">
+            <a href="dashboard.html" class="nav-link">
+              <i class="fas fa-compass"></i>
+              <span class="mobile-readable">Dashboard</span>
+            </a>
+            <a href="chat.html" class="nav-link">
+              <i class="fas fa-comments"></i>
+              <span class="mobile-readable">Chat</span>
+            </a>
+            <a href="bookmarks.html" class="nav-link">
+              <i class="fas fa-bookmark"></i>
+              <span class="mobile-readable">Bookmarks</span>
+            </a>
+            <a href="#" id="notesToggle" class="nav-link">
+              <i class="fas fa-sticky-note"></i>
+              <span class="mobile-readable">Notes</span>
+            </a>
+            <a href="podcasts.html" class="nav-link">
+              <i class="fas fa-podcast"></i>
+              <span class="mobile-readable">Podcasts</span>
+            </a>
+            <a href="settings.html" class="nav-link">
+              <i class="fas fa-cog"></i>
+              <span class="mobile-readable">Settings</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="p-4 border-t border-gray-700">
+        <button id="logout" class="logout-btn w-full">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="main-content-area md:ml-64 flex-1 p-4 md:p-6">
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-extrabold text-gray-900 mb-4">Choose the Right Plan for You</h1>
+      <p class="text-xl text-gray-500 max-w-3xl mx-auto">
+        Unlock the full potential of Koda Labs with a premium subscription.
+      </p>
+    </div>
+    
+    <!-- Billing Toggle -->
+    <div class="flex justify-center items-center mb-10">
+      <div class="flex items-center space-x-4">
+        <span id="monthlyLabel" class="text-lg font-medium text-gray-900 opacity-100 transition-opacity duration-150">Monthly</span>
+        <div class="relative inline-flex h-6 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" id="billingToggle">
+          <span aria-hidden="true" id="toggleCircle" class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+        </div>
+        <span id="yearlyLabel" class="text-lg font-medium text-gray-500 opacity-70 transition-opacity duration-150">Yearly <span class="inline-flex text-sm items-center px-2 py-1 rounded-full bg-green-100 text-green-800 font-medium">Save 20%</span></span>
+      </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto">
+      <!-- Pricing Tiers -->
+      <div class="grid md:grid-cols-2 gap-8">
+        <!-- Free Tier -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+          <div class="p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Free</h2>
+            <p class="text-gray-600 mb-6">Get started with Koda Labs and explore the basics.</p>
+            <div class="flex items-baseline mb-6">
+              <span class="text-5xl font-extrabold">€0</span>
+              <span class="text-gray-500 ml-2">/month</span>
+            </div>
+            <button id="currentPlanBtn" class="w-full bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors">Current Plan</button>
+          </div>
+          <div class="bg-gray-50 p-8">
+            <h3 class="text-lg font-semibold mb-4 text-gray-900">WHAT'S INCLUDED</h3>
+            <ul class="space-y-3">
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Basic AI Chat (30 messages per day)</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Up to 5 Topics</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Up to 50 Bookmarks</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>1 PDF to Podcast conversion</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Premium Tier -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-blue-200">
+          <div class="p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Premium</h2>
+            <p class="text-gray-600 mb-6">Unlock all features and maximize your productivity.</p>
+            <!-- Monthly/Yearly price display -->
+            <div id="monthlyPrice" class="flex items-baseline mb-6">
+              <span class="text-5xl font-extrabold">€20</span>
+              <span class="text-gray-500 ml-2">/month</span>
+            </div>
+            <div id="yearlyPrice" class="flex items-baseline mb-6 hidden">
+              <span class="text-5xl font-extrabold">€192</span>
+              <span class="text-gray-500 ml-2">/year</span>
+            </div>
+            <button id="subscribePremiumBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors">Subscribe</button>
+            <p class="text-sm text-gray-500 mt-2 text-center">Includes 14-day free trial</p>
+          </div>
+          <div class="bg-gray-50 p-8">
+            <h3 class="text-lg font-semibold mb-4 text-gray-900">WHAT'S INCLUDED</h3>
+            <ul class="space-y-3">
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Unlimited AI Chat Messages</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Access to Latest AI Models</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Unlimited Topics</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Unlimited Bookmarks</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Unlimited PDF to Podcast conversions</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Priority Support</span>
+              </li>
+            </ul>
+          </div>
+              <svg class="flex-shrink-0 h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+              <span class="text-sm text-gray-500">Unlimited PDF to Podcast conversions</span>
+            </li>
+            <li class="flex space-x-3">
+              <svg class="flex-shrink-0 h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+              <span class="text-sm text-gray-500">Priority Support</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-16 max-w-3xl mx-auto text-center">
+      <h3 class="text-2xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h3>
+      <div class="mt-8 space-y-8">
+        <!-- FAQ Item -->
+        <div class="text-left">
+          <h4 class="text-lg font-medium text-gray-900">How does the 14-day free trial work?</h4>
+          <p class="mt-2 text-base text-gray-500">
+            When you subscribe to the Premium plan, you'll get immediate access to all premium features for 14 days without being charged. After the trial period, your payment method will be automatically charged unless you cancel before the trial ends.
+          </p>
+        </div>
+        <!-- FAQ Item -->
+        <div class="text-left">
+          <h4 class="text-lg font-medium text-gray-900">Can I cancel my subscription anytime?</h4>
+          <p class="mt-2 text-base text-gray-500">
+            Yes, you can cancel your subscription at any time. If you cancel during your trial period, you won't be charged. If you cancel after your trial, you'll continue to have access to premium features until the end of your current billing cycle.
+          </p>
+        </div>
+        <!-- FAQ Item -->
+        <div class="text-left">
+          <h4 class="text-lg font-medium text-gray-900">What payment methods are accepted?</h4>
+          <p class="mt-2 text-base text-gray-500">
+            We accept all major credit and debit cards (Visa, Mastercard, American Express) through our secure payment processor, Stripe.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed inset-x-0 bottom-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end">
+    <div class="max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden transform transition-all hidden" role="alert">
+      <div class="p-4">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg id="toastIcon" class="h-6 w-6 text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="ml-3 w-0 flex-1 pt-0.5">
+            <p id="toastMessage" class="text-sm font-medium text-gray-900">Successfully saved!</p>
+          </div>
+          <div class="ml-4 flex-shrink-0 flex">
+            <button id="toastClose" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <span class="sr-only">Close</span>
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Function to show default avatar when custom avatar fails to load
+    function showDefaultAvatar(imgElement, loadingElement) {
+      if (!imgElement) return;
+      
+      imgElement.src = '/assets/avatars/default.png'; // Use default avatar path
+      
+      imgElement.onload = () => {
+        imgElement.classList.remove('opacity-0');
+        imgElement.classList.add('opacity-100');
+        if (loadingElement) loadingElement.style.display = 'none';
+      };
+    }
+    
+    // Function to load avatar from localStorage or backend
+    async function loadTutorAvatar() {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      const sidebarAvatarImg = document.getElementById('pricingSidebarUserAvatar');
+      const avatarLoading = document.getElementById('pricingAvatarLoading');
+      
+      // Check for cached avatar URL first
+      const cachedAvatarUrl = localStorage.getItem('userAvatarUrl');
+      
+      if (!userId || !accessToken) {
+        console.warn('User not authenticated, cannot load avatar.');
+        showDefaultAvatar(sidebarAvatarImg, avatarLoading);
+        return;
+      }
+
+      if (!sidebarAvatarImg) {
+        console.error('Sidebar avatar image element not found.');
+        return;
+      }
+      
+      // Use cached avatar if available (prevents flashing)
+      if (cachedAvatarUrl) {
+        sidebarAvatarImg.src = cachedAvatarUrl;
+        sidebarAvatarImg.onload = () => {
+          sidebarAvatarImg.classList.remove('opacity-0');
+          sidebarAvatarImg.classList.add('opacity-100');
+          if (avatarLoading) avatarLoading.style.display = 'none';
+        };
+      }
+      
+      try {
+        // Still fetch fresh avatar from server in case it changed
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'getAvatar',
+            userId: userId
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        const result = await response.json();
+        if (response.ok && result.avatarUrl) {
+          // Cache the avatar URL
+          localStorage.setItem('userAvatarUrl', result.avatarUrl);
+          
+          // If URL is different from cached version, update the display
+          if (sidebarAvatarImg.src !== result.avatarUrl) {
+            sidebarAvatarImg.src = result.avatarUrl;
+            sidebarAvatarImg.onload = () => {
+              sidebarAvatarImg.classList.remove('opacity-0');
+              sidebarAvatarImg.classList.add('opacity-100');
+              if (avatarLoading) avatarLoading.style.display = 'none';
+            };
+          } else if (sidebarAvatarImg.classList.contains('opacity-0')) {
+            // In case the image was already loaded but not made visible
+            sidebarAvatarImg.classList.remove('opacity-0');
+            sidebarAvatarImg.classList.add('opacity-100');
+            if (avatarLoading) avatarLoading.style.display = 'none';
+          }
+        } else {
+          throw new Error(result.error || 'Failed to load avatar URL');
+        }
+      } catch (error) {
+        console.error('Error loading tutor avatar:', error);
+        // Only show default if there's no cached avatar already displayed
+        if (!cachedAvatarUrl) {
+          showDefaultAvatar(sidebarAvatarImg, avatarLoading);
+        }
+      }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if the user is logged in
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      
+      if (!userId || !accessToken) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Mobile navigation
+      const hamburger = document.getElementById('hamburger');
+      const sidebar = document.getElementById('sidebar');
+      const closeSidebar = document.getElementById('closeSidebar');
+      
+      if (hamburger && sidebar && closeSidebar) {
+        hamburger.addEventListener('click', () => {
+          sidebar.classList.toggle('translate-x-0');
+        });
+        
+        closeSidebar.addEventListener('click', () => {
+          sidebar.classList.remove('translate-x-0');
+        });
+      }
+      
+      // Handle logout
+      document.getElementById('logout').addEventListener('click', function() {
+        localStorage.removeItem('userId');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('userEmail');
+        window.location.href = 'login.html';
+      });
+      
+      // Load avatar on page load
+      loadTutorAvatar();
+      
+      // Initialize Stripe with a proper key (this should be replaced with your actual publishable key in production)
+      const stripe = Stripe('pk_test_51OXy1fClwD4VYWVaEU1IQIWxVTjCvutdpRGcIOLH2xaCUajrNnEOF10YKgKzmuEt1Qkb6dYBkwMdNLEPY8scG8kA001pSc7gSq');
+      
+      // Check subscription status
+      checkSubscriptionStatus();
+      
+      // Handle billing toggle
+      let isYearlyBilling = false;
+      const billingToggle = document.getElementById('billingToggle');
+      const toggleCircle = document.getElementById('toggleCircle');
+      const monthlyLabel = document.getElementById('monthlyLabel');
+      const yearlyLabel = document.getElementById('yearlyLabel');
+      const monthlyPrice = document.getElementById('monthlyPrice');
+      const yearlyPrice = document.getElementById('yearlyPrice');
+      
+      if (billingToggle && toggleCircle && monthlyLabel && yearlyLabel) {
+        billingToggle.addEventListener('click', function() {
+          isYearlyBilling = !isYearlyBilling;
+          
+          // Update toggle appearance
+          if (isYearlyBilling) {
+            toggleCircle.classList.remove('translate-x-0');
+            toggleCircle.classList.add('translate-x-6');
+            monthlyLabel.classList.remove('text-gray-900', 'opacity-100');
+            monthlyLabel.classList.add('text-gray-500', 'opacity-70');
+            yearlyLabel.classList.remove('text-gray-500', 'opacity-70');
+            yearlyLabel.classList.add('text-gray-900', 'opacity-100');
+            
+            // Show yearly price
+            monthlyPrice.classList.add('hidden');
+            yearlyPrice.classList.remove('hidden');
+          } else {
+            toggleCircle.classList.remove('translate-x-6');
+            toggleCircle.classList.add('translate-x-0');
+            yearlyLabel.classList.remove('text-gray-900', 'opacity-100');
+            yearlyLabel.classList.add('text-gray-500', 'opacity-70');
+            monthlyLabel.classList.remove('text-gray-500', 'opacity-70');
+            monthlyLabel.classList.add('text-gray-900', 'opacity-100');
+            
+            // Show monthly price
+            yearlyPrice.classList.add('hidden');
+            monthlyPrice.classList.remove('hidden');
+          }
+        });
+      }
+
+      // Handle subscription button click
+      document.getElementById('subscribePremiumBtn').addEventListener('click', async function() {
+        try {
+          // Create a checkout session
+          const response = await fetch('/.netlify/functions/create-checkout-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user: {
+                id: userId,
+                email: localStorage.getItem('userEmail'),
+                accessToken: accessToken
+              },
+              billingInterval: isYearlyBilling ? 'yearly' : 'monthly'
+            }),
+          });
+          
+          const { sessionId, error } = await response.json();
+          
+          if (error) {
+            showToast(error, 'error');
+            return;
+          }
+          
+          // Redirect to Stripe Checkout
+          const result = await stripe.redirectToCheckout({
+            sessionId: sessionId,
+          });
+          
+          if (result.error) {
+            showToast(result.error.message, 'error');
+          }
+        } catch (error) {
+          console.error('Error creating checkout session:', error);
+          showToast('An error occurred. Please try again.', 'error');
+        }
+      });
+      
+      // Function to check subscription status
+      async function checkSubscriptionStatus() {
+        try {
+          const response = await fetch('/.netlify/functions/check-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: userId,
+              accessToken: accessToken
+            }),
+          });
+          
+          const data = await response.json();
+          
+          if (data.error) {
+            showToast(data.error, 'error');
+            return;
+          }
+          
+          // Update UI based on subscription status
+          if (data.hasPremium) {
+            document.getElementById('subscribeBtn').textContent = 'Manage Subscription';
+            document.getElementById('subscribeBtn').addEventListener('click', createPortalSession);
+            document.getElementById('currentPlanBtn').textContent = 'Free Plan';
+            document.getElementById('currentPlanBtn').classList.add('hidden');
+            
+            // Show trial or subscription info if available
+            if (data.subscription.trialEndDate) {
+              const trialEndDate = new Date(data.subscription.trialEndDate);
+              if (trialEndDate > new Date()) {
+                // Still in trial period
+                document.querySelector('#subscribeBtn + p').textContent = `Trial ends on ${trialEndDate.toLocaleDateString()}`;
+              }
+            }
+            
+            if (data.subscription.cancelAtPeriodEnd) {
+              const endDate = new Date(data.subscription.currentPeriodEnd);
+              document.querySelector('#subscribeBtn + p').textContent = `Subscription ends on ${endDate.toLocaleDateString()}`;
+            }
+          } else {
+            document.getElementById('currentPlanBtn').classList.remove('hidden');
+          }
+          
+          // Check URL parameters for subscription status
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('subscription') === 'success') {
+            showToast('Subscription successful! You now have access to all premium features.', 'success');
+          } else if (urlParams.get('subscription') === 'canceled') {
+            showToast('Checkout was canceled. You can try again when you\'re ready.', 'info');
+          }
+        } catch (error) {
+          console.error('Error checking subscription status:', error);
+        }
+      }
+      
+      // Function to create a portal session
+      async function createPortalSession() {
+        try {
+          const response = await fetch('/.netlify/functions/create-portal-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user: {
+                id: userId,
+                email: localStorage.getItem('userEmail'),
+                accessToken: accessToken
+              }
+            }),
+          });
+          
+          const { url, error } = await response.json();
+          
+          if (error) {
+            showToast(error, 'error');
+            return;
+          }
+          
+          window.location.href = url;
+        } catch (error) {
+          console.error('Error creating portal session:', error);
+          showToast('An error occurred. Please try again.', 'error');
+        }
+      }
+      
+      // Function to show toast notifications
+      function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast').querySelector('div');
+        const toastMessage = document.getElementById('toastMessage');
+        const toastIcon = document.getElementById('toastIcon');
+        
+        toastMessage.textContent = message;
+        
+        if (type === 'error') {
+          toastIcon.classList.remove('text-green-400');
+          toastIcon.classList.add('text-red-400');
+          toastIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />';
+        } else if (type === 'info') {
+          toastIcon.classList.remove('text-green-400');
+          toastIcon.classList.add('text-blue-400');
+          toastIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+        } else {
+          toastIcon.classList.remove('text-red-400', 'text-blue-400');
+          toastIcon.classList.add('text-green-400');
+          toastIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />';
+        }
+        
+        toast.classList.remove('hidden');
+        
+        // Hide the toast after 3 seconds
+        setTimeout(() => {
+          toast.classList.add('hidden');
+        }, 3000);
+        
+        // Close the toast when the close button is clicked
+        document.getElementById('toastClose').addEventListener('click', () => {
+          toast.classList.add('hidden');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

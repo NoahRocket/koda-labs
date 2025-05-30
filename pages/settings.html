@@ -194,6 +194,39 @@
     </div>
     <!-- Blue Divider -->
     <hr style="border:none; height:1px; background-color:#00A3E0; margin:32px 0;">
+    
+    <!-- Subscription Management Section -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 text-gray-700">Subscription</h2>
+      <div id="subscriptionStatus" class="bg-gray-50 p-4 rounded-lg mb-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <div id="currentPlan" class="font-medium text-gray-800">Loading subscription info...</div>
+            <div id="subscriptionDetails" class="text-sm text-gray-600 mt-1"></div>
+          </div>
+          <div class="badge bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm" id="subscriptionBadge">
+            Loading...
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
+        <div>
+          <div class="font-medium text-gray-800">Manage Subscription</div>
+          <div class="text-sm text-gray-600 mt-1">Upgrade, downgrade, or cancel your subscription</div>
+        </div>
+        <div class="flex space-x-2">
+          <a href="/pages/pricing.html" style="background-color:#00A3E0;" class="hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center" id="upgradePlanBtn">
+            <i class="fas fa-arrow-up mr-2"></i> View Plans
+          </a>
+          <button id="manageSubscriptionBtn" style="background-color:#4B5563;" class="hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center">
+            <i class="fas fa-cog mr-2"></i> Manage
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Blue Divider -->
+    <hr style="border:none; height:1px; background-color:#00A3E0; margin:32px 0;">
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 class="text-xl font-semibold mb-4 text-gray-700">Account Settings</h2>
       <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg mb-4">
@@ -351,6 +384,15 @@
 
       // Initial loads
       loadNotes();
+      
+      // Load subscription status
+      loadSubscriptionStatus();
+      
+      // Manage subscription button
+      const manageSubscriptionBtn = document.getElementById('manageSubscriptionBtn');
+      if (manageSubscriptionBtn) {
+        manageSubscriptionBtn.addEventListener('click', createPortalSession);
+      }
     });
 
     async function loadTopics() {
@@ -597,6 +639,138 @@
       }
     }
     
+    // Load user subscription status
+    async function loadSubscriptionStatus() {
+      try {
+        console.log('Checking subscription status for user:', userId);
+        const response = await fetch('/.netlify/functions/check-subscription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId,
+            accessToken
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Subscription data received:', data);
+        
+        if (data.error) {
+          console.error('Error checking subscription:', data.error);
+          document.getElementById('currentPlan').textContent = 'Free Plan';
+          document.getElementById('subscriptionDetails').textContent = 'Unable to load subscription details';
+          document.getElementById('subscriptionBadge').textContent = 'Free';
+          document.getElementById('subscriptionBadge').classList.remove('bg-green-200', 'text-green-800');
+          document.getElementById('subscriptionBadge').classList.add('bg-gray-200', 'text-gray-700');
+          return;
+        }
+        
+        // Update the subscription UI
+        const subscriptionBadge = document.getElementById('subscriptionBadge');
+        const currentPlan = document.getElementById('currentPlan');
+        const subscriptionDetails = document.getElementById('subscriptionDetails');
+        const manageSubscriptionBtn = document.getElementById('manageSubscriptionBtn');
+        const upgradePlanBtn = document.getElementById('upgradePlanBtn');
+        
+        if (data.hasPremium) {
+          // Premium user UI
+          currentPlan.textContent = 'Premium Plan';
+          subscriptionBadge.textContent = 'Premium';
+          subscriptionBadge.classList.remove('bg-gray-200', 'text-gray-700');
+          subscriptionBadge.classList.add('bg-green-200', 'text-green-800');
+          
+          // Show the manage button and hide the upgrade button for premium users
+          manageSubscriptionBtn.style.display = 'flex';
+          upgradePlanBtn.style.display = 'none';
+          
+          // Set next billing date
+          if (data.subscription.currentPeriodEnd) {
+            const nextBillingDate = new Date(data.subscription.currentPeriodEnd);
+            const formattedDate = nextBillingDate.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            });
+            subscriptionDetails.textContent = `Next billing date: ${formattedDate}`;
+          } else {
+            subscriptionDetails.textContent = 'Active premium subscription';
+          }
+          
+          // Show trial info if applicable
+          if (data.subscription.trialEndDate) {
+            const trialEndDate = new Date(data.subscription.trialEndDate);
+            if (trialEndDate > new Date()) {
+              // Still in trial period
+              subscriptionDetails.textContent = `Free trial ends on ${trialEndDate.toLocaleDateString()}`;
+            }
+          }
+          
+          // Show cancellation info if applicable
+          if (data.subscription.cancelAtPeriodEnd) {
+            const endDate = new Date(data.subscription.currentPeriodEnd);
+            subscriptionDetails.textContent = `Your subscription will end on ${endDate.toLocaleDateString()}`;
+          }
+        } else {
+          // Free user UI
+          currentPlan.textContent = 'Free Plan';
+          subscriptionBadge.textContent = 'Free';
+          subscriptionBadge.classList.remove('bg-green-200', 'text-green-800');
+          subscriptionBadge.classList.add('bg-gray-200', 'text-gray-700');
+          
+          // Show the upgrade button and hide the manage button for free users
+          manageSubscriptionBtn.style.display = 'none';
+          upgradePlanBtn.style.display = 'flex';
+          upgradePlanBtn.innerHTML = '<i class="fas fa-arrow-up mr-2"></i> Upgrade';
+          
+          subscriptionDetails.textContent = 'Limited features available';
+        }
+      } catch (error) {
+        console.error('Error loading subscription status:', error);
+        document.getElementById('currentPlan').textContent = 'Free Plan';
+        document.getElementById('subscriptionDetails').textContent = 'Unable to load subscription details';
+        document.getElementById('subscriptionBadge').textContent = 'Free';
+        document.getElementById('subscriptionBadge').classList.remove('bg-green-200', 'text-green-800');
+        document.getElementById('subscriptionBadge').classList.add('bg-gray-200', 'text-gray-700');
+      }
+    }
+    
+    // Create a Stripe customer portal session
+    async function createPortalSession() {
+      try {
+        const response = await fetch('/.netlify/functions/create-portal-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user: {
+              id: userId,
+              email: localStorage.getItem('userEmail'),
+              accessToken
+            }
+          }),
+        });
+        
+        const { url, error } = await response.json();
+        
+        if (error) {
+          showToast(error, 'error');
+          return;
+        }
+        
+        window.location.href = url;
+      } catch (error) {
+        console.error('Error creating portal session:', error);
+        showToast('An error occurred. Please try again.', 'error');
+      }
+    }
+
     // Save a new note
     async function saveNote() {
       const noteText = document.getElementById('noteText').value.trim();

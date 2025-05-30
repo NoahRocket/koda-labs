@@ -3,6 +3,10 @@
 
 const fetch = require('node-fetch'); // Ensure node-fetch version 2.x is installed
 const { getSupabaseAuthClient } = require('./supabaseClient');
+const { trackUsageAndCheckLimits } = require('./usage-tracking');
+
+// Free tier limits
+const FREE_TIER_DAILY_MESSAGE_LIMIT = 30;
 
 // Verify JWT token from the authorization header
 async function verifyToken(authHeader) {
@@ -104,6 +108,7 @@ module.exports.handler = async (event, context) => {
 
   try {
     // Verify token if authorization header is present
+    let userId = null;
     if (event.headers.authorization) {
       const authResult = await verifyToken(event.headers.authorization);
       if (authResult.error) {
@@ -113,6 +118,8 @@ module.exports.handler = async (event, context) => {
           body: JSON.stringify({ error: authResult.error })
         };
       }
+      // Store the user ID for usage tracking
+      userId = authResult.user.id;
     }
 
     const requestBody = JSON.parse(event.body || '{}');
@@ -276,6 +283,27 @@ module.exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'No messages provided in the request.' }),
       };
     }
+    
+    // Check usage limits if user is authenticated
+    let usageResult = { hasPremium: false, limitExceeded: false };
+    if (userId) {
+      usageResult = await trackUsageAndCheckLimits(userId, 'chat_messages', FREE_TIER_DAILY_MESSAGE_LIMIT);
+      
+      // If free tier user has exceeded their daily message limit
+      if (usageResult.limitExceeded) {
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({
+            error: 'Daily message limit exceeded',
+            dailyLimit: FREE_TIER_DAILY_MESSAGE_LIMIT,
+            usage: usageResult.currentUsage,
+            isPremium: false,
+            message: 'You have reached your daily message limit. Upgrade to Premium for unlimited messages.'
+          }),
+        };
+      }
+    }
 
     // Only send the last 5 messages to OpenAI
     const trimmedMessages = messages.slice(-5);
@@ -289,6 +317,10 @@ module.exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Missing OpenAI API key in environment.' }),
       };
     }
+    
+    // Select model based on subscription tier
+    // Premium users get access to the latest model, free users get a simpler model
+    const model = usageResult.hasPremium ? 'gpt-4.1-2025-04-14' : 'o3-mini-2025-01-31';
 
     // Forward request to OpenAI ChatGPT
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -298,7 +330,7 @@ module.exports.handler = async (event, context) => {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14', 
+        model: model, 
         messages: [ // New structure: System prompt + conversation history
           { role: 'system', content: 'You are Koda, a friendly and curious learning companion who\'s excited to explore topics with me! Your tone is warm, conversational, and upbeat—like a buddy who loves diving into new ideas. Avoid stiff or robotic replies; instead, show enthusiasm, ask me questions to keep the chat going, and make it feel like we\'re discovering together. Tailor your responses to my interests based on our conversations, bookmarks, or notes, and keep things simple and fun so I enjoy every moment! Try to use ideally less then 500 tokens per response but if you feel like a question warrants a longer response, do so. **Use Markdown formatting (e.g., bold, italics) to emphasize key terms and concepts.**' },
           ...trimmedMessages // Only the last 5 messages

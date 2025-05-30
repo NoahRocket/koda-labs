@@ -142,6 +142,26 @@
       <p class="text-gray-600 mt-2">Generating your podcast. This may take several minutes...</p>
     </div>
 
+    <!-- Premium Upgrade Banner -->
+    <div id="premiumBanner" class="bg-indigo-50 border border-indigo-200 p-6 rounded-lg shadow-sm mt-8 max-w-3xl mx-auto hidden">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 bg-indigo-100 rounded-full p-3">
+            <svg class="h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-lg font-medium text-indigo-800">Upgrade to Premium</h3>
+            <p class="text-indigo-600" id="premiumBannerText">Unlock unlimited podcast conversions and more.</p>
+          </div>
+        </div>
+        <a href="/pages/pricing.html" class="ml-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          View Plans
+        </a>
+      </div>
+    </div>
+    
     <!-- Podcasts List Section -->
     <div class="bg-white p-6 rounded-lg shadow-sm mt-8 max-w-3xl mx-auto">
       <div class="flex justify-between items-center mb-6">
@@ -298,6 +318,15 @@
         loadingIndicator.classList.add('hidden');
         return;
       }
+      
+      // Check subscription status
+      const subscriptionStatus = await checkSubscriptionStatus();
+      if (!subscriptionStatus.hasPremium && subscriptionStatus.podcastCount >= 1) {
+        showMessage('You\'ve reached your free podcast limit. Upgrade to premium for unlimited podcasts.', 'error');
+        loadingIndicator.classList.add('hidden');
+        document.getElementById('premiumBanner').scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
 
       const formData = new FormData();
       formData.append('pdf', file);
@@ -334,6 +363,64 @@
       }
     });
 
+    // Function to check user's subscription status
+    async function checkSubscriptionStatus() {
+      try {
+        const userId = localStorage.getItem('userId');
+        const accessToken = localStorage.getItem('accessToken');
+        
+        if (!userId || !accessToken) {
+          return { hasPremium: false, podcastCount: 0 };
+        }
+        
+        const response = await fetch('/.netlify/functions/check-subscription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId,
+            accessToken
+          }),
+        });
+        
+        const subscriptionData = await response.json();
+        
+        // Get podcast count for free tier limit check
+        const podcastResponse = await fetch('/.netlify/functions/list-podcasts', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        const podcastData = await podcastResponse.json();
+        const podcastCount = podcastData.podcasts ? podcastData.podcasts.length : 0;
+        
+        // Show or hide premium banner based on subscription status
+        const premiumBanner = document.getElementById('premiumBanner');
+        if (!subscriptionData.hasPremium) {
+          premiumBanner.classList.remove('hidden');
+          
+          // If user is at or over the free limit, update banner text
+          if (podcastCount >= 1) {
+            document.getElementById('premiumBannerText').textContent = 
+              "You've reached your free podcast limit. Upgrade to continue creating podcasts.";
+          }
+        } else {
+          premiumBanner.classList.add('hidden');
+        }
+        
+        return {
+          hasPremium: subscriptionData.hasPremium || false,
+          podcastCount: podcastCount
+        };
+      } catch (error) {
+        console.error('Error checking subscription status:', error);
+        return { hasPremium: false, podcastCount: 0 };
+      }
+    }
+    
     // Function to load user's generated podcasts
     async function loadPodcasts() {
       try {
@@ -496,6 +583,8 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Reinitialize upload functionality on page load
       initializeUpload();
+      // Check subscription status on page load
+      checkSubscriptionStatus();
       // Check authentication
       const userId = localStorage.getItem('userId');
       const accessToken = localStorage.getItem('accessToken');
