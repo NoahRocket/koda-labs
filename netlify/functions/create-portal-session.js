@@ -74,10 +74,40 @@ exports.handler = async (event, context) => {
       stripeCustomerId = subscription.stripe_customer_id;
     }
     
-    // Create a Stripe customer portal session
+    // Create a Stripe customer portal session with configuration
     const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
       return_url: `${event.headers.origin}/settings.html`,
+      // Provide explicit configuration parameters
+      configuration_id: process.env.STRIPE_PORTAL_CONFIG_ID || null, // Use specific config if available
+      configuration: {
+        // Default configuration if no configuration_id is provided
+        business_profile: {
+          headline: 'Koda Tutor Subscription Management'
+        },
+        features: {
+          customer_update: {
+            enabled: true,
+            allowed_updates: ['email', 'address', 'phone']
+          },
+          invoice_history: {
+            enabled: true
+          },
+          payment_method_update: {
+            enabled: true
+          },
+          subscription_cancel: {
+            enabled: true,
+            mode: 'at_period_end',
+            proration_behavior: 'none'
+          },
+          subscription_update: {
+            enabled: true,
+            default_allowed_updates: ['price'],
+            products: []
+          }
+        }
+      }
     });
     
     // Return the session URL to the client
