@@ -155,6 +155,7 @@
           localStorage.setItem('userId', result.user.id);
           localStorage.setItem('accessToken', result.session.access_token);
           localStorage.setItem('refreshToken', result.session.refresh_token);
+          localStorage.setItem('userEmail', email); // Store email for Stripe and other functions
           
           // Small delay to show success message
           setTimeout(() => {
