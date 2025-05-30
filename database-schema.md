@@ -6,6 +6,7 @@ This document provides a detailed description of the Koda Labs database schema, 
 
 Koda Labs database is structured to support several key features:
 - User management and authentication
+- Subscription management and payment processing
 - Topic organization 
 - Content creation and storage (conversations, notes, summaries)
 - Bookmarking functionality
@@ -78,6 +79,21 @@ Manages the podcast generation process.
 - `updated_at`: Timestamp when the job was last updated
 - `concepts`: JSON field storing extracted concepts from the source
 
+### user_subscriptions
+Stores user subscription information.
+- `id`: Primary key, UUID format
+- `user_id`: Foreign key to `auth.users.id`
+- `stripe_customer_id`: Text field storing the Stripe customer ID
+- `stripe_subscription_id`: Text field storing the Stripe subscription ID
+- `subscription_status`: Text field indicating the status of the subscription (active, canceled, etc.)
+- `subscription_tier`: Text field indicating the subscription tier (free, premium)
+- `trial_end_date`: Timestamp indicating when the trial period ends
+- `created_at`: Timestamp when the subscription record was created
+- `updated_at`: Timestamp when the subscription record was last updated
+- `current_period_end`: Timestamp indicating when the current billing period ends
+- `cancel_at_period_end`: Boolean indicating if the subscription will cancel at the end of the current period
+- `billing_interval`: Text field indicating the billing interval (monthly, yearly)
+
 ## Relationships
 
 1. Users (auth.users) can have multiple:
@@ -87,6 +103,7 @@ Manages the podcast generation process.
    - Notes
    - Podcasts
    - Podcast jobs
+   - Subscription records (one active subscription at a time)
 
 2. Topics can have multiple:
    - Conversations
@@ -95,6 +112,12 @@ Manages the podcast generation process.
    - Bookmarks
 
 ## Feature Context
+
+### Subscription System
+The database supports the subscription system with:
+- `user_subscriptions` table to track subscription status, tier, and billing information
+- Integration with Stripe for payment processing and subscription management
+- Support for both monthly and yearly billing intervals
 
 ### PDF to Podcast Feature
 The database supports the PDF to Podcast feature with:

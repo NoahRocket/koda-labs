@@ -743,6 +743,23 @@
     // Create a Stripe customer portal session
     async function createPortalSession() {
       try {
+        // Get user details
+        const userEmail = localStorage.getItem('userEmail');
+        
+        // Debug log
+        console.log('Creating portal session with:', {
+          userId,
+          userEmail,
+          accessTokenExists: !!accessToken
+        });
+        
+        // Validate required data
+        if (!userId || !userEmail) {
+          showToast('Missing user information. Please try logging out and back in.', 'error');
+          console.error('Missing required user data:', { userId, userEmail });
+          return;
+        }
+        
         const response = await fetch('/.netlify/functions/create-portal-session', {
           method: 'POST',
           headers: {
@@ -751,16 +768,30 @@
           body: JSON.stringify({
             user: {
               id: userId,
-              email: localStorage.getItem('userEmail'),
+              email: userEmail,
               accessToken
             }
           }),
         });
         
-        const { url, error } = await response.json();
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Portal session error:', response.status, errorText);
+          showToast(`Error: ${response.status} - Please try again later`, 'error');
+          return;
+        }
+        
+        const data = await response.json();
+        const { url, error } = data;
         
         if (error) {
           showToast(error, 'error');
+          return;
+        }
+        
+        if (!url) {
+          showToast('No portal URL returned. Please try again.', 'error');
+          console.error('Missing URL in response:', data);
           return;
         }
         

@@ -4,11 +4,31 @@ Koda Tutor is a personal knowledge companion that helps users learn, remember, a
 
 ## Features
 
+- **Subscription System**: Tiered pricing with free and premium plans, offering monthly and yearly billing options.
 - **AI Chat Interface**: Converse with an AI assistant to explore and learn new topics.
 - **Dashboard**: Central hub for accessing all your saved knowledge.
 - **Topic Management**: Organize saved content by topic for better retrieval.
 - **Bookmarks**: Save and organize web links and important information.
 - **PDF to Podcast**: Convert PDFs to audio podcasts for on-the-go learning.
+
+## Subscription System
+
+Koda Labs offers a tiered subscription model to provide flexibility for different user needs:
+
+1. **Free Plan**: Basic features with limited access
+2. **Premium Plan**: Full access to all features and advanced functionality
+
+The subscription system is built with the following components:
+
+1. **Pricing Page** (`pages/pricing.html`): Displays subscription options with a toggle between monthly and yearly billing.
+2. **Stripe Integration**: Handles payment processing and subscription management.
+3. **Subscription Management** (`pages/settings.html`): Allows users to view their current subscription status and manage their subscription.
+4. **Backend Processing**:
+   - `create-checkout-session.js`: Creates a Stripe checkout session for new subscriptions
+   - `create-portal-session.js`: Creates a Stripe customer portal session for managing existing subscriptions
+   - `check-subscription.js`: Verifies user subscription status
+   - `stripe-webhook.js`: Processes Stripe webhook events
+   - `stripeClient.js`: Utility functions for Stripe operations
 
 ## PDF to Podcast Feature
 
@@ -30,6 +50,7 @@ This architecture effectively handles potentially long-running processes while p
 - **Backend**: Netlify Serverless Functions (Node.js)
 - **Database & Storage**: Supabase
 - **APIs**: 
+  - Stripe for payment processing and subscription management
   - OpenAI for script generation
   - ElevenLabs for text-to-speech
   
@@ -53,3 +74,8 @@ SUPABASE_URL=your-supabase-url
 SUPABASE_KEY=your-supabase-anon-key
 OPENAI_API_KEY=your-openai-api-key
 ELEVENLABS_API_KEY=your-elevenlabs-api-key
+STRIPE_SECRET_KEY=your-stripe-secret-key
+STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
+STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+STRIPE_MONTHLY_PRICE_ID=your-stripe-monthly-price-id
+STRIPE_YEARLY_PRICE_ID=your-stripe-yearly-price-id

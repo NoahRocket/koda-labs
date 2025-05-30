@@ -21,7 +21,21 @@ Koda Tutor is a web application designed to be a personal knowledge companion. I
 
 ## 4. Key Features
 
-### 4.1. User Authentication
+### 4.1. Subscription Plans
+*   **Description:** Tiered subscription model offering free and premium access levels.
+*   **Requirements:**
+    *   Free tier with basic functionality.
+    *   Premium tier with advanced features and unlimited access.
+    *   Monthly and yearly billing options with appropriate pricing.
+    *   Pricing page (`pages/pricing.html`) to display subscription options.
+    *   Integration with Stripe for payment processing.
+    *   Stripe Customer Portal for subscription management.
+*   **Backend:** 
+    *   Stripe API integration for payment processing.
+    *   Netlify Functions for handling checkout sessions and webhooks.
+    *   Supabase database for storing subscription data.
+
+### 4.2. User Authentication
 *   **Description:** Users can create an account and log in to access their personal knowledge base.
 *   **Requirements:**
     *   Signup page (`pages/signup.html`).
@@ -30,7 +44,7 @@ Koda Tutor is a web application designed to be a personal knowledge companion. I
     *   Logout functionality.
 *   **Backend:** Supabase likely handles user authentication.
 
-### 4.2. Landing Page (`index.html`)
+### 4.3. Landing Page (`index.html`)
 *   **Description:** Introduces the application, its core value proposition, features, and how it works. Provides entry points for login/signup.
 *   **Requirements:**
     *   Hero section with application title and description.
@@ -40,13 +54,13 @@ Koda Tutor is a web application designed to be a personal knowledge companion. I
     *   Navigation (responsive).
     *   Call-to-action buttons (Login/Signup).
 
-### 4.3. Dashboard (`pages/dashboard.html`)
+### 4.4. Dashboard (`pages/dashboard.html`)
 *   **Description:** The main landing area for logged-in users, likely providing an overview or access point to other features.
 *   **Requirements:** (Specific content needs further investigation)
     *   Redirect logged-in users here.
     *   Provide navigation to other authenticated sections (Chat, Bookmarks, Topics, Settings).
 
-### 4.4. AI Chat Interface (`pages/chat.html`, `chat.js`)
+### 4.5. AI Chat Interface (`pages/chat.html`, `chat.js`)
 *   **Description:** Allows users to have conversations with an AI assistant.
 *   **Requirements:**
     *   Input area for user prompts/questions.
@@ -54,7 +68,7 @@ Koda Tutor is a web application designed to be a personal knowledge companion. I
     *   Mechanism to send user input to the backend AI service (`/.netlify/functions/chatgpt`).
     *   Display AI responses.
 
-### 4.5. Bookmarks (`pages/bookmarks.html`)
+### 4.6. Bookmarks (`pages/bookmarks.html`)
 *   **Description:** Enables users to save and manage relevant web links or pieces of information.
 *   **Requirements:** (Specific functionality needs further investigation)
     *   Ability to add bookmarks (possibly using `url-metadata` dependency).
@@ -65,14 +79,18 @@ Koda Tutor is a web application designed to be a personal knowledge companion. I
 *   **Requirements:** (Specific functionality needs further investigation)
     *   Ability to view content grouped by topics.
     *   Potential ability to create, rename, or manage topics.
+    *   Premium features may include advanced topic management capabilities.
 
 ### 4.7. Settings (`pages/settings.html`)
-*   **Description:** Allows users to manage their account settings.
-*   **Requirements:** (Specific settings need further investigation)
+*   **Description:** Allows users to manage their account settings and subscription status.
+*   **Requirements:**
     *   Profile information.
     *   Account management options (e.g., password change - if applicable).
+    *   Subscription status display showing current plan (Free/Premium).
+    *   Ability to manage existing subscriptions via the Stripe Customer Portal.
+    *   Integration with `create-portal-session.js` to redirect to Stripe.
 
-### 4.8. PDF to Podcast Conversion (`pages/podcasts.html`)
+### 4.9. PDF to Podcast Conversion (`pages/podcasts.html`)
 *   **Description:** Allows users to convert PDF documents into audio podcasts by extracting key concepts, generating a conversational script, and converting it to speech using an asynchronous job-based architecture to handle long-running processes.
 *   **Requirements:**
     *   PDF upload interface
@@ -92,7 +110,27 @@ Koda Tutor is a web application designed to be a personal knowledge companion. I
     *   `direct-upload.js`: Manages uploading generated audio to Supabase Storage
     *   `check-podcast-status.js`: Allows users to check the status of podcast generation jobs
 
-## 5. Non-Functional Requirements
+## 5. Subscription Functionality
+
+### 5.1. Pricing Page (`pages/pricing.html`)
+*   **Description:** Displays available subscription plans with pricing and features.
+*   **Requirements:**
+    *   Toggle between monthly and yearly billing options.
+    *   Clear display of pricing for each plan.
+    *   Feature comparison between free and premium tiers.
+    *   Call-to-action buttons for subscription checkout.
+*   **Integration:** Connected to `create-checkout-session.js` to initiate Stripe checkout.
+
+### 5.2. Stripe Integration
+*   **Description:** Backend services for managing subscriptions through Stripe.
+*   **Components:**
+    *   `create-checkout-session.js`: Creates a Stripe checkout session for new subscriptions.
+    *   `create-portal-session.js`: Creates a Stripe customer portal session for managing existing subscriptions.
+    *   `check-subscription.js`: Verifies user subscription status.
+    *   `stripe-webhook.js`: Processes Stripe webhook events to update subscription status.
+    *   `stripeClient.js`: Utility functions for Stripe operations.
+
+## 6. Non-Functional Requirements
 
 *   **Technology Stack:**
     *   Frontend: HTML, CSS (Tailwind CSS), JavaScript
