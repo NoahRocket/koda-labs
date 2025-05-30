@@ -42,14 +42,20 @@ exports.handler = async (event, context) => {
     
     // Access the database directly
     const supabase = getSupabaseAdmin();
-    const { data: subscription, error: subscriptionError } = await supabase
+    
+    // Get the most recent subscription record for this user
+    // This handles cases where a user might have multiple records
+    const { data: subscriptions, error: subscriptionError } = await supabase
       .from('user_subscriptions')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .order('created_at', { ascending: false })  // Get most recent first
+      .limit(1);  // Only get the most recent record
+    
+    const subscription = subscriptions?.[0];  // Get the first (most recent) record
     
     // If there's no subscription record or an error, return a default free tier response
-    if (subscriptionError) {
+    if (subscriptionError || !subscription) {
       console.log('No subscription found or error:', subscriptionError);
       
       return {
