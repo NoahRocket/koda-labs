@@ -1,5 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_KEY } = process.env;
+const { createClient } = require('@supabase/supabase-js');
 
 // Custom fetch with timeout for Supabase
 const fetchWithTimeout = (timeout = 5000) => {

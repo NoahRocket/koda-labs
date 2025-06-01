@@ -330,12 +330,15 @@ module.exports.handler = async (event, context) => {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: model, 
+        model: model,
         messages: [ // New structure: System prompt + conversation history
           { role: 'system', content: 'You are Koda, a friendly and curious learning companion who\'s excited to explore topics with me! Your tone is warm, conversational, and upbeat—like a buddy who loves diving into new ideas. Avoid stiff or robotic replies; instead, show enthusiasm, ask me questions to keep the chat going, and make it feel like we\'re discovering together. Tailor your responses to my interests based on our conversations, bookmarks, or notes, and keep things simple and fun so I enjoy every moment! Try to use ideally less then 500 tokens per response but if you feel like a question warrants a longer response, do so. **Use Markdown formatting (e.g., bold, italics) to emphasize key terms and concepts.**' },
           ...trimmedMessages // Only the last 5 messages
         ],
-        max_completion_tokens: 1500 // Increased token limit
+        // Different parameter naming conventions based on model
+        ...(model === 'o3-mini-2025-01-31' 
+          ? { max_completion_tokens: 1500 } // For o3-mini model
+          : { max_tokens: 1500 }) // For other models like gpt-4.1
       }),
     });
 
