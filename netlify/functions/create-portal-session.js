@@ -75,40 +75,24 @@ exports.handler = async (event, context) => {
     }
     
     // Create a Stripe customer portal session with configuration
-    const session = await stripe.billingPortal.sessions.create({
+    // Create a simple session with just customer ID and return URL
+    // This is the minimal configuration that's guaranteed to work
+    const portalSessionParams = {
       customer: stripeCustomerId,
-      return_url: `${event.headers.origin}/settings.html`,
-      // Provide explicit configuration parameters
-      configuration_id: process.env.STRIPE_PORTAL_CONFIG_ID || null, // Use specific config if available
-      configuration: {
-        // Default configuration if no configuration_id is provided
-        business_profile: {
-          headline: 'Koda Tutor Subscription Management'
-        },
-        features: {
-          customer_update: {
-            enabled: true,
-            allowed_updates: ['email', 'address', 'phone']
-          },
-          invoice_history: {
-            enabled: true
-          },
-          payment_method_update: {
-            enabled: true
-          },
-          subscription_cancel: {
-            enabled: true,
-            mode: 'at_period_end',
-            proration_behavior: 'none'
-          },
-          subscription_update: {
-            enabled: true,
-            default_allowed_updates: ['price'],
-            products: []
-          }
-        }
-      }
-    });
+      return_url: `${event.headers.origin}/settings.html`
+    };
+    
+    // Check if we have a portal configuration ID
+    if (process.env.STRIPE_PORTAL_CONFIG_ID) {
+      portalSessionParams.configuration_id = process.env.STRIPE_PORTAL_CONFIG_ID;
+      console.log('Using portal configuration ID:', process.env.STRIPE_PORTAL_CONFIG_ID);
+    }
+    
+    // We're intentionally NOT setting inline configuration parameters
+    // The default configuration provided by Stripe will be used
+    console.log('Creating portal session with params:', JSON.stringify(portalSessionParams, null, 2));
+    
+    const session = await stripe.billingPortal.sessions.create(portalSessionParams);
     
     // Return the session URL to the client
     return {
