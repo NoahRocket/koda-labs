@@ -53,12 +53,86 @@ exports.handler = async (event, context) => {
 
   try {
     if (action === 'addTopic') {
+      // Get emoji for the topic name
+      let emoji = '📚'; // Default emoji
+      try {
+        // Call the assign-emoji function
+        const response = await fetch(`${process.env.URL}/.netlify/functions/assign-emoji`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topicName })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          emoji = data.emoji;
+          console.log(`Assigned emoji ${emoji} to topic ${topicName}`);
+        } else {
+          console.error('Error fetching emoji:', await response.text());
+        }
+      } catch (emojiError) {
+        console.error('Error assigning emoji:', emojiError);
+        // Continue with default emoji if there's an error
+      }
+
       const { data: newTopic, error: addTopicError } = await supabase
         .from('topics')
-        .insert({ name: topicName, user_id: authUserId })
+        .insert({ name: topicName, user_id: authUserId, emoji })
         .select();
       if (addTopicError) throw addTopicError;
-      return { statusCode: 200, body: JSON.stringify({ topicId: newTopic[0].id }) };
+      return { statusCode: 200, body: JSON.stringify({ topicId: newTopic[0].id, emoji }) };
+    } else if (action === 'renameTopic') {
+      if (!topicId) return { statusCode: 400, body: 'Missing topic ID' };
+      if (!topicName) return { statusCode: 400, body: 'Missing topic name' };
+      
+      // Get emoji for the new topic name
+      let emoji = '📚'; // Default emoji
+      try {
+        // Call the assign-emoji function
+        const response = await fetch(`${process.env.URL}/.netlify/functions/assign-emoji`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topicName })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          emoji = data.emoji;
+          console.log(`Assigned new emoji ${emoji} to renamed topic ${topicName}`);
+        } else {
+          console.error('Error fetching emoji:', await response.text());
+        }
+      } catch (emojiError) {
+        console.error('Error assigning emoji:', emojiError);
+        // Continue with default emoji if there's an error
+      }
+
+      // Check if topic belongs to the user
+      const { data: topic, error: topicError } = await supabase
+        .from('topics')
+        .select('user_id')
+        .eq('id', topicId)
+        .single();
+        
+      if (topicError || !topic) {
+        console.error(`[RENAME] Error verifying topic or topic not found: ${topicError?.message}`);
+        return { statusCode: 404, body: JSON.stringify({ error: 'Topic not found' }) };
+      }
+      
+      if (topic.user_id !== authUserId) {
+        console.error(`[RENAME] Permission denied: Topic belongs to ${topic.user_id}, not ${authUserId}`);
+        return { statusCode: 403, body: JSON.stringify({ error: 'You do not have permission to rename this topic' }) };
+      }
+
+      // Update the topic name and emoji
+      const { data: updatedTopic, error: updateError } = await supabase
+        .from('topics')
+        .update({ name: topicName, emoji })
+        .eq('id', topicId)
+        .select();
+      
+      if (updateError) throw updateError;
+      return { statusCode: 200, body: JSON.stringify({ topic: updatedTopic[0] }) };
     } else if (action === 'deleteTopic') {
       if (!topicId) return { statusCode: 400, body: 'Missing topic ID' };
       console.log(`[DELETE] Starting deletion of topic ${topicId} and all related data for user ${authUserId}`);
@@ -617,6 +691,30 @@ exports.handler = async (event, context) => {
       }
       console.log(`[generateKeyConcepts] Starting for topic ${topicId}, user ${authUserId}`);
 
+      // --- CACHE CHECK: Return existing summary if <24h old ---
+      const { data: existingSummary, error: existingErr } = await supabase
+        .from('summaries')
+        .select('id, content, last_source_updated_at')
+        .eq('topic_id', topicId)
+        .eq('user_id', authUserId)
+        .maybeSingle();
+      if (!existingErr && existingSummary) {
+        const ageHours = (new Date() - new Date(existingSummary.last_source_updated_at)) / (1000 * 60 * 60);
+        if (ageHours < 24) {
+          console.log(`[generateKeyConcepts] Serving cached summary for topic ${topicId}`);
+          return {
+            statusCode: 200,
+            body: JSON.stringify({
+              keyConcepts: {
+                id: existingSummary.id,
+                content: existingSummary.content,
+                updated_at: existingSummary.last_source_updated_at
+              }
+            })
+          };
+        }
+      }
+
       try {
         // 1. Fetch topic name
         const { data: topicData, error: topicError } = await supabase
@@ -833,6 +931,7 @@ exports.handler = async (event, context) => {
           id,
           name,
           user_id,
+          emoji,
           conversations:conversations!conversations_topic_id_fkey(count),
           bookmarks:bookmarks!bookmarks_topic_id_fkey(count),
           notes:notes!notes_topic_id_fkey(count)
@@ -851,6 +950,7 @@ exports.handler = async (event, context) => {
         id: topic.id,
         name: topic.name,
         user_id: topic.user_id,
+        emoji: topic.emoji || '📚', // Default emoji if none is set
         conversation_count: topic.conversations ? topic.conversations[0]?.count || 0 : 0,
         bookmark_count: topic.bookmarks ? topic.bookmarks[0]?.count || 0 : 0,
         note_count: topic.notes ? topic.notes[0]?.count || 0 : 0,

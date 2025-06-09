@@ -40,6 +40,13 @@
       font-weight: 600;
       color: #1f2937;
       line-height: 1.2;
+      display: flex;
+      align-items: center;
+    }
+    
+    .emoji {
+      font-size: 1.5rem;
+      margin-right: 0.5rem;
     }
     .tab-container-main {
       padding: 0 1.5rem 1.5rem; /* Added bottom padding */
@@ -259,7 +266,10 @@
       <a href="dashboard.html" class="back-arrow" aria-label="Back to Dashboard">
         <i class="fas fa-arrow-left"></i>
       </a>
-      <h1 id="topicTitle" class="topic-title-h1">Loading Topic...</h1>
+      <h1 id="topicTitle" class="topic-title-h1">
+        <span id="topicEmoji" class="emoji mr-2">📚</span>
+        <span id="topicName">Loading Topic...</span>
+      </h1>
     </div>
 
     <div class="tab-container-main">
@@ -382,6 +392,30 @@
 
       const urlParams = new URLSearchParams(window.location.search);
       const topicId = urlParams.get('topicId');
+      const CACHE_TTL_MS = 1000 * 60 * 10; // 10-minute cache TTL
+
+      async function fetchTopicDetailsCached() {
+        const cacheKey = `topicDetails_${topicId}`;
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          try {
+            const { timestamp, data } = JSON.parse(raw);
+            if (Date.now() - timestamp < CACHE_TTL_MS) {
+              // Render cached immediately
+              document.getElementById('topicName').textContent = (data.topic && data.topic.name) ? data.topic.name : 'Topic Details';
+              document.getElementById('topicEmoji').textContent = (data.topic && data.topic.emoji) ? data.topic.emoji : '📚';
+              renderConversations(data.conversations || []);
+              renderBookmarks(data.bookmarks || []);
+              renderNotes(data.notes || []);
+              renderKeyConcepts(data.keyConcepts || null);
+              // Background refresh
+              fetchTopicDetails();
+              return;
+            }
+          } catch {}
+        }
+        await fetchTopicDetails(); // fallback to server
+      }
 
       if (!topicId) {
         topicTitleElement.textContent = 'Error: Topic ID not found.';
@@ -406,7 +440,7 @@
             if (currentTopicName && currentTopicName !== 'Loading Topic...' && currentTopicName !== 'Error: Topic ID not found.' && currentTopicName !== 'Authentication Error' && currentTopicName !== 'Error Loading Topic') {
               const hasContent = videosTabEl.querySelector('.video-item');
               if (!hasContent) {
-                fetchAndRenderYouTubeVideos(currentTopicName);
+                fetchAndRenderYouTubeVideos(topicId, currentTopicName);
               }
             }
           }
@@ -417,7 +451,8 @@
         const userId = localStorage.getItem('userId');
         const accessToken = localStorage.getItem('accessToken');
         if (!userId || !accessToken) {
-          topicTitleElement.textContent = 'Authentication Error';
+          document.getElementById('topicName').textContent = 'Authentication Error';
+          document.getElementById('topicEmoji').textContent = '🔒';
           [conversationsTabEl, bookmarksTabEl, notesTabEl, keyConceptsTab, videosTabEl].forEach(tab => tab.innerHTML = '<p>Please log in to view topic details.</p>');
           return;
         }
@@ -441,15 +476,19 @@
             throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
           }
           const data = await response.json();
-          // Get topic name from the topic object returned by the backend
-          topicTitleElement.textContent = (data.topic && data.topic.name) ? data.topic.name : 'Topic Details';
+          // Get topic name and emoji from the topic object returned by the backend
+          document.getElementById('topicName').textContent = (data.topic && data.topic.name) ? data.topic.name : 'Topic Details';
+          document.getElementById('topicEmoji').textContent = (data.topic && data.topic.emoji) ? data.topic.emoji : '📚';
           renderConversations(data.conversations || []);
           renderBookmarks(data.bookmarks || []);
           renderNotes(data.notes || []);
           renderKeyConcepts(data.keyConcepts || null);
+          // Save to cache
+          localStorage.setItem(`topicDetails_${topicId}`, JSON.stringify({ timestamp: Date.now(), data }));
         } catch (error) {
           console.error('Error fetching topic details:', error);
-          topicTitleElement.textContent = 'Error Loading Topic';
+          document.getElementById('topicName').textContent = 'Error Loading Topic';
+          document.getElementById('topicEmoji').textContent = '❌';
           [conversationsTabEl, bookmarksTabEl, notesTabEl, videosTabEl].forEach(tab => tab.innerHTML = `<p class="text-red-500">Error loading content: ${error.message}</p>`);
           showToast(`Error loading topic details: ${error.message}`, 'error');
           keyConceptsContentPlaceholder.innerHTML = `<p class="text-red-500">Error loading key concepts: ${error.message}</p>`;
@@ -551,7 +590,7 @@
         videosTabEl.innerHTML = headerHtml + html;
       }
 
-      async function fetchAndRenderYouTubeVideos(topicName) {
+      async function fetchAndRenderYouTubeVideos(topicId, topicName) {
         videosTabEl.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
         const accessToken = localStorage.getItem('accessToken');
         if (!accessToken) {
@@ -563,7 +602,7 @@
           const response = await fetch('/.netlify/functions/get-youtube-recommendations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` }, // Added Auth header just in case, though API key is main auth for YouTube
-            body: JSON.stringify({ topicName }),
+            body: JSON.stringify({ topicId, topicName }),
           });
           if (!response.ok) {
             const errorResult = await response.json().catch(() => ({ error: 'Failed to parse error response from video recommendations.' }));
@@ -710,7 +749,7 @@
       async function deleteNote(noteId) { await deleteItem('Note', noteId); }
 
       // Initial fetch
-      fetchTopicDetails();
+      fetchTopicDetailsCached();
     });
   </script>
 </body>

@@ -656,7 +656,10 @@
       card.innerHTML = `
         <div class="p-5">
           <div class="flex justify-between items-start mb-3">
-            <h3 class="text-lg font-semibold text-gray-800 line-clamp-1">${topic.name}</h3>
+            <h3 class="text-lg font-semibold text-gray-800 line-clamp-1">
+              <span class="emoji mr-2">${topic.emoji || '📚'}</span>
+              <span class="topic-name">${topic.name}</span>
+            </h3>
             <div class="dropdown relative">
               <button class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100 topic-menu-btn">
                 <i class="fas fa-ellipsis-v"></i>
@@ -1191,9 +1194,56 @@
       }
     }
 
-    // Rename Topic Functionality (Placeholder, can be expanded from createTopicCard if needed globally)
+    // Rename Topic Functionality
     async function renameTopic(topicId, newName) {
-      // TO DO: Implement rename topic functionality
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      if (!userId || !accessToken) {
+        showToast('You need to be logged in to rename topics', 'error');
+        return;
+      }
+
+      try {
+        showLoadingIndicator();
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            action: 'renameTopic',
+            userId,
+            topicId,
+            topicName: newName
+          })
+        });
+
+        const data = await response.json();
+        hideLoadingIndicator();
+
+        if (response.ok) {
+          // Update the topic card in the UI
+          const topicCard = document.getElementById(`topic-${topicId}`);
+          if (topicCard) {
+            const topicNameElement = topicCard.querySelector('.topic-name');
+            const emojiElement = topicCard.querySelector('.emoji');
+            if (topicNameElement) {
+              topicNameElement.textContent = newName;
+            }
+            if (emojiElement && data.topic && data.topic.emoji) {
+              emojiElement.textContent = data.topic.emoji;
+            }
+          }
+          showToast(`Topic renamed to "${newName}"`, 'success');
+        } else {
+          showToast(`Error renaming topic: ${data.error || 'Unknown error'}`, 'error');
+        }
+      } catch (error) {
+        hideLoadingIndicator();
+        console.error('Error renaming topic:', error);
+        showToast('Failed to rename topic. Please try again.', 'error');
+      }
     }
 
     // Setup event listeners
@@ -1356,6 +1406,7 @@
           }
 
           try {
+            showLoadingIndicator();
             const response = await fetch('/.netlify/functions/dashboard', {
               method: 'POST',
               body: JSON.stringify({
@@ -1370,6 +1421,7 @@
             });
 
             const result = await response.json(); // Always parse JSON response
+            hideLoadingIndicator();
 
             if (!response.ok) {
               throw new Error(result.error || 'Failed to add topic');
@@ -1377,16 +1429,48 @@
 
             newTopicInputDashboard.value = ''; // Clear the input
             closeAddTopicModalBtn.click(); // Close the modal
-            // Assuming loadTopics() is a function that re-fetches and displays topics on the dashboard
-            if (typeof loadTopics === 'function') {
-                loadTopics(); 
-            } else if (typeof fetchTopics === 'function') {
-                fetchTopics(); // Fallback if loadTopics isn't available
+
+            // Create the new topic card with emoji and add it to the list
+            if (result.topicId) {
+              const newTopic = {
+                id: result.topicId,
+                name: topicName,
+                emoji: result.emoji || '📚', // Use the returned emoji or default
+                conversation_count: 0,
+                bookmark_count: 0,
+                note_count: 0,
+                created_at: new Date().toISOString()
+              };
+
+              const topicsList = document.querySelector('.topics-grid');
+              if (topicsList) {
+                const newCard = createTopicCard(newTopic);
+                topicsList.prepend(newCard); // Add to the beginning of the list
+                showToast(`Topic "${topicName}" created with ${result.emoji || '📚'} emoji`, 'success');
+              } else {
+                // Fallback to reloading if we can't find the topics list
+                if (typeof loadTopics === 'function') {
+                  loadTopics(); 
+                } else if (typeof fetchTopics === 'function') {
+                  fetchTopics(); // Fallback if loadTopics isn't available
+                } else {
+                  console.warn('Topics grid not found. Reloading page.');
+                  window.location.reload(); // Last resort, reload the page
+                }
+                showToast(`Topic "${topicName}" created successfully!`, 'success');
+              }
             } else {
-                console.warn('loadTopics or fetchTopics function not found. UI may not update immediately.');
-                 window.location.reload(); // Last resort, reload the page
+              // Fallback to traditional refresh if we didn't get a topic ID
+              if (typeof loadTopics === 'function') {
+                loadTopics(); 
+              } else if (typeof fetchTopics === 'function') {
+                fetchTopics(); // Fallback if loadTopics isn't available
+              } else {
+                console.warn('loadTopics or fetchTopics function not found. Reloading page.');
+                window.location.reload(); // Last resort, reload the page
+              }
+              showToast('Topic added successfully!', 'success');
             }
-            showToast('Topic added successfully!', 'success');
           } catch (error) {
             console.error('Error adding topic:', error);
             showToast(error.message || 'Failed to add topic. Please try again.', 'error');
