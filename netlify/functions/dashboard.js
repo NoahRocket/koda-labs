@@ -422,8 +422,28 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ error: `Failed to fetch notes: ${notesError.message}` }) 
         };
       }
+
+      // Fetch key concepts (summary) for specific topic
+      const { data: summary, error: summaryError } = await supabase
+        .from('summaries')
+        .select('id, content, last_source_updated_at')
+        .eq('topic_id', topicId)
+        .eq('user_id', authUserId)
+        .maybeSingle(); // Use maybeSingle as a summary might not exist
+
+      if (summaryError && summaryError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine here
+        console.error(`[GET_TOPIC_DETAILS] Error fetching summary/key concepts: ${summaryError.message}`);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: `Failed to fetch key concepts: ${summaryError.message}` }) 
+        };
+      }
+
+      const formattedSummary = summary 
+        ? { id: summary.id, content: summary.content, updated_at: summary.last_source_updated_at }
+        : null;
       
-      console.log(`[GET_TOPIC_DETAILS] Found ${conversations.length} conversations, ${bookmarks.length} bookmarks, ${notes.length} notes for topic ${topicId}`);
+      console.log(`[GET_TOPIC_DETAILS] Found ${conversations.length} conversations, ${bookmarks.length} bookmarks, ${notes.length} notes, and ${summary ? 'existing key concepts' : 'no existing key concepts'} for topic ${topicId}`);
 
       return {
         statusCode: 200,
@@ -431,7 +451,8 @@ exports.handler = async (event, context) => {
           topic,
           conversations, 
           bookmarks,
-          notes: notes || []
+          notes: notes || [],
+          keyConcepts: formattedSummary
         })
       };
     } else if (action === 'getNotes') {
@@ -590,6 +611,186 @@ exports.handler = async (event, context) => {
       
       // This code is now unreachable since we're returning directly from the try block above
       // Keeping this comment for documentation purposes
+    } else if (action === 'generateKeyConcepts') {
+      if (!topicId) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing topicId' }) };
+      }
+      console.log(`[generateKeyConcepts] Starting for topic ${topicId}, user ${authUserId}`);
+
+      try {
+        // 1. Fetch topic name
+        const { data: topicData, error: topicError } = await supabase
+          .from('topics')
+          .select('name')
+          .eq('id', topicId)
+          .eq('user_id', authUserId)
+          .single();
+
+        if (topicError || !topicData) {
+          console.error(`[generateKeyConcepts] Error fetching topic ${topicId}:`, topicError?.message);
+          return { statusCode: 404, body: JSON.stringify({ error: 'Topic not found or not authorized' }) };
+        }
+        const topicName = topicData.name;
+
+        // 2. Fetch related data (conversations, notes, bookmarks)
+        const [convResult, notesResult, bookmarksResult] = await Promise.all([
+          supabase.from('conversations').select('content').eq('topic_id', topicId), // Conversations only have topic_id, no user_id
+          supabase.from('notes').select('content').eq('topic_id', topicId).eq('user_id', authUserId),
+          supabase.from('bookmarks').select('url').eq('topic_id', topicId) // Bookmarks also only have topic_id, no user_id
+        ]);
+
+        if (convResult.error) throw new Error(`Failed to fetch conversations: ${convResult.error.message}`);
+        if (notesResult.error) throw new Error(`Failed to fetch notes: ${notesResult.error.message}`);
+        if (bookmarksResult.error) throw new Error(`Failed to fetch bookmarks: ${bookmarksResult.error.message}`);
+
+        const conversations = convResult.data || [];
+        const notes = notesResult.data || [];
+        const bookmarks = bookmarksResult.data || [];
+
+        // 3. Construct prompt for OpenAI
+        let promptContent = `As a world-class teacher and mentor, your task is to distill the core information from the provided topic name, conversations, notes, and bookmarks. Please generate a concise set of key concepts, presented as clear and insightful bullet points. Each bullet point should capture a fundamental idea or learning related to the topic, explained in a way that is easy to understand and remember.\n\nTopic Name: ${topicName}\n\n`;
+
+        if (conversations.length > 0) {
+          promptContent += "Conversations (excerpts):\n";
+          conversations.forEach(c => {
+            const excerpt = c.content ? (c.content.length > 200 ? c.content.substring(0, 200) + '...' : c.content) : "[empty conversation]";
+            promptContent += `- ${excerpt}\n`;
+          });
+        } else {
+          promptContent += "Conversations: No conversations available for this topic.\n";
+        }
+
+        if (notes.length > 0) {
+          promptContent += "\nNotes (excerpts):\n";
+          notes.forEach(n => {
+            const excerpt = n.content ? (n.content.length > 200 ? n.content.substring(0, 200) + '...' : n.content) : "[empty note]";
+            promptContent += `- ${excerpt}\n`;
+          });
+        } else {
+          promptContent += "\nNotes: No notes available for this topic.\n";
+        }
+
+        if (bookmarks.length > 0) {
+          promptContent += "\nBookmarks:\n";
+          bookmarks.forEach(b => { promptContent += `- ${b.url}\n`; });
+        } else {
+          promptContent += "\nBookmarks: No bookmarks available for this topic.\n";
+        }
+        
+        promptContent += "\nPlease present these key concepts as a series of bullet points, starting each with a hyphen (-) or an asterisk (*). Ensure each concept is distinct and contributes to a comprehensive understanding of the topic from an expert teacher's perspective.";
+
+        // 4. Call OpenAI API
+        const openaiApiKey = process.env.OPENAI_API_KEY;
+        if (!openaiApiKey) {
+          console.error('[generateKeyConcepts] OPENAI_API_KEY is not set.');
+          return { statusCode: 500, body: JSON.stringify({ error: 'OpenAI API key not configured.' }) };
+        }
+
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiApiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4.1-nano',
+            messages: [
+              { role: 'system', content: 'You are an expert learning assistant.' },
+              { role: 'user', content: promptContent }
+            ],
+            max_completion_tokens: 1500 // Increased slightly, adjust as needed
+          })
+        });
+
+        if (!openaiResponse.ok) {
+          const errorBody = await openaiResponse.text();
+          console.error(`[generateKeyConcepts] OpenAI API error: ${openaiResponse.status}`, errorBody);
+          throw new Error(`OpenAI API request failed with status ${openaiResponse.status}: ${errorBody}`);
+        }
+
+        const openAIResult = await openaiResponse.json();
+        const keyConceptsContent = openAIResult.choices[0]?.message?.content?.trim();
+
+        if (!keyConceptsContent) {
+          console.error('[generateKeyConcepts] No content received from OpenAI.');
+          throw new Error('Failed to generate key concepts from OpenAI: No content.');
+        }
+
+        // 5. Save/Update key concepts in 'summaries' table
+        let summaryEntry;
+        const now = new Date().toISOString();
+
+        const { data: existingSummary, error: existingSummaryError } = await supabase
+          .from('summaries')
+          .select('id, created_at') // Select created_at to preserve it if entry exists
+          .eq('topic_id', topicId)
+          .eq('user_id', authUserId)
+          .maybeSingle();
+
+        if (existingSummaryError) {
+          console.error(`[generateKeyConcepts] Error checking for existing summary: ${existingSummaryError.message}`);
+          // Not throwing, will attempt to insert if this failed but might lead to duplicates if RLS/constraint is missing
+        }
+
+        let upsertData;
+        if (existingSummary) {
+          // Prepare for UPDATE
+          upsertData = {
+            id: existingSummary.id, // Crucial for upsert to know which record to update
+            topic_id: topicId,
+            user_id: authUserId,
+            content: keyConceptsContent,
+            last_source_updated_at: now,
+            created_at: existingSummary.created_at // Preserve original creation date
+          };
+        } else {
+          // Prepare for INSERT
+          upsertData = {
+            topic_id: topicId,
+            user_id: authUserId,
+            content: keyConceptsContent,
+            last_source_updated_at: now, // Added comma here
+            // created_at will be set by default by db for new entries
+          };
+        }
+
+        console.log(`[generateKeyConcepts] Attempting to upsert summary with data: ${JSON.stringify(upsertData)}`); // DEBUG LOG
+
+        const { data: savedKeyConcepts, error: saveError } = await supabase
+          .from('summaries')
+          .upsert(upsertData)
+          .select('id, content, last_source_updated_at')
+          .single(); // Expecting a single record back from upsert
+
+        if (saveError) {
+          console.error(`[generateKeyConcepts] Error saving summary: ${saveError.message} - Details: ${JSON.stringify(saveError)}`);
+          throw new Error(`Failed to save new key concepts: ${saveError.message}`);
+        }
+        summaryEntry = savedKeyConcepts; // Assign the result to summaryEntry
+        
+        console.log(`[generateKeyConcepts] Successfully generated and saved for topic ${topicId}`);
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            keyConcepts: {
+              id: summaryEntry.id,
+              content: summaryEntry.content,
+              // Frontend expects 'updated_at', use last_source_updated_at for this
+              updated_at: summaryEntry.last_source_updated_at 
+            }
+          })
+        };
+
+      } catch (error) {
+        console.error(`[generateKeyConcepts] Error for topic ${topicId}:`, error.message, error.stack);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ 
+            error: `Failed to generate key concepts: ${error.message}`,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          })
+        };
+      }
     } else if (action === 'getAvatar') {
       try {
         console.log('[getAvatar] Getting avatar for user:', authUserId);

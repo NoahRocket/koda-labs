@@ -15,7 +15,16 @@
       padding: 1rem 1.5rem;
       background-color: #fff;
       border-bottom: 1px solid #e5e7eb;
+      /* Add top margin on mobile to clear the hamburger menu */
+      margin-top: 2.5rem;
       /* position: sticky; top: 0; z-index: 30; /* Optional: if you want a sticky header */
+    }
+
+    /* Adjust spacing for larger screens where hamburger isn't shown */
+    @media (min-width: 768px) { /* md breakpoint */
+      .topic-header-container {
+        margin-top: 0;
+      }
     }
     .back-arrow {
       font-size: 1.5rem;
@@ -106,9 +115,70 @@
         align-items: center;
         min-height: 150px; /* Give some space for spinner */
     }
+    /* Toast styling */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      max-width: 300px;
+    }
+    
+    .toast {
+      margin-bottom: 10px;
+      padding: 12px;
+      border-radius: 4px;
+      color: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.3s, transform 0.3s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .toast.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .toast.toast-closing {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    
+    .toast.success {
+      background-color: #4caf50;
+    }
+    
+    .toast.error {
+      background-color: #f44336;
+    }
+    
+    .toast.info {
+      background-color: #2196f3;
+    }
+    
+    .toast-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .toast-close-btn {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0;
+    }
   </style>
 </head>
 <body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900" style="background: linear-gradient(180deg, #F7F7F7 0%, #FFFFFF 100%);">
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
 
   <!-- Mobile Hamburger -->
   <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
@@ -194,14 +264,18 @@
 
     <div class="tab-container-main">
       <div class="tab-buttons border-b border-gray-200 mb-4">
-        <button class="tab-btn active" data-tab="conversations">Conversations</button>
+        <button class="tab-btn active" data-tab="keyConcepts">Key Concepts</button>
         <button class="tab-btn" data-tab="bookmarks">Bookmarks</button>
         <button class="tab-btn" data-tab="notes">Notes</button>
-        <button class="tab-btn" data-tab="summary">Summary</button>
+        <button class="tab-btn" data-tab="videos">Videos</button>
+        <button class="tab-btn" data-tab="conversations">Conversations</button>
       </div>
 
-      <div id="conversationsTab" class="tab-pane active tab-content">
-        <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
+      <div id="keyConceptsTab" class="tab-pane active tab-content">
+        <div id="keyConceptsSpinner" class="loading-spinner-container d-none"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
+        <div id="keyConceptsContentPlaceholder"></div> <!-- Placeholder for key concepts text -->
+        <button id="generateKeyConceptsBtn" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">Generate Key Concepts</button>
+        <div id="keyConceptsStatus" class="mt-2 text-sm text-gray-600"></div>
       </div>
       <div id="bookmarksTab" class="tab-pane tab-content">
         <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
@@ -209,11 +283,11 @@
       <div id="notesTab" class="tab-pane tab-content">
         <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
       </div>
-      <div id="summaryTab" class="tab-pane tab-content">
+      <div id="videosTab" class="tab-pane tab-content">
         <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
-        <div id="summaryContentPlaceholder"></div> <!-- Placeholder for summary text -->
-        <button id="generateSummaryBtn" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">Generate Summary</button>
-        <p id="summaryStatus" class="mt-2 text-sm text-gray-600"></p>
+      </div>
+      <div id="conversationsTab" class="tab-pane tab-content">
+        <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
       </div>
     </div>
   </div>
@@ -248,10 +322,63 @@
       const conversationsTabEl = document.getElementById('conversationsTab');
       const bookmarksTabEl = document.getElementById('bookmarksTab');
       const notesTabEl = document.getElementById('notesTab');
-      const summaryTabEl = document.getElementById('summaryTab');
-      const generateSummaryBtn = document.getElementById('generateSummaryBtn');
-      const summaryStatusEl = document.getElementById('summaryStatus');
-      const summaryContentPlaceholder = document.getElementById('summaryContentPlaceholder');
+      const keyConceptsContentPlaceholder = document.getElementById('keyConceptsContentPlaceholder');
+      const generateKeyConceptsBtn = document.getElementById('generateKeyConceptsBtn');
+      const keyConceptsStatusEl = document.getElementById('keyConceptsStatus'); // This might become redundant or be removed later
+
+    // --- Toast Notification Function ---
+    function showToast(message, type = 'info', duration = 4000) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+
+      const content = document.createElement('div');
+      content.className = 'toast-content';
+      
+      let iconClass = '';
+      if (type === 'success') iconClass = 'fas fa-check-circle';
+      else if (type === 'error') iconClass = 'fas fa-times-circle';
+      else if (type === 'info') iconClass = 'fas fa-info-circle';
+
+      if (iconClass) {
+        const icon = document.createElement('i');
+        icon.className = iconClass;
+        content.appendChild(icon);
+      }
+
+      const messageSpan = document.createElement('span');
+      messageSpan.textContent = message;
+      content.appendChild(messageSpan);
+      toast.appendChild(content);
+
+      const closeButton = document.createElement('button');
+      closeButton.className = 'toast-close-btn';
+      closeButton.innerHTML = '&times;';
+      closeButton.onclick = () => {
+        toast.classList.add('toast-closing');
+        toast.addEventListener('transitionend', () => toast.remove());
+      };
+      toast.appendChild(closeButton);
+
+      container.appendChild(toast);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        toast.classList.add('active');
+      });
+
+      // Auto-dismiss
+      setTimeout(() => {
+        toast.classList.add('toast-closing');
+        toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+      }, duration);
+    }
+    // --- End Toast Notification Function ---
+      const keyConceptsSpinner = document.getElementById('keyConceptsSpinner');
+      // keyConceptsContentPlaceholder is already declared above, removing duplicate.
+      const videosTabEl = document.getElementById('videosTab');
 
       const urlParams = new URLSearchParams(window.location.search);
       const topicId = urlParams.get('topicId');
@@ -273,6 +400,16 @@
           tabPanes.forEach(pane => {
             pane.classList.toggle('active', pane.id === tabName + 'Tab');
           });
+
+          if (tabName === 'videos' && videosTabEl.classList.contains('active')) {
+            const currentTopicName = topicTitleElement.textContent;
+            if (currentTopicName && currentTopicName !== 'Loading Topic...' && currentTopicName !== 'Error: Topic ID not found.' && currentTopicName !== 'Authentication Error' && currentTopicName !== 'Error Loading Topic') {
+              const hasContent = videosTabEl.querySelector('.video-item');
+              if (!hasContent) {
+                fetchAndRenderYouTubeVideos(currentTopicName);
+              }
+            }
+          }
         });
       });
 
@@ -281,15 +418,15 @@
         const accessToken = localStorage.getItem('accessToken');
         if (!userId || !accessToken) {
           topicTitleElement.textContent = 'Authentication Error';
-          [conversationsTabEl, bookmarksTabEl, notesTabEl, summaryTabEl].forEach(tab => tab.innerHTML = '<p>Please log in to view topic details.</p>');
+          [conversationsTabEl, bookmarksTabEl, notesTabEl, keyConceptsTab, videosTabEl].forEach(tab => tab.innerHTML = '<p>Please log in to view topic details.</p>');
           return;
         }
         
-        [conversationsTabEl, bookmarksTabEl, notesTabEl, summaryTabEl].forEach(tab => {
-            if (tab.id !== 'summaryTab' || !summaryContentPlaceholder) { // Don't clear summary button/status
+        [conversationsTabEl, bookmarksTabEl, notesTabEl, keyConceptsTab, videosTabEl].forEach(tab => {
+            if (tab.id !== 'keyConceptsTab' || !keyConceptsContentPlaceholder) { // Don't clear key concepts button/status
                  tab.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
             } else {
-                 summaryContentPlaceholder.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
+                 keyConceptsContentPlaceholder.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
             }
         });
 
@@ -309,12 +446,13 @@
           renderConversations(data.conversations || []);
           renderBookmarks(data.bookmarks || []);
           renderNotes(data.notes || []);
-          renderSummary(data.summary || null);
+          renderKeyConcepts(data.keyConcepts || null);
         } catch (error) {
           console.error('Error fetching topic details:', error);
           topicTitleElement.textContent = 'Error Loading Topic';
-          [conversationsTabEl, bookmarksTabEl, notesTabEl].forEach(tab => tab.innerHTML = `<p class="text-red-500">Error loading content: ${error.message}</p>`);
-          summaryContentPlaceholder.innerHTML = `<p class="text-red-500">Error loading summary: ${error.message}</p>`;
+          [conversationsTabEl, bookmarksTabEl, notesTabEl, videosTabEl].forEach(tab => tab.innerHTML = `<p class="text-red-500">Error loading content: ${error.message}</p>`);
+          showToast(`Error loading topic details: ${error.message}`, 'error');
+          keyConceptsContentPlaceholder.innerHTML = `<p class="text-red-500">Error loading key concepts: ${error.message}</p>`;
         }
       }
 
@@ -388,40 +526,144 @@
         notesTabEl.innerHTML = html;
       }
 
-      function renderSummary(summary) {
-        if (summary && summary.summary_text) {
-          summaryContentPlaceholder.innerHTML = `<p>${summary.summary_text.replace(/\n/g, '<br>')}</p>`;
-          generateSummaryBtn.textContent = 'Regenerate Summary';
-          summaryStatusEl.textContent = `Last generated: ${new Date(summary.updated_at).toLocaleString()}`;
-        } else {
-          summaryContentPlaceholder.innerHTML = '<p class="text-gray-600">No summary available. Click the button to generate one.</p>';
-          generateSummaryBtn.textContent = 'Generate Summary';
-          summaryStatusEl.textContent = '';
+      function renderYouTubeVideos(videos, topicName) {
+        let headerHtml = '';
+        if (topicName) {
+          headerHtml = `<p class="text-gray-700 mb-3 text-sm">Showing YouTube results for: <strong>${escapeHTML(topicName)}</strong></p>`;
         }
-        generateSummaryBtn.disabled = false;
+
+        if (!videos || videos.length === 0) {
+          videosTabEl.innerHTML = headerHtml + '<p class="text-gray-600 p-4">No videos found for this topic.</p>';
+          return;
+        }
+        const html = videos.map(video => `
+          <div class="video-item" style="border: 1px solid #e5e7eb; border-radius: 0.375rem; padding: 1rem; margin-bottom: 0.75rem; background-color: #f9fafb;">
+            <a href="https://www.youtube.com/watch?v=${video.videoId}" target="_blank" rel="noopener noreferrer" style="display: flex; text-decoration: none; color: inherit;">
+              <img src="${video.thumbnailUrl}" alt="${video.title}" style="width: 120px; height: 90px; object-fit: cover; border-radius: 0.25rem; margin-right: 1rem;">
+              <div style="flex-grow: 1;">
+                <h4 style="font-weight: 600; margin-bottom: 0.25rem; word-break: break-word;">${video.title}</h4>
+                <p style="font-size: 0.875rem; color: #6b7280;">${video.channelTitle}</p>
+                <p style="font-size: 0.75rem; color: #9ca3af;">Published: ${new Date(video.publishedAt).toLocaleDateString()}</p>
+              </div>
+            </a>
+          </div>
+        `).join('');
+        videosTabEl.innerHTML = headerHtml + html;
       }
 
-      generateSummaryBtn.addEventListener('click', async () => {
-        generateSummaryBtn.disabled = true;
-        summaryStatusEl.textContent = 'Generating summary...';
+      async function fetchAndRenderYouTubeVideos(topicName) {
+        videosTabEl.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+            videosTabEl.innerHTML = '<p class="text-red-500 p-4">Authentication error. Please log in.</p>';
+            return;
+        }
+
+        try {
+          const response = await fetch('/.netlify/functions/get-youtube-recommendations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` }, // Added Auth header just in case, though API key is main auth for YouTube
+            body: JSON.stringify({ topicName }),
+          });
+          if (!response.ok) {
+            const errorResult = await response.json().catch(() => ({ error: 'Failed to parse error response from video recommendations.' }));
+            throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+          }
+          const videos = await response.json();
+          renderYouTubeVideos(videos, topicName);
+        } catch (error) {
+          console.error('Error fetching YouTube videos:', error);
+          videosTabEl.innerHTML = `<p class="text-red-500 p-4">Error loading videos: ${error.message}</p>`;
+        }
+      }
+
+      // Helper function to escape HTML to prevent XSS, if not already available in utils.js
+      function escapeHTML(str) {
+        if (typeof str !== 'string') return '';
+        return str.replace(/[&<>'"/]/g, function (s) {
+          return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+            '/': '&#x2F;'
+          }[s];
+        });
+      }
+
+      function renderKeyConcepts(keyConceptData) {
+    keyConceptsSpinner.style.display = 'none';
+    generateKeyConceptsBtn.disabled = false;
+
+    if (keyConceptData && keyConceptData.content) {
+        let html = '';
+        const rawContent = keyConceptData.content;
+        const lines = rawContent.split('\n');
+        const processedParagraphs = [];
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine === '') continue; // Skip empty lines, but preserve paragraph breaks from non-empty lines
+
+            let lineHtml = '';
+            // Split the line by **...** to handle bolding correctly with HTML escaping.
+            // The regex /\*\*(.*?)\*\*/g splits the string and includes the captured bolded content in the resulting array.
+            const parts = trimmedLine.split(/\*\*(.*?)\*\*/g);
+
+            for (let i = 0; i < parts.length; i++) {
+                if (parts[i] === undefined) continue;
+                // Odd indices are the captured groups (text that was bolded).
+                if (i % 2 === 1) {
+                    lineHtml += `<strong>${escapeHTML(parts[i])}</strong>`;
+                } else {
+                    // Even indices are the normal text segments.
+                    lineHtml += escapeHTML(parts[i]);
+                }
+            }
+            processedParagraphs.push(`<p class="text-gray-700 leading-relaxed mb-3">${lineHtml}</p>`);
+        }
+        
+        html = processedParagraphs.join('');
+
+        if (html.trim() === '') {
+            // This case handles if content was only whitespace lines
+            html = '<p class="text-gray-600">No key concepts content found.</p>';
+        }
+        
+        keyConceptsContentPlaceholder.innerHTML = html;
+        generateKeyConceptsBtn.textContent = 'Regenerate Key Concepts';
+        keyConceptsStatusEl.textContent = `Last generated: ${new Date(keyConceptData.updated_at).toLocaleString()}`;
+    } else {
+        keyConceptsContentPlaceholder.innerHTML = '<p class="text-gray-600">No key concepts available. Click the button to generate them.</p>';
+        generateKeyConceptsBtn.textContent = 'Generate Key Concepts';
+        keyConceptsStatusEl.textContent = '';
+    }
+}
+
+      generateKeyConceptsBtn.addEventListener('click', async () => {
+        generateKeyConceptsBtn.disabled = true;
+        keyConceptsSpinner.classList.remove('d-none'); // Show spinner
         const userId = localStorage.getItem('userId');
         const accessToken = localStorage.getItem('accessToken');
         try {
           const response = await fetch('/.netlify/functions/dashboard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-            body: JSON.stringify({ action: 'generateSummary', topicId, userId }),
+            body: JSON.stringify({ action: 'generateKeyConcepts', topicId, userId }),
           });
           const result = await response.json();
           if (response.ok) {
-            renderSummary(result.summary);
-            showToast('Summary generated successfully!', 'success');
-          } else { throw new Error(result.error || 'Failed to generate summary'); }
+            renderKeyConcepts(result.keyConcepts); // Expecting 'keyConcepts' from backend
+            showToast('Key concepts generated successfully!', 'success');
+          } else { throw new Error(result.error || 'Failed to generate key concepts'); }
         } catch (error) {
-          console.error('Error generating summary:', error);
-          summaryStatusEl.textContent = `Error: ${error.message}`;
-          showToast(`Error generating summary: ${error.message}`, 'error');
-            generateSummaryBtn.innerHTML = 'Regenerate Summary';
+          console.error('Error generating key concepts:', error);
+          showToast(`Error generating key concepts: ${error.message}`, 'error');
+          keyConceptsSpinner.style.display = 'none'; // Explicitly hide spinner on error
+          generateKeyConceptsBtn.disabled = false; // Re-enable button on error
+          // Consider if button text needs to be reverted based on state
+          // For example, if (keyConceptsContentPlaceholder.textContent.includes("No key concepts available")) { generateKeyConceptsBtn.textContent = 'Generate Key Concepts'; } else { generateKeyConceptsBtn.textContent = 'Regenerate Key Concepts'; }
         }
       });
 

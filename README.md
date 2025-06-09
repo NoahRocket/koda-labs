@@ -7,7 +7,7 @@ Koda Tutor is a personal knowledge companion that helps users learn, remember, a
 - **Subscription System**: Tiered pricing with free and premium plans, offering monthly and yearly billing options.
 - **AI Chat Interface**: Converse with an AI assistant to explore and learn new topics.
 - **Dashboard**: Central hub for accessing all your saved knowledge.
-- **Topic Management**: Organize saved content by topic for better retrieval.
+- **Topic Management**: Organize saved content by topic for better retrieval. Includes displaying YouTube video recommendations relevant to the topic.
 - **Bookmarks**: Save and organize web links and important information.
 - **PDF to Podcast**: Convert PDFs to audio podcasts for on-the-go learning.
 
@@ -51,8 +51,9 @@ This architecture effectively handles potentially long-running processes while p
 - **Database & Storage**: Supabase
 - **APIs**: 
   - Stripe for payment processing and subscription management
-  - OpenAI for script generation
+  - OpenAI for script generation and other AI tasks
   - ElevenLabs for text-to-speech
+  - YouTube Data API v3 for video recommendations
   
 ## Getting Started
 
@@ -63,6 +64,7 @@ This architecture effectively handles potentially long-running processes while p
    - `SUPABASE_KEY`
    - `OPENAI_API_KEY`
    - `ELEVENLABS_API_KEY`
+   - `YOUTUBE_API_KEY`
 4. Run locally: `netlify dev`
 
 ## Environment Variables
@@ -74,6 +76,7 @@ SUPABASE_URL=your-supabase-url
 SUPABASE_KEY=your-supabase-anon-key
 OPENAI_API_KEY=your-openai-api-key
 ELEVENLABS_API_KEY=your-elevenlabs-api-key
+YOUTUBE_API_KEY=your-youtube-data-api-key
 STRIPE_SECRET_KEY=your-stripe-secret-key
 STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
 STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret

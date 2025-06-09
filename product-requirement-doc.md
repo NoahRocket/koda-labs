@@ -74,11 +74,12 @@ Koda Tutor is a web application designed to be a personal knowledge companion. I
     *   Ability to add bookmarks (possibly using `url-metadata` dependency).
     *   Ability to view, organize, and potentially search saved bookmarks.
 
-### 4.6. Topic Management (`pages/topic.html`)
+### 4.6. Topic Management (`pages/topic-view.html`)
 *   **Description:** Allows users to organize saved information (chats, bookmarks) by topic.
 *   **Requirements:** (Specific functionality needs further investigation)
     *   Ability to view content grouped by topics.
     *   Potential ability to create, rename, or manage topics.
+    *   **YouTube Video Recommendations:** Display relevant YouTube videos based on the topic name in a dedicated 'Videos' tab within the topic view.
     *   Premium features may include advanced topic management capabilities.
 
 ### 4.7. Settings (`pages/settings.html`)
@@ -135,7 +136,8 @@ Koda Tutor is a web application designed to be a personal knowledge companion. I
 *   **Technology Stack:**
     *   Frontend: HTML, CSS (Tailwind CSS), JavaScript
     *   Backend/DB: Supabase
-    *   AI Integration: Netlify Serverless Function calling an external AI API (likely OpenAI).
+    *   AI Integration: Netlify Serverless Functions calling external AI APIs (e.g., OpenAI, YouTube Data API v3).
+    *   **API Keys:** Requires environment variables for `OPENAI_API_KEY`, `YOUTUBE_API_KEY`, `ELEVENLABS_API_KEY`, etc., to be configured in Netlify.
     *   Deployment: Netlify
 *   **Usability:** The application should feature a responsive design suitable for various screen sizes (achieved using Tailwind CSS utility classes).
 
