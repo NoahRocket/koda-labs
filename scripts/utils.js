@@ -65,6 +65,105 @@ function showToast(message, type = 'info') {
   closeBtn.addEventListener('click', () => clearTimeout(autoRemoveTimer), { once: true });
 }
 
+
+function checkAuth(basePath = '') {
+  const userId = localStorage.getItem('userId');
+  const accessToken = localStorage.getItem('accessToken');
+  const currentPage = window.location.pathname.split('/').pop();
+  
+  // Define pages that do NOT require authentication
+  const publicPages = ['index.html', 'login.html', 'signup.html', '']; // '' for root, adjust as needed
+
+  if (!userId || !accessToken) {
+    // If the current page is NOT public AND user is not authenticated, redirect to login.
+    if (!publicPages.includes(currentPage)) {
+      console.warn(`User not authenticated. Redirecting to login page from ${currentPage}.`);
+      // Ensure basePath ends with a slash if it's not empty, for proper URL construction.
+      const redirectPath = basePath ? (basePath.endsWith('/') ? basePath : basePath + '/') : '';
+      window.location.href = redirectPath + 'index.html'; 
+    }
+  } else {
+    // User is authenticated.
+    // If they are on a login/signup page, redirect them to the dashboard.
+    if (currentPage === 'login.html' || currentPage === 'signup.html') {
+        console.log('User authenticated. Redirecting from auth page to dashboard.');
+        const redirectPath = basePath ? (basePath.endsWith('/') ? basePath : basePath + '/') : '';
+        window.location.href = redirectPath + 'pages/dashboard.html';
+    }
+  }
+}
+
+async function loadTutorAvatarInternal() {
+  const userAvatarSidebar = document.getElementById('userAvatarSidebar');
+  const avatarLoading = document.getElementById('avatarLoading');
+
+  if (!userAvatarSidebar || !avatarLoading) {
+    console.warn('User avatar element #userAvatarSidebar or #avatarLoading not found.');
+    if (userAvatarSidebar) userAvatarSidebar.src = '../assets/avatars/default.png'; // Attempt to set default even if spinner missing
+    return;
+  }
+
+  // Show spinner, hide image initially
+  userAvatarSidebar.classList.add('opacity-0');
+  avatarLoading.classList.remove('hidden');
+
+  const userId = localStorage.getItem('userId');
+  const accessToken = localStorage.getItem('accessToken');
+
+  if (!userId || !accessToken) {
+    console.warn('Cannot load avatar: User not authenticated.');
+    userAvatarSidebar.src = '../assets/avatars/default.png'; // Default avatar
+    userAvatarSidebar.classList.remove('opacity-0');
+    avatarLoading.classList.add('hidden');
+    return;
+  }
+
+  const cachedAvatarUrl = localStorage.getItem('userAvatarUrl');
+  if (cachedAvatarUrl) {
+    userAvatarSidebar.src = cachedAvatarUrl;
+    userAvatarSidebar.classList.remove('opacity-0');
+    avatarLoading.classList.add('hidden');
+    return; 
+  }
+
+  try {
+    const response = await fetch('/.netlify/functions/dashboard', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({ action: 'getAvatar', userId: userId })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Failed to load tutor avatar:', response.status, errorData);
+      userAvatarSidebar.src = '../assets/avatars/default.png';
+      userAvatarSidebar.classList.remove('opacity-0');
+      avatarLoading.classList.add('hidden');
+      return;
+    }
+
+    const data = await response.json();
+    if (data.avatarUrl) {
+      userAvatarSidebar.src = data.avatarUrl;
+      localStorage.setItem('userAvatarUrl', data.avatarUrl);
+    } 
+    userAvatarSidebar.classList.remove('opacity-0');
+    avatarLoading.classList.add('hidden');
+    if (!data.avatarUrl) {
+      console.warn('Avatar URL not found in response, using default.');
+      userAvatarSidebar.src = '../assets/avatars/default.png';
+    }
+  } catch (error) {
+    console.error('Error fetching tutor avatar:', error);
+    userAvatarSidebar.src = '../assets/avatars/default.png';
+    userAvatarSidebar.classList.remove('opacity-0'); // Still ensure default is shown
+    avatarLoading.classList.add('hidden');
+  }
+}
+
 // Check login status and update navigation for pages like index, login, signup
 function updateNavigation() {
   const isLoggedIn = localStorage.getItem('userId') && localStorage.getItem('accessToken');

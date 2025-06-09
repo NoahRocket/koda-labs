@@ -305,8 +305,24 @@ module.exports.handler = async (event, context) => {
       }
     }
 
+    // Input validation - check message size to prevent timeouts
+    const MAX_CHARS_PER_MESSAGE = 4000; // ~1000 tokens limit per message
+    
+    // Function to trim overlong messages
+    const trimMessageContent = (msg) => {
+      if (msg.content && typeof msg.content === 'string' && msg.content.length > MAX_CHARS_PER_MESSAGE) {
+        // Trim and add indicator that message was truncated
+        return {
+          ...msg,
+          content: msg.content.substring(0, MAX_CHARS_PER_MESSAGE) + '... [Message truncated due to length]'
+        };
+      }
+      return msg;
+    };
+    
     // Only send the last 5 messages to OpenAI
-    const trimmedMessages = messages.slice(-5);
+    // Also trim any overly long messages to prevent timeouts
+    const trimmedMessages = messages.slice(-5).map(trimMessageContent);
 
     // Grab API Key from Netlify environment variable
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -319,27 +335,36 @@ module.exports.handler = async (event, context) => {
     }
     
     // Select model based on subscription tier
-    // Premium users get access to the latest model, free users get a simpler model
-    const model = usageResult.hasPremium ? 'gpt-4.1-2025-04-14' : 'o3-mini-2025-01-31';
+    // Premium users get access to the latest full model, free users get the nano version
+    const model = usageResult.hasPremium ? 'gpt-4.1-2025-04-14' : 'gpt-4.1-nano';
 
-    // Forward request to OpenAI ChatGPT
+    // Forward request to OpenAI ChatGPT with model-specific parameters
+    const systemPrompt = 'You are Koda, a friendly and curious learning companion who\'s excited to explore topics with me! Your tone is warm, conversational, and upbeat—like a buddy who loves diving into new ideas. Avoid stiff or robotic replies; instead, show enthusiasm, ask me questions to keep the chat going, and make it feel like we\'re discovering together. Tailor your responses to my interests based on our conversations, bookmarks, or notes, and keep things simple and fun so I enjoy every moment! Try to use ideally less then 500 tokens per response but if you feel like a question warrants a longer response, do so. **Use Markdown formatting (e.g., bold, italics) to emphasize key terms and concepts.**';
+    
+    // Create full message array with system prompt and user messages
+    const fullMessages = [
+      { role: 'system', content: systemPrompt },
+      ...trimmedMessages // Only the last 5 messages
+    ];
+    
+    // Create request body based on model type
+    let apiRequestBody;
+    
+    // Both gpt-4.1-2025-04-14 and gpt-4.1-nano use the same parameter format
+    apiRequestBody = {
+      model: model,
+      messages: fullMessages,
+      max_tokens: 1500,
+      temperature: 0.7
+    };
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
-      body: JSON.stringify({
-        model: model,
-        messages: [ // New structure: System prompt + conversation history
-          { role: 'system', content: 'You are Koda, a friendly and curious learning companion who\'s excited to explore topics with me! Your tone is warm, conversational, and upbeat—like a buddy who loves diving into new ideas. Avoid stiff or robotic replies; instead, show enthusiasm, ask me questions to keep the chat going, and make it feel like we\'re discovering together. Tailor your responses to my interests based on our conversations, bookmarks, or notes, and keep things simple and fun so I enjoy every moment! Try to use ideally less then 500 tokens per response but if you feel like a question warrants a longer response, do so. **Use Markdown formatting (e.g., bold, italics) to emphasize key terms and concepts.**' },
-          ...trimmedMessages // Only the last 5 messages
-        ],
-        // Different parameter naming conventions based on model
-        ...(model === 'o3-mini-2025-01-31' 
-          ? { max_completion_tokens: 1500 } // For o3-mini model
-          : { max_tokens: 1500 }) // For other models like gpt-4.1
-      }),
+      body: JSON.stringify(apiRequestBody),
     });
 
     if (!response.ok) {

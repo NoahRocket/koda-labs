@@ -645,14 +645,14 @@
       card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
       card.id = `topic-${topic.id}`;
       card.dataset.topicId = topic.id;
-      
+
       const createdDate = new Date(topic.created_at);
       const formattedDate = createdDate.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
       });
-      
+
       card.innerHTML = `
         <div class="p-5">
           <div class="flex justify-between items-start mb-3">
@@ -680,46 +680,53 @@
           </div>
         </div>
       `;
-      
+
       card.addEventListener('click', (e) => {
-        if (!e.target.closest('.dropdown')) {
-          openTopicModal(topic.id);
+        // If the click is on the card itself and not on the dropdown or its children
+        if (!e.target.closest('.dropdown') && e.target.closest(`#topic-${topic.id}`)) {
+          window.location.href = `topic-view.html?topicId=${topic.id}`;
         }
       });
-      
+
       const menuBtn = card.querySelector('.topic-menu-btn');
       const dropdownMenu = card.querySelector('.dropdown-menu');
-      
+
       menuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+        e.stopPropagation(); // Prevent card click event
         dropdownMenu.classList.toggle('hidden');
       });
-      
-      document.addEventListener('click', () => {
-        dropdownMenu.classList.add('hidden');
-      });
-      
-      const renameBtn = card.querySelector('.rename-topic');
-      renameBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const topicId = e.currentTarget.getAttribute('data-id');
-        const topicName = topic.name;
-        const newName = prompt('Enter new topic name:', topicName);
-        
-        if (newName && newName !== topicName) {
-          renameTopic(topicId, newName);
+
+      // Close dropdown if clicked outside
+      document.addEventListener('click', (e) => {
+        if (!card.contains(e.target)) { // if click is outside the card
+            dropdownMenu.classList.add('hidden');
         }
       });
-      
+
+      const renameBtn = card.querySelector('.rename-topic');
+      renameBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent card click event
+        dropdownMenu.classList.add('hidden'); // Hide menu after action
+        const topicId = e.currentTarget.getAttribute('data-id');
+        const topicNameElement = card.querySelector('h3');
+        const currentTopicName = topicNameElement ? topicNameElement.textContent : topic.name;
+        const newName = prompt('Enter new topic name:', currentTopicName);
+
+        if (newName && newName.trim() !== '' && newName !== currentTopicName) {
+          renameTopic(topicId, newName.trim());
+        }
+      });
+
       const deleteBtn = card.querySelector('.delete-topic');
       deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+        e.stopPropagation(); // Prevent card click event
+        dropdownMenu.classList.add('hidden'); // Hide menu after action
         const topicId = e.currentTarget.getAttribute('data-id');
         if (confirm(`Are you sure you want to delete "${topic.name}"? This will delete all conversations, bookmarks, and notes in this topic.`)) {
           deleteTopic(topicId);
         }
       });
-      
+
       return card;
     }
 

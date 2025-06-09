@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Topic View - Koda Tutor</title>
+  <link rel="stylesheet" href="../styles/main.css">
+  <link rel="stylesheet" href="../styles/navbar.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    /* body is styled by Tailwind classes */
+    .topic-header-container {
+      display: flex;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      background-color: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      /* position: sticky; top: 0; z-index: 30; /* Optional: if you want a sticky header */
+    }
+    .back-arrow {
+      font-size: 1.5rem;
+      color: #374151;
+      margin-right: 1rem;
+      text-decoration: none;
+    }
+    .back-arrow:hover {
+      color: #00A3E0;
+    }
+    .topic-title-h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #1f2937;
+      line-height: 1.2;
+    }
+    .tab-container-main {
+      padding: 0 1.5rem 1.5rem; /* Added bottom padding */
+      flex-grow: 1; /* Allows this container to grow and fill space */
+      overflow-y: auto; /* Allows content within tabs to scroll if it overflows */
+    }
+    .tab-buttons button {
+      padding: 0.75rem 1.25rem;
+      margin-right: 0.5rem;
+      border: none;
+      background-color: transparent;
+      color: #6b7280;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .tab-buttons button.active {
+      color: #00A3E0;
+      border-bottom-color: #00A3E0;
+    }
+    .tab-content {
+      margin-top: 1rem;
+      padding: 1.5rem;
+      background-color: #fff;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+    .conversation-item, .bookmark-item, .note-item {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    .item-meta {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+    }
+    .item-content p, .item-content div {
+        color: #1f2937;
+        line-height: 1.6;
+        word-break: break-word; /* Helps with long strings */
+    }
+    .message {
+        padding: 0.5rem;
+        margin-bottom: 0.25rem;
+        border-radius: 0.375rem;
+        max-width: 85%;
+    }
+    .user-message {
+        background-color: #EFF6FF; /* Tailwind blue-50 */
+        color: #1E40AF; /* Tailwind blue-800 */
+        align-self: flex-end;
+        margin-left: auto; /* Push to right */
+    }
+    .ai-message {
+        background-color: #F3F4F6; /* Tailwind gray-100 */
+        color: #1F2937; /* Tailwind gray-800 */
+        align-self: flex-start;
+    }
+    .loading-spinner-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 150px; /* Give some space for spinner */
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900" style="background: linear-gradient(180deg, #F7F7F7 0%, #FFFFFF 100%);">
+
+  <!-- Mobile Hamburger -->
+  <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
+    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
+    <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
+    <div class="w-6 h-0.5 bg-gray-800"></div>
+  </div>
+
+  <!-- Sidebar Navigation -->
+  <div id="sidebar" class="fixed top-0 left-0 h-screen w-64 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
+    <div class="flex flex-col h-full">
+      <div class="logo-container pt-12 md:pt-5">
+        <h1 class="app-logo">Koda <span>Tutor</span></h1>
+        <button id="closeSidebar" class="absolute top-5 right-4 text-gray-300 hover:text-white md:hidden mobile-touch-target">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="p-4 flex justify-center border-b border-gray-700">
+        <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden" id="avatarContainer">
+          <img id="userAvatarSidebar" src="" alt="User Avatar" class="w-full h-full object-cover opacity-0 transition-opacity duration-300">
+          <div id="avatarLoading" class="absolute">
+            <i class="fas fa-circle-notch fa-spin text-gray-400"></i>
+          </div>
+        </div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-4">
+        <ul class="space-y-1 px-4">
+        <li id="loggedInNav" class="hidden flex-col space-y-1">
+          <a href="dashboard.html" class="nav-link">
+            <i class="fas fa-compass"></i>
+            <span class="mobile-readable">Dashboard</span>
+          </a>
+          <a href="chat.html" class="nav-link">
+            <i class="fas fa-comments"></i>
+            <span class="mobile-readable">Chat</span>
+          </a>
+          <a href="bookmarks.html" class="nav-link">
+            <i class="fas fa-bookmark"></i>
+            <span class="mobile-readable">Bookmarks</span>
+          </a>
+          <a href="#" id="notesToggle" class="nav-link">
+            <i class="fas fa-sticky-note"></i>
+            <span class="mobile-readable">Notes</span>
+          </a>
+          <a href="podcasts.html" class="nav-link">
+            <i class="fas fa-podcast"></i>
+            <span class="mobile-readable">Podcasts</span>
+          </a>
+          <a href="settings.html" class="nav-link">
+            <i class="fas fa-cog"></i>
+            <span class="mobile-readable">Settings</span>
+          </a>
+        </li>
+        <li id="loggedOutNav" class="hidden flex-col space-y-1">
+          <a href="login.html" class="nav-link">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Login</span>
+          </a>
+          <a href="signup.html" class="nav-link">
+            <i class="fas fa-user-plus"></i>
+            <span>Sign Up</span>
+          </a>
+        </li>
+        </ul>
+      </nav>
+      <div class="p-4 border-t border-gray-700">
+        <button id="logout" class="logout-btn w-full">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="md:ml-64 flex-1 min-h-screen flex flex-col">
+    <div class="topic-header-container">
+      <a href="dashboard.html" class="back-arrow" aria-label="Back to Dashboard">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <h1 id="topicTitle" class="topic-title-h1">Loading Topic...</h1>
+    </div>
+
+    <div class="tab-container-main">
+      <div class="tab-buttons border-b border-gray-200 mb-4">
+        <button class="tab-btn active" data-tab="conversations">Conversations</button>
+        <button class="tab-btn" data-tab="bookmarks">Bookmarks</button>
+        <button class="tab-btn" data-tab="notes">Notes</button>
+        <button class="tab-btn" data-tab="summary">Summary</button>
+      </div>
+
+      <div id="conversationsTab" class="tab-pane active tab-content">
+        <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
+      </div>
+      <div id="bookmarksTab" class="tab-pane tab-content">
+        <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
+      </div>
+      <div id="notesTab" class="tab-pane tab-content">
+        <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
+      </div>
+      <div id="summaryTab" class="tab-pane tab-content">
+        <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
+        <div id="summaryContentPlaceholder"></div> <!-- Placeholder for summary text -->
+        <button id="generateSummaryBtn" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">Generate Summary</button>
+        <p id="summaryStatus" class="mt-2 text-sm text-gray-600"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/utils.js"></script> 
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Navbar interactivity
+      const hamburger = document.getElementById('hamburger');
+      const sidebar = document.getElementById('sidebar');
+      const closeSidebarBtn = document.getElementById('closeSidebar');
+      if (hamburger && sidebar && closeSidebarBtn) {
+        hamburger.addEventListener('click', () => sidebar.classList.toggle('-translate-x-full'));
+        closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('-translate-x-full'));
+      }
+      const logoutBtn = document.getElementById('logout');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem('userId');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('userAvatarUrl');
+          window.location.href = '/'; 
+        });
+      }
+      checkAuth('../'); // Check auth status and update nav links
+      updateNavigation('../'); // Update nav links visibility
+    // loadUserSession(); // Make sure this is defined and works - Function not found in utils.js
+      loadTutorAvatarInternal(); // Load avatar for sidebar
+
+      // Topic View specific elements
+      const topicTitleElement = document.getElementById('topicTitle');
+      const conversationsTabEl = document.getElementById('conversationsTab');
+      const bookmarksTabEl = document.getElementById('bookmarksTab');
+      const notesTabEl = document.getElementById('notesTab');
+      const summaryTabEl = document.getElementById('summaryTab');
+      const generateSummaryBtn = document.getElementById('generateSummaryBtn');
+      const summaryStatusEl = document.getElementById('summaryStatus');
+      const summaryContentPlaceholder = document.getElementById('summaryContentPlaceholder');
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const topicId = urlParams.get('topicId');
+
+      if (!topicId) {
+        topicTitleElement.textContent = 'Error: Topic ID not found.';
+        conversationsTabEl.innerHTML = '<p>No topic ID provided in the URL.</p>';
+        return;
+      }
+
+      // Tab switching logic
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      const tabPanes = document.querySelectorAll('.tab-pane');
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
+          const tabName = button.getAttribute('data-tab');
+          tabPanes.forEach(pane => {
+            pane.classList.toggle('active', pane.id === tabName + 'Tab');
+          });
+        });
+      });
+
+      async function fetchTopicDetails() {
+        const userId = localStorage.getItem('userId');
+        const accessToken = localStorage.getItem('accessToken');
+        if (!userId || !accessToken) {
+          topicTitleElement.textContent = 'Authentication Error';
+          [conversationsTabEl, bookmarksTabEl, notesTabEl, summaryTabEl].forEach(tab => tab.innerHTML = '<p>Please log in to view topic details.</p>');
+          return;
+        }
+        
+        [conversationsTabEl, bookmarksTabEl, notesTabEl, summaryTabEl].forEach(tab => {
+            if (tab.id !== 'summaryTab' || !summaryContentPlaceholder) { // Don't clear summary button/status
+                 tab.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
+            } else {
+                 summaryContentPlaceholder.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
+            }
+        });
+
+        try {
+          const response = await fetch('/.netlify/functions/dashboard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+            body: JSON.stringify({ action: 'getTopicDetails', topicId, userId }),
+          });
+          if (!response.ok) {
+            const errorResult = await response.json().catch(() => ({ error: 'Failed to parse error response.' }));
+            throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          // Get topic name from the topic object returned by the backend
+          topicTitleElement.textContent = (data.topic && data.topic.name) ? data.topic.name : 'Topic Details';
+          renderConversations(data.conversations || []);
+          renderBookmarks(data.bookmarks || []);
+          renderNotes(data.notes || []);
+          renderSummary(data.summary || null);
+        } catch (error) {
+          console.error('Error fetching topic details:', error);
+          topicTitleElement.textContent = 'Error Loading Topic';
+          [conversationsTabEl, bookmarksTabEl, notesTabEl].forEach(tab => tab.innerHTML = `<p class="text-red-500">Error loading content: ${error.message}</p>`);
+          summaryContentPlaceholder.innerHTML = `<p class="text-red-500">Error loading summary: ${error.message}</p>`;
+        }
+      }
+
+      function renderConversations(conversations) {
+        if (!conversations || conversations.length === 0) {
+          conversationsTabEl.innerHTML = '<p class="text-gray-600 p-4">No conversations recorded for this topic yet.</p>';
+          return;
+        }
+        const html = conversations.map(convo => {
+          let messagesHtml;
+
+          // Check if convo has content directly or in a messages array
+          if (convo.content) {
+            // If conversation has direct content property
+            const content = convo.content.replace(/\n/g, '<br>');
+            messagesHtml = `<div class="message"><p>${content}</p></div>`;
+          } else if (Array.isArray(convo.messages) && convo.messages.length > 0) {
+             // If conversation has messages array
+             messagesHtml = convo.messages.map(msg => {
+                const content = msg.content ? msg.content.replace(/\n/g, '<br>') : 'No content for this message.';
+                return `<div class="message ${msg.sender === 'user' ? 'user-message' : 'ai-message'}"><b>${msg.sender === 'user' ? 'You' : 'AI'}:</b> ${content}</div>`;
+            }).join('');
+          } else {
+            // If conversation has no content or messages
+            messagesHtml = `<div class="message"><p>View this conversation in the chat interface.</p></div>`;
+          }
+          return `
+            <div class="conversation-item" data-id="${convo.id}">
+              <div class="item-meta flex justify-between items-center">
+                <span>Conversation from: ${new Date(convo.created_at).toLocaleString()}</span>
+                <button class="delete-item-btn text-red-500 hover:text-red-700 p-1" data-type="conversation" data-id="${convo.id}" aria-label="Delete conversation"><i class="fas fa-trash-alt"></i></button>
+              </div>
+              <div class="item-content flex flex-col space-y-1 mt-2">${messagesHtml}</div>
+            </div>
+          `;
+        }).join('');
+        conversationsTabEl.innerHTML = html;
+      }
+
+      function renderBookmarks(bookmarks) {
+        if (!bookmarks || bookmarks.length === 0) {
+          bookmarksTabEl.innerHTML = '<p class="text-gray-600 p-4">No bookmarks saved for this topic yet.</p>';
+          return;
+        }
+        const html = bookmarks.map(bookmark => `
+          <div class="bookmark-item" data-id="${bookmark.id}">
+            <div class="item-meta flex justify-between items-center">
+              <span>Source: ${bookmark.source_document_name || 'N/A'} (Page: ${bookmark.page_number || 'N/A'})</span>
+              <button class="delete-item-btn text-red-500 hover:text-red-700 p-1" data-type="bookmark" data-id="${bookmark.id}" aria-label="Delete bookmark"><i class="fas fa-trash-alt"></i></button>
+            </div>
+            <div class="item-content mt-2"><p>${bookmark.content ? bookmark.content.replace(/\n/g, '<br>') : 'No content'}</p></div>
+          </div>
+        `).join('');
+        bookmarksTabEl.innerHTML = html;
+      }
+
+      function renderNotes(notes) {
+        if (!notes || notes.length === 0) {
+          notesTabEl.innerHTML = '<p class="text-gray-600 p-4">No notes created for this topic yet.</p>';
+          return;
+        }
+        const html = notes.map(note => `
+          <div class="note-item" data-id="${note.id}">
+            <div class="item-meta flex justify-between items-center">
+              <span>Created: ${new Date(note.created_at).toLocaleString()}</span>
+              <button class="delete-item-btn text-red-500 hover:text-red-700 p-1" data-type="note" data-id="${note.id}" aria-label="Delete note"><i class="fas fa-trash-alt"></i></button>
+            </div>
+            <div class="item-content mt-2"><p>${note.content ? note.content.replace(/\n/g, '<br>') : 'No content'}</p></div>
+          </div>
+        `).join('');
+        notesTabEl.innerHTML = html;
+      }
+
+      function renderSummary(summary) {
+        if (summary && summary.summary_text) {
+          summaryContentPlaceholder.innerHTML = `<p>${summary.summary_text.replace(/\n/g, '<br>')}</p>`;
+          generateSummaryBtn.textContent = 'Regenerate Summary';
+          summaryStatusEl.textContent = `Last generated: ${new Date(summary.updated_at).toLocaleString()}`;
+        } else {
+          summaryContentPlaceholder.innerHTML = '<p class="text-gray-600">No summary available. Click the button to generate one.</p>';
+          generateSummaryBtn.textContent = 'Generate Summary';
+          summaryStatusEl.textContent = '';
+        }
+        generateSummaryBtn.disabled = false;
+      }
+
+      generateSummaryBtn.addEventListener('click', async () => {
+        generateSummaryBtn.disabled = true;
+        summaryStatusEl.textContent = 'Generating summary...';
+        const userId = localStorage.getItem('userId');
+        const accessToken = localStorage.getItem('accessToken');
+        try {
+          const response = await fetch('/.netlify/functions/dashboard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+            body: JSON.stringify({ action: 'generateSummary', topicId, userId }),
+          });
+          const result = await response.json();
+          if (response.ok) {
+            renderSummary(result.summary);
+            showToast('Summary generated successfully!', 'success');
+          } else { throw new Error(result.error || 'Failed to generate summary'); }
+        } catch (error) {
+          console.error('Error generating summary:', error);
+          summaryStatusEl.textContent = `Error: ${error.message}`;
+          showToast(`Error generating summary: ${error.message}`, 'error');
+            generateSummaryBtn.innerHTML = 'Regenerate Summary';
+        }
+      });
+
+      // Placeholder delete functions - these should call the backend and update UI
+      async function deleteItem(type, itemId) {
+        const userId = localStorage.getItem('userId');
+        const accessToken = localStorage.getItem('accessToken');
+        if (!userId || !accessToken) {
+            showToast('Authentication error.', 'error');
+            return false;
+        }
+        try {
+            const response = await fetch('/.netlify/functions/dashboard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({ action: `delete${type}`, [`${type.toLowerCase()}Id`]: itemId, userId, topicId })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || `Failed to delete ${type.toLowerCase()}.`);
+            
+            showToast(`${type} deleted successfully.`, 'success');
+            // Remove item from DOM
+            const itemElement = document.querySelector(`.${type.toLowerCase()}-item[data-id="${itemId}"]`);
+            if (itemElement) itemElement.remove();
+            
+            // Check if tab is empty
+            const tabContent = document.getElementById(`${type.toLowerCase()}sTab`);
+            if (tabContent && !tabContent.querySelector(`.${type.toLowerCase()}-item`)) {
+                tabContent.innerHTML = `<p class="text-gray-500">No ${type.toLowerCase()}s found for this topic.</p>`;
+            }
+            return true;
+        } catch (error) {
+            console.error(`Error deleting ${type.toLowerCase()}:`, error);
+            showToast(error.message, 'error');
+            return false;
+        }
+      }
+
+      async function deleteConversation(conversationId) { await deleteItem('Conversation', conversationId); }
+      async function deleteBookmark(bookmarkId) { await deleteItem('Bookmark', bookmarkId); }
+      async function deleteNote(noteId) { await deleteItem('Note', noteId); }
+
+      // Initial fetch
+      fetchTopicDetails();
+    });
+  </script>
+</body>
+</html>
