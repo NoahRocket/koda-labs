@@ -36,6 +36,7 @@ exports.handler = async (event) => {
   }
 
   // Prepare prompt for LLM
+  // Prepare prompt for LLM
   const prompt = `Analyze the following text. Identify the top 3-5 key concepts and provide a brief (1-2 sentence) explanation for each. Return your answer as a JSON array of objects with \'concept\' and \'explanation\' fields.\n\nText:\n"""${text.substring(0, 8000)}"""`;
 
   // Securely load API key
