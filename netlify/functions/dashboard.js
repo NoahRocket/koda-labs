@@ -48,7 +48,7 @@ exports.handler = async (event, context) => {
   });
 
   // userIdFromBody can be used for non-critical logging if needed, but not for auth-sensitive ops
-  const { action, userId: userIdFromBody, topicName, topicId, emoji, bookmarkUrl, chatHistory, noteContent, noteId, conversationId, messageId } = JSON.parse(event.body || '{}');
+  const { action, userId: userIdFromBody, topicName, topicId, emoji, bookmarkUrl, bookmarkId, chatHistory, noteContent, noteId, conversationId, messageId } = JSON.parse(event.body || '{}');
   console.log('Incoming userId from body:', userIdFromBody, 'Authenticated userId from token:', authUserId);
 
   try {
@@ -190,9 +190,18 @@ exports.handler = async (event, context) => {
       if (!topicId || !bookmarkUrl) return { statusCode: 400, body: 'Missing topic ID or bookmark URL' };
       const { error } = await supabase
         .from('bookmarks')
-        .insert({ topic_id: topicId, user_id: authUserId, url: bookmarkUrl });
+        .insert({ topic_id: topicId, url: bookmarkUrl });
       if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark added' }) };
+    } else if (action === 'deleteBookmark') {
+      if (!bookmarkId) return { statusCode: 400, body: 'Missing bookmark ID' };
+      // Delete the bookmark
+      const { error: deleteError } = await supabase
+        .from('bookmarks')
+        .delete()
+        .eq('id', bookmarkId);
+      if (deleteError) throw deleteError;
+      return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark deleted' }) };
     } else if (action === 'saveConversation') {
       console.log('Saving conversation:', { userId: authUserId, topicId, chatHistory });
       // Verify the topic belongs to the user

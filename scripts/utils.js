@@ -65,6 +65,25 @@ function showToast(message, type = 'info') {
   closeBtn.addEventListener('click', () => clearTimeout(autoRemoveTimer), { once: true });
 }
 
+// Wrapper for fetch that shows toast on errors and returns JSON result or throws
+async function fetchWithErrorToast(url, options = {}) {
+  try {
+    const response = await fetch(url, options);
+    const data = await response.json();
+    if (!response.ok) {
+      const msg = data.error || response.statusText || 'Request failed';
+      showToast(msg, 'error');
+      throw new Error(msg);
+    }
+    return data;
+  } catch (err) {
+    showToast(err.message || 'Network error', 'error');
+    throw err;
+  }
+}
+
+// Expose fetchWithErrorToast
+window.fetchWithErrorToast = fetchWithErrorToast;
 
 function checkAuth(basePath = '') {
   const userId = localStorage.getItem('userId');

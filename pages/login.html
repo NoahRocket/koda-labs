@@ -41,10 +41,6 @@
               <i class="fas fa-comments"></i>
               <span class="mobile-readable">Chat</span>
             </a>
-            <a href="bookmarks.html" class="nav-link">
-              <i class="fas fa-bookmark"></i>
-              <span class="mobile-readable">Bookmarks</span>
-            </a>
             <a href="settings.html" class="nav-link">
               <i class="fas fa-cog"></i>
               <span class="mobile-readable">Settings</span>
@@ -115,6 +111,7 @@
       loginStatus.textContent = message;
       loginStatus.className = `text-center text-sm ${isError ? 'text-red-500' : 'text-blue-500'}`;
       loginStatus.classList.remove('hidden');
+      if (isError) showToast(message, 'error');
     }
     
     form.addEventListener('submit', async (e) => {
@@ -163,18 +160,13 @@
           }, 500);
         } else {
           updateLoginStatus(`Login failed: ${result.error || 'Unknown error'}`, true);
-          showToast('Login failed: ' + (result.error || 'Unknown error'), 'error');
-          loginButton.disabled = false;
-          loginButton.textContent = 'Login';
         }
       } catch (error) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
           updateLoginStatus('Login request timed out after 10 seconds. Please try again.', true);
-          showToast('Login request timed out. Check your network connection.', 'error');
         } else {
           updateLoginStatus(`Error: ${error.message}`, true);
-          showToast(`Login error: ${error.message}`, 'error');
         }
         loginButton.disabled = false;
         loginButton.textContent = 'Login';

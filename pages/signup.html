@@ -41,10 +41,6 @@
               <i class="fas fa-comments"></i>
               <span class="mobile-readable">Chat</span>
             </a>
-            <a href="bookmarks.html" class="nav-link">
-              <i class="fas fa-bookmark"></i>
-              <span class="mobile-readable">Bookmarks</span>
-            </a>
             <a href="settings.html" class="nav-link">
               <i class="fas fa-cog"></i>
               <span class="mobile-readable">Settings</span>
@@ -84,12 +80,20 @@
         <input type="password" id="password" placeholder="Password" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
         <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Sign Up</button>
       </form>
+      <div id="signupStatus" class="text-center text-sm hidden"></div>
       <p class="mt-4 text-center text-sm">Already have an account? <a href="login.html" class="text-blue-500 hover:underline">Log in</a></p>
     </div>
   </div>
 
   <script src="../scripts/utils.js"></script>
   <script>
+    const signupStatus = document.getElementById('signupStatus');
+    function updateSignupStatus(message, isError = false) {
+      signupStatus.textContent = message;
+      signupStatus.className = `text-center text-sm ${isError ? 'text-red-500' : 'text-blue-500'}`;
+      signupStatus.classList.remove('hidden');
+      if (isError) showToast(message, 'error');
+    }
     document.addEventListener('DOMContentLoaded', updateNavigation);
 
     // Hamburger menu toggle
@@ -123,7 +127,7 @@
         localStorage.setItem('refreshToken', result.session.refresh_token);
         window.location.href = 'dashboard.html';
       } else {
-        showToast('Signup failed: ' + (result.error || 'Unknown error'), 'error');
+        updateSignupStatus('Signup failed: ' + (result.error || 'Unknown error'), true);
       }
     });
   </script>
