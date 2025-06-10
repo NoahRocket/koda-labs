@@ -222,10 +222,7 @@
             <i class="fas fa-comments"></i>
             <span class="mobile-readable">Chat</span>
           </a>
-          <a href="#" id="notesToggle" class="nav-link">
-            <i class="fas fa-sticky-note"></i>
-            <span class="mobile-readable">Notes</span>
-          </a>
+
           <a href="podcasts.html" class="nav-link">
             <i class="fas fa-podcast"></i>
             <span class="mobile-readable">Podcasts</span>
@@ -313,7 +310,24 @@
             </div>
           </div>
       <div id="notesTab" class="tab-pane tab-content">
-        <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
+        <!-- Add New Note Form -->
+        <div class="bg-gray-50 rounded-lg shadow-md p-6 mb-8" style="background-color: #F7F7F7;">
+          <h2 class="text-xl font-semibold text-gray-800 mb-4">Add New Note</h2>
+          <form id="addNoteFormTopicView" class="space-y-4">
+            <div>
+              <label for="topicViewNoteContent" class="block text-sm font-medium text-gray-700 mb-1">Note</label>
+              <textarea id="topicViewNoteContent" rows="4" placeholder="Write your note here..." class="w-full border-gray-300 rounded-md p-2"></textarea>
+            </div>
+            <button type="submit" class="w-full add-note-btn text-white py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600">
+              <i class="fas fa-plus"></i>
+              Add Note
+            </button>
+          </form>
+        </div>
+        <!-- Notes List -->
+        <div id="topicViewNotesList" class="space-y-4 mt-6">
+          <!-- Notes will be loaded here by renderNotes -->
+        </div>
       </div>
       <div id="videosTab" class="tab-pane tab-content">
         <div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>
@@ -356,6 +370,15 @@
         console.log('Event listener attached to bookmark form');
       } else {
         console.error('Bookmark form not found in DOM!');
+      }
+
+      // Attach event listener to note form
+      const addNoteFormTV = document.getElementById('addNoteFormTopicView');
+      if (addNoteFormTV) {
+        addNoteFormTV.addEventListener('submit', handleAddNoteTopicView);
+        console.log('Event listener attached to note form');
+      } else {
+        console.error('Note form not found in DOM!');
       }
 
       // Topic View specific elements
@@ -589,26 +612,28 @@
         if (!userId || !accessToken) {
           document.getElementById('topicName').textContent = 'Authentication Error';
           document.getElementById('topicEmoji').textContent = '🔒';
-          [conversationsTabEl, bookmarksTabEl, notesTabEl, keyConceptsTab, videosTabEl].forEach(tab => tab.innerHTML = '<p>Please log in to view topic details.</p>');
+          [conversationsTabEl, bookmarksTabEl, notesTabEl, keyConceptsTab, videosTabEl]
+            .forEach(tab => tab.innerHTML = '<p>Please log in to view topic details.</p>');
           return;
         }
-        
-        [conversationsTabEl, bookmarksTabEl, notesTabEl, keyConceptsTab, videosTabEl].forEach(tab => {
-            if (tab.id === 'bookmarksTab') {
-                const bookmarksListContainer = document.getElementById('topicViewBookmarksList');
-                if (bookmarksListContainer) {
-                    bookmarksListContainer.innerHTML = '<div class="loading-spinner-container" style="min-height: 100px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
-                } else {
-                    console.error('CRITICAL: #topicViewBookmarksList not found within #bookmarksTab for spinner setup. The static HTML for bookmarksTab might be incorrect.');
-                    // Fallback: clear whole tab if structure is unexpectedly missing, to at least show a spinner
-                    tab.innerHTML = '<div class="loading-spinner-container" style="min-height: 100px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
-                }
-            } else if (tab.id === 'keyConceptsTab' && keyConceptsContentPlaceholder) {
-                 keyConceptsContentPlaceholder.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
-            } else if (tab.id !== 'keyConceptsTab') { // For other tabs (conversations, notes, videos) that are not 'bookmarksTab'
-                 tab.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
+
+        // Show loading spinners for all tabs
+        [conversationsTabEl, bookmarksTabEl, notesTabEl, videosTabEl].forEach(tab => {
+          if (tab.id === 'bookmarksTab') {
+            const container = document.getElementById('topicViewBookmarksList');
+            if (container) {
+              container.innerHTML = '<div class="loading-spinner-container" style="min-height: 100px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
             }
-            // If keyConceptsTab but no placeholder, or if it's an unknown tab, it does nothing to avoid errors.
+          } else if (tab.id === 'notesTab') {
+            const container = document.getElementById('topicViewNotesList');
+            if (container) {
+              container.innerHTML = '<div class="loading-spinner-container" style="min-height: 100px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
+            }
+          } else if (tab.id === 'keyConceptsTab' && keyConceptsContentPlaceholder) {
+            keyConceptsContentPlaceholder.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
+          } else {
+            tab.innerHTML = '<div class="loading-spinner-container"><i class="fas fa-spinner fa-spin fa-2x text-gray-400"></i></div>';
+          }
         });
 
         try {
@@ -738,20 +763,55 @@
       }
 
       function renderNotes(notes) {
-        if (!notes || notes.length === 0) {
-          notesTabEl.innerHTML = '<p class="text-gray-600 p-4">No notes created for this topic yet.</p>';
+        const notesListContainer = document.getElementById('topicViewNotesList');
+        if (!notesListContainer) {
+          notesTabEl.innerHTML = '<p class="text-red-500 p-4">Error: UI component for notes is missing.</p>';
           return;
         }
-        const html = notes.map(note => `
-          <div class="note-item" data-id="${note.id}">
+        notesListContainer.innerHTML = '';
+        if (!notes || notes.length === 0) {
+          notesListContainer.innerHTML = '<p class="text-gray-600 p-4 text-center">No notes saved for this topic yet. Add one above!</p>';
+          return;
+        }
+        notes.forEach(note => {
+          const noteItem = document.createElement('div');
+          noteItem.className = 'note-item bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow';
+          noteItem.dataset.id = note.id;
+
+          noteItem.innerHTML = `
             <div class="item-meta flex justify-between items-center">
               <span>Created: ${new Date(note.created_at).toLocaleString()}</span>
-              <button class="delete-item-btn text-red-500 hover:text-red-700 p-1" data-type="note" data-id="${note.id}" aria-label="Delete note"><i class="fas fa-trash-alt"></i></button>
+              <button class="delete-note-topic-view-btn text-red-500 hover:text-red-700 p-1" data-id="${note.id}" aria-label="Delete note"><i class="fas fa-trash-alt"></i></button>
             </div>
             <div class="item-content mt-2"><p>${note.content ? note.content.replace(/\n/g, '<br>') : 'No content'}</p></div>
-          </div>
-        `).join('');
-        notesTabEl.innerHTML = html;
+          `;
+          notesListContainer.appendChild(noteItem);
+          const deleteBtn = noteItem.querySelector('.delete-note-topic-view-btn');
+          if (deleteBtn) {
+            deleteBtn.addEventListener('click', async () => {
+              if (!confirm('Are you sure you want to delete this note?')) return;
+              const accessToken = localStorage.getItem('accessToken');
+              const noteId = deleteBtn.dataset.id;
+              try {
+                const response = await fetch('/.netlify/functions/dashboard', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+                  body: JSON.stringify({ action: 'deleteNote', noteId })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                  showToast('Note deleted successfully.', 'success');
+                  fetchTopicDetails();
+                } else {
+                  showToast(result.error || 'Failed to delete note.', 'error');
+                }
+              } catch (error) {
+                console.error('Error deleting note:', error);
+                showToast('An error occurred while deleting the note.', 'error');
+              }
+            });
+          }
+        });
       }
 
       function renderYouTubeVideos(videos, topicName) {
@@ -936,6 +996,38 @@
       async function deleteConversation(conversationId) { await deleteItem('Conversation', conversationId); }
       async function deleteBookmark(bookmarkId) { await deleteItem('Bookmark', bookmarkId); }
       async function deleteNote(noteId) { await deleteItem('Note', noteId); }
+
+      // Handle add note in Topic View
+      async function handleAddNoteTopicView(event) {
+        event.preventDefault();
+        const accessToken = localStorage.getItem('accessToken');
+        const urlParams = new URLSearchParams(window.location.search);
+        const topicId = urlParams.get('topicId');
+        const contentEl = document.getElementById('topicViewNoteContent');
+        const noteContent = contentEl.value.trim();
+        if (!noteContent) {
+          showToast('Please enter some note content.', 'error');
+          return;
+        }
+        try {
+          const response = await fetch('/.netlify/functions/dashboard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+            body: JSON.stringify({ action: 'saveNote', topicId, content: noteContent })
+          });
+          const result = await response.json();
+          if (response.ok) {
+            showToast('Note added successfully!', 'success');
+            contentEl.value = '';
+            fetchTopicDetails();
+          } else {
+            showToast(result.error || 'Failed to add note.', 'error');
+          }
+        } catch (error) {
+          console.error('Error adding note:', error);
+          showToast('An error occurred while adding the note.', 'error');
+        }
+      }
 
       // Initial fetch
       fetchTopicDetailsCached();

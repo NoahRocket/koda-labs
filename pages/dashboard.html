@@ -212,10 +212,7 @@
             <i class="fas fa-comments"></i>
             <span class="mobile-readable">Chat</span>
           </a>
-          <a href="#" id="notesToggle" class="nav-link">
-            <i class="fas fa-sticky-note"></i>
-            <span class="mobile-readable">Notes</span>
-          </a>
+
           <a href="podcasts.html" class="nav-link">
             <i class="fas fa-podcast"></i>
             <span class="mobile-readable">Podcasts</span>
@@ -380,44 +377,7 @@
     </div>
   </div>
 
-  <!-- Notes Panel -->
-  <div id="notesPanel" class="fixed top-0 right-0 w-96 h-screen bg-white shadow-lg z-50 flex flex-col border-l border-gray-200 transform translate-x-full transition-transform duration-300 ease-in-out">
-    <div class="flex justify-between items-center p-5 bg-gray-50 border-b border-gray-200">
-      <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
-        <i class="fas fa-sticky-note text-yellow-400"></i> Quick Notes
-      </h2>
-      <button class="text-2xl text-gray-500 hover:text-gray-700 transition-colors" id="closeNotesBtn">×</button>
-    </div>
-    
-    <div class="flex-1 flex flex-col overflow-hidden">
-      <div class="p-5 border-b border-gray-200">
-        <textarea id="noteText" placeholder="Jot down a thought..." class="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent resize-none transition-all duration-200 font-eb-garamond"></textarea>
-        <div class="flex gap-3 mt-4">
-          <select id="noteTopic" class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm">
-            <option value="">Untagged</option>
-            <!-- Topics will be loaded here -->
-          </select>
-          <button id="saveNote" class="bg-yellow-400 hover:bg-yellow-500 text-gray-800 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 font-medium">
-            <i class="fas fa-save"></i> Save
-          </button>
-        </div>
-      </div>
-      
-      <div class="flex justify-between items-center p-4 border-b border-gray-200">
-        <h3 class="font-medium text-gray-800">Saved Notes</h3>
-        <select id="noteFilter" class="p-1.5 text-sm border border-gray-300 rounded-lg">
-          <option value="all">All Notes</option>
-          <option value="untagged">Untagged</option>
-          <!-- Topics will be loaded here -->
-        </select>
-      </div>
-      
-      <div id="notesList" class="flex-1 overflow-y-auto p-4">
-        <!-- Notes will be loaded here -->
-      </div>
-    </div>
-  </div>
-  
+
   <!-- Audio for success sound -->
   <audio id="saveSuccessSound" preload="auto" src="../sounds/success-chime.mp3"></audio>
 
@@ -1359,35 +1319,9 @@
         });
       }
 
-      // Notes panel
-      const notesToggle = document.getElementById('notesToggle');
-      const notesPanel = document.getElementById('notesPanel');
-      const closeNotes = document.getElementById('closeNotesBtn');
-      if (notesToggle && notesPanel && closeNotes) {
-        notesToggle.addEventListener('click', (e) => {
-          e.preventDefault();
-          notesPanel.classList.toggle('translate-x-full');
-          if (!notesPanel.classList.contains('translate-x-full')) {
-            loadNotesTopics();
-            loadNotes();
-          }
-        });
-        closeNotes.addEventListener('click', () => {
-          notesPanel.classList.add('translate-x-full');
-        });
-      }
 
-      // Save note (in notes panel)
-      const saveNoteBtnPanel = document.getElementById('saveNote');
-      if (saveNoteBtnPanel) {
-        saveNoteBtnPanel.addEventListener('click', saveNote);
-      }
 
-      // Note filter
-      const noteFilter = document.getElementById('noteFilter');
-      if (noteFilter) {
-        noteFilter.addEventListener('change', loadNotes);
-      }
+
 
       // Tab switching
       const modal = document.getElementById('topicModal');
