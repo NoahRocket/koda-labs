@@ -48,32 +48,13 @@ exports.handler = async (event, context) => {
   });
 
   // userIdFromBody can be used for non-critical logging if needed, but not for auth-sensitive ops
-  const { action, userId: userIdFromBody, topicName, topicId, bookmarkUrl, chatHistory, noteContent, noteId, conversationId, messageId } = JSON.parse(event.body || '{}');
+  const { action, userId: userIdFromBody, topicName, topicId, emoji, bookmarkUrl, chatHistory, noteContent, noteId, conversationId, messageId } = JSON.parse(event.body || '{}');
   console.log('Incoming userId from body:', userIdFromBody, 'Authenticated userId from token:', authUserId);
 
   try {
     if (action === 'addTopic') {
-      // Get emoji for the topic name
-      let emoji = '📚'; // Default emoji
-      try {
-        // Call the assign-emoji function
-        const response = await fetch(`${process.env.URL}/.netlify/functions/assign-emoji`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topicName })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          emoji = data.emoji;
-          console.log(`Assigned emoji ${emoji} to topic ${topicName}`);
-        } else {
-          console.error('Error fetching emoji:', await response.text());
-        }
-      } catch (emojiError) {
-        console.error('Error assigning emoji:', emojiError);
-        // Continue with default emoji if there's an error
-      }
+      // Use default book emoji
+      const emoji = '📚';
 
       const { data: newTopic, error: addTopicError } = await supabase
         .from('topics')
@@ -84,28 +65,7 @@ exports.handler = async (event, context) => {
     } else if (action === 'renameTopic') {
       if (!topicId) return { statusCode: 400, body: 'Missing topic ID' };
       if (!topicName) return { statusCode: 400, body: 'Missing topic name' };
-      
-      // Get emoji for the new topic name
-      let emoji = '📚'; // Default emoji
-      try {
-        // Call the assign-emoji function
-        const response = await fetch(`${process.env.URL}/.netlify/functions/assign-emoji`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topicName })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          emoji = data.emoji;
-          console.log(`Assigned new emoji ${emoji} to renamed topic ${topicName}`);
-        } else {
-          console.error('Error fetching emoji:', await response.text());
-        }
-      } catch (emojiError) {
-        console.error('Error assigning emoji:', emojiError);
-        // Continue with default emoji if there's an error
-      }
+      // Rename only, emoji unchanged
 
       // Check if topic belongs to the user
       const { data: topic, error: topicError } = await supabase
@@ -124,15 +84,16 @@ exports.handler = async (event, context) => {
         return { statusCode: 403, body: JSON.stringify({ error: 'You do not have permission to rename this topic' }) };
       }
 
-      // Update the topic name and emoji
+      // Update the topic name
       const { data: updatedTopic, error: updateError } = await supabase
         .from('topics')
-        .update({ name: topicName, emoji })
+        .update({ name: topicName.trim() })
         .eq('id', topicId)
-        .select();
+        .eq('user_id', authUserId); // Redundant check, but good for safety
       
       if (updateError) throw updateError;
-      return { statusCode: 200, body: JSON.stringify({ topic: updatedTopic[0] }) };
+      console.log(`[RENAME_TOPIC] Successfully renamed topic ${topicId}`);
+      return { statusCode: 200, body: JSON.stringify({ message: 'Topic renamed successfully' }) };
     } else if (action === 'deleteTopic') {
       if (!topicId) return { statusCode: 400, body: 'Missing topic ID' };
       console.log(`[DELETE] Starting deletion of topic ${topicId} and all related data for user ${authUserId}`);
@@ -153,17 +114,27 @@ exports.handler = async (event, context) => {
         return { statusCode: 403, body: JSON.stringify({ error: 'You do not have permission to delete this topic' }) };
       }
       
+      // Note: Bookmarks are now automatically deleted via ON DELETE CASCADE
+      // We'll still delete them here for completeness and in case some bookmarks need RLS-based deletion
       console.log(`[DELETE] Deleting bookmarks for topic ${topicId}`);
       const { error: bookmarkDeleteError } = await supabase.from('bookmarks').delete().eq('topic_id', topicId);
-      if (bookmarkDeleteError) throw new Error(`Failed to delete bookmarks: ${bookmarkDeleteError.message}`);
+      if (bookmarkDeleteError) console.log(`Note: Bookmark deletion via API returned: ${bookmarkDeleteError.message} - This is expected if relying on CASCADE`);
       
       console.log(`[DELETE] Deleting conversations for topic ${topicId}`);
       const { error: conversationDeleteError } = await supabase.from('conversations').delete().eq('topic_id', topicId);
       if (conversationDeleteError) throw new Error(`Failed to delete conversations: ${conversationDeleteError.message}`);
 
       console.log(`[DELETE] Deleting notes for topic ${topicId}`);
-      const { error: notesDeleteError } = await supabase.from('notes').delete().eq('topic_id', topicId);
+      const { error: notesDeleteError } = await supabase.from('notes').delete().eq('topic_id', topicId).eq('user_id', authUserId);
       if (notesDeleteError) throw new Error(`Failed to delete notes: ${notesDeleteError.message}`);
+
+      console.log(`[DELETE] Deleting video recommendations for topic ${topicId}`);
+      const { error: videoRecommendationsDeleteError } = await supabase.from('topic_video_recommendations').delete().eq('topic_id', topicId);
+      if (videoRecommendationsDeleteError) throw new Error(`Failed to delete video recommendations: ${videoRecommendationsDeleteError.message}`);
+
+      console.log(`[DELETE] Deleting summaries for topic ${topicId} (user: ${authUserId})`);
+      const { error: summariesDeleteError } = await supabase.from('summaries').delete().eq('topic_id', topicId).eq('user_id', authUserId);
+      if (summariesDeleteError) throw new Error(`Failed to delete summaries: ${summariesDeleteError.message}`);
 
       console.log(`[DELETE] Deleting topic ${topicId} itself`);
       const { error: topicDeleteError } = await supabase.from('topics').delete().eq('id', topicId).eq('user_id', authUserId);
@@ -923,6 +894,28 @@ exports.handler = async (event, context) => {
         console.error('[getAvatar] Unexpected error:', e.message || e);
         return { statusCode: 200, body: JSON.stringify({ avatarUrl: '../assets/avatars/default.png' }) };
       }
+    } else if (action === 'updateEmoji') {
+      if (!topicId || !emoji) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing topic ID or emoji' }) };
+      }
+      // Verify ownership
+      const { data: topic, error: verifyError } = await supabase
+        .from('topics')
+        .select('user_id')
+        .eq('id', topicId)
+        .single();
+      if (verifyError || !topic) {
+        return { statusCode: 404, body: JSON.stringify({ error: 'Topic not found' }) };
+      }
+      if (topic.user_id !== authUserId) {
+        return { statusCode: 403, body: JSON.stringify({ error: 'Permission denied' }) };
+      }
+      const { error: updateError2 } = await supabase
+        .from('topics')
+        .update({ emoji })
+        .eq('id', topicId);
+      if (updateError2) throw updateError2;
+      return { statusCode: 200, body: JSON.stringify({ message: 'Emoji updated' }) };
     } else {
       // Get topics with conversation, bookmark, and note counts
       const { data: rawTopics, error: topicsError } = await supabase

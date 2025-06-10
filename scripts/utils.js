@@ -198,9 +198,14 @@ function updateNavigation() {
 
 // Silent session refresh: use refresh token to renew access token before expiry
 let refreshTimer;
+let refreshInProgress = false;
 async function refreshSession() {
   const refreshToken = localStorage.getItem('refreshToken');
-  if (!refreshToken) return;
+  if (!refreshToken || refreshInProgress) return;
+  
+  // Set flag to prevent duplicate calls
+  refreshInProgress = true;
+  
   try {
     const response = await fetch('/.netlify/functions/auth', {
       method: 'POST',
@@ -219,6 +224,9 @@ async function refreshSession() {
     localStorage.removeItem('userId');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+  } finally {
+    // Reset flag after completion, whether successful or not
+    refreshInProgress = false;
   }
 }
 
@@ -230,9 +238,10 @@ function handleMenuEvent(event, action) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Add small delay to avoid race conditions with other initialization code
   const currentPage = window.location.pathname.split('/').pop();
   if (currentPage !== 'login.html' && currentPage !== 'signup.html') {
-    refreshSession();
+    setTimeout(() => refreshSession(), 100);
   }
   
   // Mobile Menu Behavior

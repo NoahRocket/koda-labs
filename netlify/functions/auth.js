@@ -1,11 +1,48 @@
-const { getSupabaseAuthClient } = require('./supabaseClient');
+const { getSupabaseAuthClient, releaseSupabaseConnections } = require('./supabaseClient');
+
+// Simple in-memory request deduplication cache
+const requestCache = {};
+const CACHE_TTL = 1000; // 1 second cache TTL
+
+// Helper to generate a cache key from request details
+const getCacheKey = (event) => {
+  try {
+    const body = JSON.parse(event.body || '{}');
+    return `${event.httpMethod}:${body.action}:${body.email || ''}:${!!body.refreshToken}`;
+  } catch (e) {
+    return null; // If we can't parse the body, don't use caching
+  }
+};
 
 exports.handler = async (event, context) => {
-  // Minimal logging to reduce overhead
-  console.log('Auth handler invoked:', event.httpMethod);
+  // Track request start time for diagnostics
+  const startTime = Date.now();
+  console.log('[auth] Handler invoked:', event.httpMethod);
   
-  // Add timeout handling for Supabase operations
-  const TIMEOUT = 5000; // 5 seconds timeout
+  // Set up context.callbackWaitsForEmptyEventLoop = false to prevent the function from waiting
+  if (context && typeof context.callbackWaitsForEmptyEventLoop !== 'undefined') {
+    // This is critical for preventing Lambda from waiting for connections to close
+    context.callbackWaitsForEmptyEventLoop = false;
+    console.log('[auth] Set callbackWaitsForEmptyEventLoop = false');
+  }
+  
+  // Determine if running in netlify dev for local development
+  const isLocalDev = process.env.NETLIFY_DEV === 'true';
+  
+  // Adjust timeout for local development
+  const TIMEOUT = isLocalDev ? 15000 : 5000; // 15 seconds for local dev, 5 for production
+  
+  // Check for request deduplication if running locally
+  if (isLocalDev) {
+    const cacheKey = getCacheKey(event);
+    if (cacheKey && requestCache[cacheKey]) {
+      const cachedResponse = requestCache[cacheKey];
+      if (Date.now() - cachedResponse.timestamp < CACHE_TTL) {
+        console.log(`Using cached auth response for ${cacheKey}, age: ${Date.now() - cachedResponse.timestamp}ms`);
+        return cachedResponse.response;
+      }
+    }
+  }
   
   const supabase = getSupabaseAuthClient();
 
@@ -25,18 +62,64 @@ exports.handler = async (event, context) => {
       const signupPromise = supabase.auth.signUp({ email, password });
       const { data, error } = await Promise.race([signupPromise, timeoutPromise]);
       if (error) throw error;
-      return { statusCode: 200, body: JSON.stringify({ user: data.user, session: data.session }) };
+      
+      // Cache successful response in local development
+      const response = { statusCode: 200, body: JSON.stringify({ user: data.user, session: data.session }) };
+      if (isLocalDev) {
+        const cacheKey = getCacheKey(event);
+        if (cacheKey) {
+          requestCache[cacheKey] = {
+            timestamp: Date.now(),
+            response
+          };
+          console.log(`[auth] Cached response for key: ${cacheKey}`);
+        }
+      }
+      
+      return response;
     } else if (action === 'login') {
       const loginPromise = supabase.auth.signInWithPassword({ email, password });
       const { data, error } = await Promise.race([loginPromise, timeoutPromise]);
       if (error) throw error;
-      return { statusCode: 200, body: JSON.stringify({ user: data.user, session: data.session }) };
+      
+      // Cache successful response in local development
+      const response = { statusCode: 200, body: JSON.stringify({ user: data.user, session: data.session }) };
+      if (isLocalDev) {
+        const cacheKey = getCacheKey(event);
+        if (cacheKey) {
+          requestCache[cacheKey] = {
+            timestamp: Date.now(),
+            response
+          };
+          console.log(`[auth] Cached response for key: ${cacheKey}`);
+        }
+      }
+      
+      return response;
     } else if (action === 'refresh') {
       const { refreshToken } = JSON.parse(event.body || '{}');
       const refreshPromise = supabase.auth.refreshSession({ refresh_token: refreshToken });
       const { data, error } = await Promise.race([refreshPromise, timeoutPromise]);
       if (error) throw error;
-      return { statusCode: 200, body: JSON.stringify({ session: data.session, user: data.user }) };
+      
+      // Cache successful response in local development
+      const response = { statusCode: 200, body: JSON.stringify({ session: data.session, user: data.user }) };
+      if (isLocalDev) {
+        const cacheKey = getCacheKey(event);
+        if (cacheKey) {
+          requestCache[cacheKey] = {
+            timestamp: Date.now(),
+            response
+          };
+          
+          // Clean up cache entry after TTL
+          setTimeout(() => {
+            delete requestCache[cacheKey];
+          }, CACHE_TTL * 2);
+        }
+      }
+      
+      return response;
     } else if (action === 'verify') {
       // Extract token from header
       const headers = Object.fromEntries(
@@ -55,7 +138,25 @@ exports.handler = async (event, context) => {
       if (error) {
         return { statusCode: 401, body: JSON.stringify({ error: 'Invalid or expired token for verification' }) };
       }
-      return { statusCode: 200, body: JSON.stringify({ user }) };
+      
+      // Cache successful response in local development
+      const response = { statusCode: 200, body: JSON.stringify({ user }) };
+      if (isLocalDev) {
+        const cacheKey = getCacheKey(event);
+        if (cacheKey) {
+          requestCache[cacheKey] = {
+            timestamp: Date.now(),
+            response
+          };
+          
+          // Clean up cache entry after TTL
+          setTimeout(() => {
+            delete requestCache[cacheKey];
+          }, CACHE_TTL * 2);
+        }
+      }
+      
+      return response;
     } else {
       return { statusCode: 400, body: 'Invalid action' };
     }
@@ -66,5 +167,26 @@ exports.handler = async (event, context) => {
       statusCode: error.message === 'Request timed out' ? 504 : 400, 
       body: JSON.stringify({ error: error.message }) 
     };
+  } finally {
+    // Explicitly clean up resources
+    try {
+      releaseSupabaseConnections();
+    } catch (e) {
+      console.error('[auth] Error releasing connections:', e.message);
+    }
+    
+    // Log execution time for diagnostics
+    const executionTime = Date.now() - startTime;
+    console.log(`[auth] Handler completed in ${executionTime}ms`);
+    
+    // Clean up any old cache entries to prevent memory leaks
+    if (process.env.NETLIFY_DEV === 'true') {
+      const now = Date.now();
+      Object.keys(requestCache).forEach(key => {
+        if (now - requestCache[key].timestamp > CACHE_TTL * 2) {
+          delete requestCache[key];
+        }
+      });
+    }
   }
 };

@@ -637,6 +637,20 @@
       }
     }
 
+    function showLoadingIndicator() {
+      const indicator = document.getElementById('topicsLoading');
+      if (indicator) {
+        indicator.style.display = 'flex'; // Use 'flex' as per the element's class
+      }
+    }
+
+    function hideLoadingIndicator() {
+      const indicator = document.getElementById('topicsLoading');
+      if (indicator) {
+        indicator.style.display = 'none';
+      }
+    }
+
     // Create topic card
     function createTopicCard(topic) {
       const card = document.createElement('div');
@@ -711,8 +725,8 @@
         e.stopPropagation(); // Prevent card click event
         dropdownMenu.classList.add('hidden'); // Hide menu after action
         const topicId = e.currentTarget.getAttribute('data-id');
-        const topicNameElement = card.querySelector('h3');
-        const currentTopicName = topicNameElement ? topicNameElement.textContent : topic.name;
+        const topicNameSpan = card.querySelector('.topic-name'); // Get the span containing only the topic name
+        const currentTopicName = topicNameSpan ? topicNameSpan.textContent : topic.name; // Use its text content
         const newName = prompt('Enter new topic name:', currentTopicName);
 
         if (newName && newName.trim() !== '' && newName !== currentTopicName) {
@@ -727,6 +741,17 @@
         const topicId = e.currentTarget.getAttribute('data-id');
         if (confirm(`Are you sure you want to delete "${topic.name}"? This will delete all conversations, bookmarks, and notes in this topic.`)) {
           deleteTopic(topicId);
+        }
+      });
+
+      const emojiSpan = card.querySelector('.emoji');
+      emojiSpan.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const topicId = card.dataset.topicId;
+        const currentEmoji = emojiSpan.textContent;
+        const newEmoji = prompt('Enter new emoji for this topic:', currentEmoji);
+        if (newEmoji && newEmoji.trim() !== '' && newEmoji !== currentEmoji) {
+          updateEmoji(topicId, newEmoji.trim());
         }
       });
 
@@ -1227,12 +1252,8 @@
           const topicCard = document.getElementById(`topic-${topicId}`);
           if (topicCard) {
             const topicNameElement = topicCard.querySelector('.topic-name');
-            const emojiElement = topicCard.querySelector('.emoji');
             if (topicNameElement) {
               topicNameElement.textContent = newName;
-            }
-            if (emojiElement && data.topic && data.topic.emoji) {
-              emojiElement.textContent = data.topic.emoji;
             }
           }
           showToast(`Topic renamed to "${newName}"`, 'success');
@@ -1243,6 +1264,41 @@
         hideLoadingIndicator();
         console.error('Error renaming topic:', error);
         showToast('Failed to rename topic. Please try again.', 'error');
+      }
+    }
+
+    // Update Emoji Functionality
+    async function updateEmoji(topicId, newEmoji) {
+      const userId = localStorage.getItem('userId');
+      const accessToken = localStorage.getItem('accessToken');
+      if (!userId || !accessToken) {
+        showToast('You need to be logged in to change emoji', 'error');
+        return;
+      }
+      try {
+        const response = await fetch('/.netlify/functions/dashboard', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            action: 'updateEmoji',
+            topicId,
+            emoji: newEmoji
+          })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          const emojiElement = document.querySelector(`#topic-${topicId} .emoji`);
+          if (emojiElement) emojiElement.textContent = newEmoji;
+          showToast('Emoji updated', 'success');
+        } else {
+          showToast(`Error updating emoji: ${data.error || 'Unknown error'}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error updating emoji:', error);
+        showToast('Failed to update emoji', 'error');
       }
     }
 
