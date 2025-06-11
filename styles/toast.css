@@ -1,0 +1,91 @@
+/* Toast Notifications */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000; /* Ensure toasts are on top */
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Spacing between multiple toasts */
+}
+
+.toast {
+  background-color: #fff;
+  color: #333;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 300px;
+  max-width: 400px;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  border-left: 5px solid #3498db; /* Default info color */
+}
+
+.toast.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast.toast-closing {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toast-content .fas { /* Font Awesome icons */
+  font-size: 1.2em;
+}
+
+.toast.success {
+  border-left-color: #2ecc71; /* Green for success */
+}
+.toast.success .fas {
+  color: #2ecc71;
+}
+
+.toast.error {
+  border-left-color: #e74c3c; /* Red for error */
+}
+.toast.error .fas {
+  color: #e74c3c;
+}
+
+.toast.info { /* Default, or if you use 'info' type */
+  border-left-color: #3498db; /* Blue for info */
+}
+.toast.info .fas {
+  color: #3498db;
+}
+
+.toast.warning {
+  border-left-color: #f39c12; /* Orange for warning */
+}
+.toast.warning .fas {
+  color: #f39c12;
+}
+
+.toast-close-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.5em;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0 0 15px; /* Give it some space from the message */
+  margin-left: auto; /* Push it to the right */
+}
+
+.toast-close-btn:hover {
+  color: #333;
+}

@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/toast.css">
 </head>
 <body class="bg-gray-50 font-eb-garamond min-h-screen flex">
   <!-- Mobile Hamburger -->
@@ -108,10 +109,13 @@
     const loginStatus = document.getElementById('loginStatus');
     
     function updateLoginStatus(message, isError = false) {
-      loginStatus.textContent = message;
-      loginStatus.className = `text-center text-sm ${isError ? 'text-red-500' : 'text-blue-500'}`;
-      loginStatus.classList.remove('hidden');
-      if (isError) showToast(message, 'error');
+      if (isError) {
+        showToast(message, 'error');
+      } else {
+        loginStatus.textContent = message;
+        loginStatus.className = 'text-center text-sm text-blue-500';
+        loginStatus.classList.remove('hidden');
+      }
     }
     
     form.addEventListener('submit', async (e) => {

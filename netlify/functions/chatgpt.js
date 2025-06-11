@@ -2,7 +2,7 @@
 // This function is invoked by your frontend (chat.js) to keep the OpenAI API key hidden.
 
 const fetch = require('node-fetch'); // Ensure node-fetch version 2.x is installed
-const { getSupabaseAuthClient } = require('./supabaseClient');
+const { getSupabaseAuthClient, releaseSupabaseConnections } = require('./supabaseClient');
 const { trackUsageAndCheckLimits } = require('./usage-tracking');
 
 // Free tier limits
@@ -18,10 +18,22 @@ async function verifyToken(authHeader) {
   const token = authHeader.split(' ')[1];
   
   try {
-    const { data, error } = await supabase.auth.getUser(token);
+    // Create a timeout promise
+    const isLocalDev = process.env.NETLIFY_DEV === 'true';
+    const TIMEOUT = isLocalDev ? 15000 : 5000; // 15 seconds for local dev, 5 for production
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Token verification timed out')), TIMEOUT);
+    });
+    
+    // Create the verification promise
+    const verifyPromise = supabase.auth.getUser(token);
+    
+    // Race the promises
+    const { data, error } = await Promise.race([verifyPromise, timeoutPromise]);
     
     if (error) {
-      console.error('Token verification error:', error);
+      console.error('[chatgpt] Token verification error:', error);
       return { error: 'Invalid token' };
     }
     
@@ -29,7 +41,7 @@ async function verifyToken(authHeader) {
     
     return { user: data.user };
   } catch (error) {
-    console.error('Token verification error:', error);
+    console.error('[chatgpt] Token verification error:', error);
     return { error: 'Token verification failed' };
   }
 }
@@ -83,6 +95,13 @@ function formatConversationForSaving(messages) {
 
 module.exports.handler = async (event, context) => {
   const startTime = Date.now();
+  console.log('[chatgpt] Handler invoked');
+  
+  // Set callbackWaitsForEmptyEventLoop to false to prevent Lambda from waiting for DB connections to close
+  if (context && typeof context.callbackWaitsForEmptyEventLoop !== 'undefined') {
+    context.callbackWaitsForEmptyEventLoop = false;
+    console.log('[chatgpt] Set callbackWaitsForEmptyEventLoop = false');
+  }
   // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -358,14 +377,31 @@ module.exports.handler = async (event, context) => {
       temperature: 0.7
     };
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Determine if running in local development
+    const isLocalDev = process.env.NETLIFY_DEV === 'true';
+    
+    // Set timeout based on environment
+    const OPENAI_TIMEOUT = isLocalDev ? 45000 : 30000; // 45 seconds for local dev, 30 for production
+    console.log(`[chatgpt] Making OpenAI API request with ${OPENAI_TIMEOUT}ms timeout`);
+    
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('OpenAI API request timed out')), OPENAI_TIMEOUT);
+    });
+    
+    // Create the fetch promise
+    const fetchPromise = fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Connection': 'close' // Explicitly close the connection when done
       },
       body: JSON.stringify(apiRequestBody),
     });
+    
+    // Race the promises
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -398,6 +434,14 @@ module.exports.handler = async (event, context) => {
       body: JSON.stringify({ error: 'Internal Server Error' }),
     };
   } finally {
-    console.log(`Request processed in ${Date.now() - startTime}ms`);
+    // Clean up resources
+    try {
+      releaseSupabaseConnections();
+    } catch (e) {
+      console.error('[chatgpt] Error releasing connections:', e.message);
+    }
+    
+    const processingTime = Date.now() - startTime;
+    console.log(`[chatgpt] Request processed in ${processingTime}ms`);
   }
 };
