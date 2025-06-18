@@ -1,3 +1,5 @@
+node_modules
+
 # Local Netlify folder
 .netlify
 node_modules/
@@ -9,3 +11,5 @@ node_modules/
 
 # Generated CSS (Tailwind)
 styles/main.css
+
+.DS_Store

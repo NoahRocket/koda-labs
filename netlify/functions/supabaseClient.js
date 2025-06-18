@@ -28,10 +28,11 @@ const fetchWithTimeout = (timeout = 5000) => {
     const originalSignal = options.signal;
     options.signal = controller.signal;
     
-    // Add keep-alive header to prevent connection from being closed too early
+    // Force connection close in local dev to prevent lingering sockets that keep
+    // Netlify's dev function alive for ~5 minutes after the handler finishes.
     if (isLocalDev) {
       options.headers = options.headers || {};
-      options.headers['Connection'] = 'keep-alive';
+      options.headers['Connection'] = 'close';
     }
     
     try {
