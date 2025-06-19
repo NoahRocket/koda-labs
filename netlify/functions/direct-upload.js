@@ -35,10 +35,10 @@ exports.handler = async (event) => {
     console.log(`Attempting direct upload for job: ${jobId}, filename: ${filename}`);
 
     // Perform a direct upload to Supabase storage using the REST API
-    // Corrected Path: Removed potentially problematic '/public/' from the upload path.
-    // Bucket name is 'podcasts', assuming direct upload to the root of the bucket.
-    // If files should be user-specific, the path might need userId, e.g., `podcasts/${userId}/${filename}`
-    const uploadEndpoint = `${SUPABASE_URL}/storage/v1/object/podcasts/${filename}`; 
+    // Add 'public/' prefix to match RLS policies similar to PDF uploads
+    // Also include the userId in the path to match our PDF storage pattern
+    // Format: podcasts/public/userId/filename
+    const uploadEndpoint = `${SUPABASE_URL}/storage/v1/object/podcasts/public/${userId}/${filename}`; 
     
     // Make the REST call with admin token
     const uploadResponse = await fetch(uploadEndpoint, {
@@ -68,11 +68,11 @@ exports.handler = async (event) => {
 
     // Get the upload result
     const uploadResult = await uploadResponse.json();
-    console.log(`Upload successful. Public URL: ${SUPABASE_URL}/storage/v1/object/public/podcasts/${filename}`);
+    console.log(`Upload successful. Public URL: ${SUPABASE_URL}/storage/v1/object/public/podcasts/public/${userId}/${filename}`);
 
     // Generate the public URL - this requires the object to be accessible publicly
     // Note: The path here MUST match the actual storage path used above.
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/podcasts/${filename}`;
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/podcasts/public/${userId}/${filename}`;
     
     return {
       statusCode: 200,

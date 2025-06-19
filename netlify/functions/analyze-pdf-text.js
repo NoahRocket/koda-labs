@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const { getSupabaseAdmin } = require('./supabaseClient');
 const pdf = require('pdf-parse');
 
-const PDF_BUCKET_NAME = 'podcast_source_files'; // Ensure this matches upload-pdf.js
+const PDF_BUCKET_NAME = 'podcasts'; // Changed to match upload-pdf.js
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Helper to update job status and error
