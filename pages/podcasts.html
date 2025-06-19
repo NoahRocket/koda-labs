@@ -533,9 +533,9 @@
     
     // Add event delegation for delete buttons
     document.getElementById('podcastList').addEventListener('click', event => {
-      const deleteBtn = event.target.closest('.delete-podcast-btn');
+      const deleteBtn = event.target.closest('.delete-podcast');
       if (deleteBtn) {
-        const podcastId = deleteBtn.dataset.podcastId;
+        const podcastId = deleteBtn.dataset.id;
         deletePodcast(podcastId);
       }
     });
@@ -560,7 +560,6 @@
       dropzone.addEventListener('click', function(e) {
         console.log('Upload area clicked');
         fileInput.click();
-        e.preventDefault();
         e.stopPropagation();
       });
       
@@ -569,9 +568,6 @@
         console.log('File selected:', this.files[0]?.name || 'No file');
       });
     }
-    
-    // Execute initialization immediately
-    initializeUpload();
     
     document.addEventListener('DOMContentLoaded', function() {
       // Reinitialize upload functionality on page load
@@ -622,12 +618,6 @@
       const dropzone = document.getElementById('uploadDropzone');
       
       if (dropzone && pdfInput) {
-        // Adding a direct click event handler as a backup
-        dropzone.onclick = function() {
-          console.log('Upload dropzone clicked');
-          pdfInput.click();
-        };
-        
         // Drag over
         dropzone.addEventListener('dragover', function(e) {
           e.preventDefault();
