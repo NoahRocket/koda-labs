@@ -231,7 +231,34 @@ async function refreshSession() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'refresh', refreshToken }),
     });
-    if (!response.ok) throw new Error('Failed to refresh session');
+    
+    // Check if response is ok before proceeding
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.warn('Token refresh returned error status:', response.status, errorData.error || 'Unknown error');
+      
+      // Don't throw error, just silently fail - we'll continue with existing tokens
+      // This prevents logout between page navigations
+      // Only log out if response status indicates a severe auth issue (401)
+      if (response.status === 401) {
+        console.error('Authentication error during refresh. User will need to re-authenticate.');
+        // Only clear tokens for serious auth errors, not temporary failures
+        if (errorData.error && errorData.error.includes('Invalid token format')) {
+          localStorage.removeItem('userId');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          // Redirect to login page if on a protected page
+          const currentPage = window.location.pathname.split('/').pop();
+          const publicPages = ['index.html', 'login.html', 'signup.html', '']; 
+          if (!publicPages.includes(currentPage)) {
+            window.location.href = '/index.html';
+          }
+        }
+      }
+      return; // Exit early without updating tokens
+    }
+    
+    // Successful response - update tokens
     const result = await response.json();
     localStorage.setItem('accessToken', result.session.access_token);
     localStorage.setItem('refreshToken', result.session.refresh_token);
@@ -240,9 +267,8 @@ async function refreshSession() {
     refreshTimer = setTimeout(refreshSession, (expiresIn - 60) * 1000);
   } catch (err) {
     console.error('Session refresh failed:', err);
-    localStorage.removeItem('userId');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    // Don't remove tokens on network errors or other non-auth related failures
+    // This prevents logout between page navigations due to temporary issues
   } finally {
     // Reset flag after completion, whether successful or not
     refreshInProgress = false;

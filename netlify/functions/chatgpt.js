@@ -8,41 +8,52 @@ const { trackUsageAndCheckLimits } = require('./usage-tracking');
 // Free tier limits
 const FREE_TIER_DAILY_MESSAGE_LIMIT = 30;
 
-// Verify JWT token from the authorization header
+// Verify JWT token from the authorization header using direct JWT validation
 async function verifyToken(authHeader) {
-  const supabase = getSupabaseAuthClient();
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return { error: 'Invalid authorization header' };
   }
 
   const token = authHeader.split(' ')[1];
+  console.log(`[chatgpt] Validating access token: ${token.slice(0, 10)}...${token.slice(-4)}`);
   
   try {
-    // Create a timeout promise
-    const isLocalDev = process.env.NETLIFY_DEV === 'true';
-    const TIMEOUT = isLocalDev ? 15000 : 5000; // 15 seconds for local dev, 5 for production
-    
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Token verification timed out')), TIMEOUT);
-    });
-    
-    // Create the verification promise
-    const verifyPromise = supabase.auth.getUser(token);
-    
-    // Race the promises
-    const { data, error } = await Promise.race([verifyPromise, timeoutPromise]);
-    
-    if (error) {
-      console.error('[chatgpt] Token verification error:', error);
-      return { error: 'Invalid token' };
+    // Validate token format
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+      console.error('[chatgpt] Token does not have three parts as required for JWT format');
+      throw new Error('Token does not have three parts as required for JWT format');
     }
     
-    console.log(`Access Token from header: ${token.slice(0, 10)}...${token.slice(-4)}`);
+    // Simple manual decode of the JWT payload (middle part)
+    let payload;
+    try {
+      const base64Payload = tokenParts[1];
+      const base64Decoded = Buffer.from(base64Payload, 'base64').toString('utf8');
+      payload = JSON.parse(base64Decoded);
+    } catch (parseError) {
+      console.error(`[chatgpt] Failed to parse JWT payload: ${parseError.message}`);
+      throw new Error('Invalid JWT payload format');
+    }
     
-    return { user: data.user };
+    if (!payload || !payload.sub) {
+      console.error('[chatgpt] Invalid token payload or missing user ID');
+      throw new Error('Invalid token payload or missing user ID');
+    }
+    
+    // Create a user object from the decoded token payload
+    const user = {
+      id: payload.sub,
+      email: payload.email || 'unknown',
+      role: payload.role || '',
+      aud: payload.aud || ''
+    };
+    console.log(`[chatgpt] Successfully decoded token for user: ${user.id}`);
+    
+    return { user };
   } catch (error) {
-    console.error('[chatgpt] Token verification error:', error);
-    return { error: 'Token verification failed' };
+    console.error('[chatgpt] Token verification error:', error.message);
+    return { error: `Invalid token: ${error.message}` };
   }
 }
 

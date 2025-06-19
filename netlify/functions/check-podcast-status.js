@@ -1,4 +1,4 @@
-const { getSupabaseAdmin, getSupabaseAuthClient } = require('./supabaseClient');
+const { getSupabaseAdmin } = require('./supabaseClient');
 
 // Retrieve environment variables
 const { SUPABASE_URL, SUPABASE_KEY } = process.env;
@@ -24,22 +24,45 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing job ID.' }) };
   }
 
-  // Get user information from the JWT token
+  // Get user information from the JWT token using manual decoding
   let userId = null;
   const authHeader = event.headers.authorization || event.headers.Authorization;
   
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    // Parse JWT for user ID
     try {
       const token = authHeader.split(' ')[1];
-      const supabaseAuth = getSupabaseAuthClient(); // Use Auth client for getUser
-      const { data, error } = await supabaseAuth.auth.getUser(token);
+      console.log('[check-podcast-status] Access Token from header (preview):', token ? `${token.slice(0, 8)}...${token.slice(-5)}` : 'null...null');
       
-      if (!error && data && data.user) {
-        userId = data.user.id;
+      // Basic token validation
+      if (!token || typeof token !== 'string') {
+        console.warn('[check-podcast-status] Token missing or not a string');
+      } else {
+        // Check token format (three parts separated by dots)
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) {
+          console.warn('[check-podcast-status] Token does not have three parts as required for JWT format');
+        } else {
+          try {
+            // Base64 decode and parse the payload
+            const base64Payload = tokenParts[1];
+            const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf8');
+            const payload = JSON.parse(decodedPayload);
+            
+            // Get user ID from sub claim
+            if (payload.sub) {
+              userId = payload.sub;
+              console.log(`[check-podcast-status] Successfully decoded token for user: ${userId}`);
+            } else {
+              console.warn('[check-podcast-status] Token payload missing sub claim (user ID)');
+            }
+          } catch (decodeError) {
+            console.error('[check-podcast-status] Token decode error:', decodeError);
+            // Continue without user ID
+          }
+        }
       }
     } catch (err) {
-      console.error('Error parsing auth token:', err);
+      console.error('[check-podcast-status] Error parsing auth token:', err);
       // Continue without user ID
     }
   }

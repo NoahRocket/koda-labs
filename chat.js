@@ -3,11 +3,20 @@
 
 async function fetchChatGPTResponse(question) {
   try {
+    // Get the access token from localStorage
+    const accessToken = localStorage.getItem('accessToken');
+    
+    if (!accessToken) {
+      console.error('No access token found. User may need to log in again.');
+      return 'Authentication error. Please log in again.';
+    }
+    
     // Call the Netlify function (which is at /.netlify/functions/chatgpt)
     const response = await fetch('/.netlify/functions/chatgpt', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
       },
       body: JSON.stringify({ question }),
     });

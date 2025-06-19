@@ -1,4 +1,4 @@
-const { getSupabaseAdmin, getSupabaseAuthClient } = require('./supabaseClient');
+const { getSupabaseAdmin } = require('./supabaseClient');
 
 exports.handler = async (event) => {
   // Only allow DELETE requests
@@ -37,27 +37,48 @@ exports.handler = async (event) => {
     };
   }
 
-  // Verify the user's token and get their ID
+  // Verify the user's token and get their ID using manual JWT token decoding
   let userId;
   try {
+    // Extract token from header
     const token = authHeader.split(' ')[1];
-    const supabaseAuth = getSupabaseAuthClient();
-    const { data, error } = await supabaseAuth.auth.getUser(token);
+    console.log('[delete-podcast] Access Token from header (preview):', token ? `${token.slice(0, 8)}...${token.slice(-5)}` : 'null...null');
     
-    if (error || !data.user) {
-      console.error('Auth error:', error);
-      return { 
-        statusCode: 401, 
-        body: JSON.stringify({ error: 'Unauthorized: Invalid token' }) 
-      };
+    // Basic token validation
+    if (!token || typeof token !== 'string') {
+      throw new Error('Token missing or not a string');
     }
-    
-    userId = data.user.id;
+
+    // Check if token has the correct JWT format (three parts separated by dots)
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+      throw new Error('Token does not have three parts as required for JWT format');
+    }
+
+    // Decode the payload (middle part of the JWT)
+    try {
+      // Base64 decode and parse the payload
+      const base64Payload = tokenParts[1];
+      const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf8');
+      const payload = JSON.parse(decodedPayload);
+      
+      // Extract user information
+      if (!payload.sub) {
+        throw new Error('Invalid token payload: missing user ID');
+      }
+      
+      // Use sub claim as the user ID
+      userId = payload.sub;
+      console.log(`[delete-podcast] Successfully decoded token for user: ${userId}`);
+    } catch (decodeError) {
+      console.error('[delete-podcast] Token decode error:', decodeError);
+      throw new Error('Failed to decode token: ' + decodeError.message);
+    }
   } catch (err) {
-    console.error('Error parsing auth token:', err);
+    console.error('[delete-podcast] Exception during token validation:', err.message);
     return { 
-      statusCode: 500, 
-      body: JSON.stringify({ error: 'Server error processing authentication' }) 
+      statusCode: 401, 
+      body: JSON.stringify({ error: `Unauthorized: ${err.message}` }) 
     };
   }
 

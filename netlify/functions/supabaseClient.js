@@ -1,7 +1,7 @@
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_KEY } = process.env;
 const { createClient } = require('@supabase/supabase-js');
 
-const PDF_BUCKET_NAME = 'pdfs'; // Define the bucket name
+const PDF_BUCKET_NAME = 'podcasts'; // Storage bucket for PDFs and podcast files
 
 // Custom fetch with timeout for Supabase
 const fetchWithTimeout = (timeout = 5000) => {
@@ -13,13 +13,10 @@ const fetchWithTimeout = (timeout = 5000) => {
     const startTime = Date.now();
     const isAuthEndpoint = url.includes('/auth/');
     
-    // Use longer timeout for local development to handle cold starts
-    const effectiveTimeout = isLocalDev ? Math.max(timeout, 10000) : timeout;
+    // Use shorter timeout for local development to fail faster
+    const effectiveTimeout = isLocalDev ? Math.min(timeout, 5000) : timeout;
     
-    if (isLocalDev && isAuthEndpoint) {
-      console.log(`[supabaseClient] Starting ${options.method || 'GET'} request to ${url} with timeout ${effectiveTimeout}ms`);
-    }
-    
+    console.log(`[supabaseClient] Starting ${options.method || 'GET'} request to ${url} with timeout ${effectiveTimeout}ms`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
@@ -62,64 +59,121 @@ const fetchWithTimeout = (timeout = 5000) => {
 };
 
 // Client for admin operations (uses service role key)
+let lastServiceRoleClientCreation = 0;
+const SERVICE_CLIENT_TTL = 15000; // 15 second TTL for service role client
+
 const getSupabaseAdmin = () => {
+  const isLocalDev = process.env.NETLIFY_DEV === 'true';
+  const currentTime = Date.now();
+  
+  // For local development only, use a TTL-based client reuse strategy
+  if (isLocalDev && serviceRoleClientInstance && (currentTime - lastServiceRoleClientCreation) < SERVICE_CLIENT_TTL) {
+    console.log('[supabaseClient] Reusing existing service role client instance');
+    return serviceRoleClientInstance;
+  } else if (isLocalDev && serviceRoleClientInstance) {
+    console.log('[supabaseClient] Service role client TTL expired, creating new instance');
+    // Force cleanup of old connection
+    try {
+      serviceRoleClientInstance = null;
+    } catch (e) {
+      console.log('[supabaseClient] Error cleaning up old service role client:', e.message);
+    }
+  }
+  
   const adminKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_KEY; // Fallback for local dev if service key not set
   if (!SUPABASE_URL || !adminKey) {
-    console.error('Missing Supabase URL or Service Role Key/Anon Key for admin client.');
+    console.error('[supabaseClient] Missing Supabase URL or Service Role Key/Anon Key for admin client.');
     throw new Error('Server configuration error for admin client.');
   }
-  return createClient(SUPABASE_URL, adminKey, {
+  
+  // Use aggressive timeouts for local development
+  const adminTimeout = isLocalDev ? 5000 : 8000; // 5s for local dev, 8s for prod
+  console.log(`[supabaseClient] Creating new service role client with timeout: ${adminTimeout}ms`);
+  
+  // Minimal connection pooling
+  const dbPoolSize = { min: 0, max: 1 }; // Use minimal pooling everywhere
+  
+  // Create and store new client instance
+  serviceRoleClientInstance = createClient(SUPABASE_URL, adminKey, {
     auth: { 
       persistSession: false, 
       autoRefreshToken: false
     },
     global: {
-      fetch: fetchWithTimeout(process.env.NETLIFY_DEV === 'true' ? 28000 : 8000), // 28s for local dev, 8s for prod
+      fetch: fetchWithTimeout(adminTimeout),
     },
     db: {
-      schema: 'public'
+      schema: 'public',
+      poolSize: dbPoolSize
     }
   });
+  
+  lastServiceRoleClientCreation = currentTime;
+  return serviceRoleClientInstance;
 };
 
-// Client specifically for validating user JWTs (uses anon key)
+// Client specifically for validating user JWTs (uses anon key)             
 let authClientInstance = null;
+let serviceRoleClientInstance = null;
+let lastAuthClientCreation = 0;
+const AUTH_CLIENT_TTL = 10000; // 10 second TTL for auth client - shorter to ensure fresh validation
+
 const getSupabaseAuthClient = () => {
-  // For local development, reuse the client instance to avoid creating too many connections
   const isLocalDev = process.env.NETLIFY_DEV === 'true';
+  const currentTime = Date.now();
   
-  if (isLocalDev && authClientInstance) {
+  // Use TTL-based client reuse strategy with careful connection management
+  if (authClientInstance && (currentTime - lastAuthClientCreation) < AUTH_CLIENT_TTL) {
     console.log('[supabaseClient] Reusing existing auth client instance');
     return authClientInstance;
+  } else if (authClientInstance) {
+    console.log('[supabaseClient] Auth client TTL expired, creating new instance');
+    // Force cleanup of old connection
+    try {
+      // Always release the connection when we're done with it
+      authClientInstance.auth.signOut().catch((e) => {
+        console.log('[supabaseClient] Silent error during auth client signOut:', e.message);
+      });
+      
+      if (authClientInstance.rest && authClientInstance.rest.headers) {
+        authClientInstance.rest.headers['Connection'] = 'close';
+      }
+      
+      // Set to null to allow garbage collection
+      authClientInstance = null;
+    } catch (e) {
+      console.log('[supabaseClient] Error cleaning up old auth client:', e.message);
+    }
   }
   
-  if (!SUPABASE_URL || !SUPABASE_KEY) { // Must use the anon key (SUPABASE_KEY)
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.error('[supabaseClient] Missing Supabase URL or Anon Key for auth client.');
     throw new Error('Server configuration error for auth client.');
   }
   
-  // Adjust timeout for local development
-  const authTimeout = isLocalDev ? 30000 : 5000; // 30 seconds for local dev, 5 seconds for production
+  // Use appropriate timeouts - short for local dev to surface issues quickly
+  const authTimeout = isLocalDev ? 5000 : 8000; // 5s for local dev, 8s for production
   
-  // Limited connection pool size for local development
-  // For Netlify Functions which are stateless, we want minimal pooling
-  const dbPoolSize = isLocalDev ? { min: 1, max: 3 } : { min: 0, max: 1 };
+  // Minimal connection pooling
+  const dbPoolSize = { min: 0, max: 1 }; // Use minimal pooling
   
   console.log(`[supabaseClient] Creating new auth client with timeout: ${authTimeout}ms`);
   
-  // Create client with optimized settings
+  // Create client with optimized settings for token validation
   authClientInstance = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { 
       persistSession: false, 
       autoRefreshToken: false,
       detectSessionInUrl: false, // Disable auto URL detection which can cause delays
-      flowType: 'pkce' // More reliable auth flow
+      flowType: 'pkce', // More reliable auth flow
+      storageKey: `sb-auth-token-${Date.now()}` // Ensure unique storage key per instance
     },
     global: {
       fetch: fetchWithTimeout(authTimeout),
       headers: { 
         // Add headers identifying the client
-        'x-client-info': 'supabase-js-netlify-function'
+        'x-client-info': 'supabase-js-netlify-function',
+        'Connection': isLocalDev ? 'close' : 'keep-alive' // Force connection close in dev mode
       }
     },
     realtime: {
@@ -131,16 +185,88 @@ const getSupabaseAuthClient = () => {
     }
   });
   
+  // Record creation time
+  lastAuthClientCreation = currentTime;
+  
   return authClientInstance;
 };
 
 // Add cleanup function to manually release connections
 const releaseSupabaseConnections = () => {
+  // Track when this function was called
+  const cleanupStartTime = Date.now();
+  console.log('[supabaseClient] Starting connection cleanup');
+
+  // Handle auth client
   if (authClientInstance) {
     console.log('[supabaseClient] Releasing Supabase auth client connections');
-    // No direct pool.end() available in supabase-js, but we can remove the reference
-    authClientInstance = null;
+    try {
+      // Try to explicitly sign out to close the connection
+      if (authClientInstance.auth) {
+        authClientInstance.auth.signOut().catch((e) => {
+          console.log('[supabaseClient] Silent error during auth client signOut:', e.message);
+        });
+      }
+      // Force connection close header if possible
+      if (authClientInstance.rest && authClientInstance.rest.headers) {
+        authClientInstance.rest.headers['Connection'] = 'close';
+      }
+      
+      // Add additional cleanup to help with connection release
+      if (authClientInstance.auth && authClientInstance.auth.session) {
+        try {
+          authClientInstance.auth.session = null;
+        } catch (e) {
+          console.log('[supabaseClient] Error clearing auth session:', e.message);
+        }
+      }
+      
+      // Remove the reference
+      authClientInstance = null;
+      lastAuthClientCreation = 0;
+    } catch (e) {
+      console.log('[supabaseClient] Error releasing auth client:', e.message);
+    }
   }
+
+  // Handle service role client if present
+  if (serviceRoleClientInstance) {
+    console.log('[supabaseClient] Releasing Supabase service role client connections');
+    try {
+      // If service role has auth, try to sign out
+      if (serviceRoleClientInstance.auth) {
+        serviceRoleClientInstance.auth.signOut().catch((e) => {
+          console.log('[supabaseClient] Silent error during service role client signOut:', e.message);
+        });
+      }
+      
+      // Force connection close header if possible
+      if (serviceRoleClientInstance.rest && serviceRoleClientInstance.rest.headers) {
+        serviceRoleClientInstance.rest.headers['Connection'] = 'close';
+      }
+      
+      // Remove the reference
+      serviceRoleClientInstance = null;
+      // Reset the timestamp if the variable is accessible in this scope
+      if (typeof lastServiceRoleClientCreation !== 'undefined') {
+        lastServiceRoleClientCreation = 0;
+      }
+    } catch (e) {
+      console.log('[supabaseClient] Error releasing service role client:', e.message);
+    }
+  }
+
+  // Suggest garbage collection (only has an effect in certain JavaScript engines)
+  try {
+    if (global.gc) {
+      global.gc();
+    }
+  } catch (e) {
+    // Ignore errors - gc() might not be available
+  }
+
+  // Log the cleanup duration
+  console.log(`[supabaseClient] Connection cleanup completed in ${Date.now() - cleanupStartTime}ms`);
 };
 
 module.exports = { 

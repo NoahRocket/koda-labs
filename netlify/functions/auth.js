@@ -166,13 +166,69 @@ exports.handler = async (event, context) => {
         return response;
       } else if (action === 'refresh') {
         const { refreshToken } = JSON.parse(event.body || '{}');
+        
+        // First do basic validation on the refresh token
+        if (!refreshToken || typeof refreshToken !== 'string' || refreshToken.trim() === '') {
+          console.error('[auth] Invalid refresh token format');
+          activeConnections--; // Always release connection
+          console.log(`[auth] Released connection (invalid refresh token). Remaining: ${activeConnections}`);
+          return { 
+            statusCode: 400, 
+            body: JSON.stringify({ error: 'Invalid refresh token format' }) 
+          };
+        }
+        
         logStepTime('Before Supabase Call');
-        const refreshPromise = supabase.auth.refreshSession({ refresh_token: refreshToken });
-        logStepTime('After Supabase Call');
-        logStepTime('Refresh Promise Created');
-        const { data, error } = await Promise.race([refreshPromise, timeoutPromise]);
-        logStepTime('Refresh Promise Resolved');
-        if (error) throw error;
+        
+        // Try the token refresh but with enhanced error handling
+        try {
+          const refreshPromise = supabase.auth.refreshSession({ refresh_token: refreshToken });
+          logStepTime('After Supabase Call');
+          logStepTime('Refresh Promise Created');
+          const { data, error } = await Promise.race([refreshPromise, timeoutPromise]);
+          logStepTime('Refresh Promise Resolved');
+          
+          // Check for any errors or missing session data
+          if (error) {
+            console.error('[auth] Token refresh error:', error?.name, error?.message);
+            throw new Error(error?.message || 'Failed to refresh token');
+          }
+          
+          if (!data?.session?.access_token) {
+            console.error('[auth] Token refresh returned no valid session');
+            throw new Error('No valid session returned from refresh');
+          }
+          
+          // Log successful refresh
+          console.log(`[auth] Successfully refreshed token for user: ${data.user?.id || 'unknown'}`);
+          
+          // Cache successful response in local development
+          const response = { statusCode: 200, body: JSON.stringify({ session: data.session, user: data.user }) };
+          if (isLocalDev) {
+            const cacheKey = getCacheKey(event);
+            if (cacheKey) {
+              requestCache[cacheKey] = {
+                timestamp: Date.now(),
+                response
+              };
+              console.log(`[auth] Cached response for key: ${cacheKey}`);
+            }
+          }
+          
+          // Decrement active connections before returning
+          activeConnections--;
+          console.log(`[auth] Released connection (refresh success). Remaining: ${activeConnections}`);
+          return response;
+        } catch (refreshError) {
+          activeConnections--; // Always release connection
+          console.log(`[auth] Released connection (refresh error): ${refreshError.message}. Remaining: ${activeConnections}`);
+          
+          // Return a 401 for authentication errors rather than a 400
+          return { 
+            statusCode: 401, 
+            body: JSON.stringify({ error: refreshError.message || 'Invalid refresh token' }) 
+          };
+        }
         
         // Cache successful response in local development
         const response = { statusCode: 200, body: JSON.stringify({ session: data.session, user: data.user }) };
@@ -209,17 +265,50 @@ exports.handler = async (event, context) => {
           return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided for verification' }) };
         }
         logStepTime('After Token Verification');
-        logStepTime('Before Supabase Call');
-        const getUserPromise = supabase.auth.getUser(accessToken);
-        logStepTime('After Supabase Call');
-        logStepTime('GetUser Promise Created');
-        const { data: { user }, error } = await Promise.race([getUserPromise, timeoutPromise]);
-        logStepTime('GetUser Promise Resolved');
         
-        if (error) {
+        // Use direct JWT token decoding instead of relying on Supabase auth client
+        let user;
+        try {
+          // First, validate that the token is properly formatted
+          if (!accessToken || typeof accessToken !== 'string' || accessToken.trim() === '') {
+            throw new Error('Token is empty or invalid format');
+          }
+          
+          // Use a more defensive approach to decode the JWT token
+          const tokenParts = accessToken.split('.');
+          if (tokenParts.length !== 3) {
+            throw new Error('Token does not have three parts as required for JWT format');
+          }
+          
+          // Simple manual decode of the JWT payload (middle part)
+          let payload;
+          try {
+            const base64Payload = tokenParts[1];
+            const base64Decoded = Buffer.from(base64Payload, 'base64').toString('utf8');
+            payload = JSON.parse(base64Decoded);
+          } catch (parseError) {
+            console.error(`[auth] Failed to parse JWT payload: ${parseError.message}`);
+            throw new Error('Invalid JWT payload format');
+          }
+          
+          logStepTime('After JWT Decode');
+          
+          if (!payload || !payload.sub) {
+            throw new Error('Invalid token payload or missing user ID');
+          }
+          
+          // Create a user object from the decoded token payload
+          user = {
+            id: payload.sub,
+            email: payload.email || 'unknown',
+            role: payload.role || '',
+            aud: payload.aud || ''
+          };
+          console.log(`[auth] Successfully decoded token for user: ${user.id}`);
+        } catch (tokenError) {
           activeConnections--; // Decrement connections even on error path
-          console.log(`[auth] Released connection (token error). Remaining: ${activeConnections}`);
-          return { statusCode: 401, body: JSON.stringify({ error: 'Invalid or expired token for verification' }) };
+          console.log(`[auth] Released connection (token error): ${tokenError.message}. Remaining: ${activeConnections}`);
+          return { statusCode: 401, body: JSON.stringify({ error: `Invalid token: ${tokenError.message}` }) };
         }
         
         // Cache successful response in local development

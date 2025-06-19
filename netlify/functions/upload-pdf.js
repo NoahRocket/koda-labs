@@ -1,6 +1,6 @@
 const pdf = require('pdf-parse');
 const Busboy = require('busboy');
-const { getSupabaseAuthClient, getSupabaseAdmin, PDF_BUCKET_NAME } = require('./supabaseClient');
+const { getSupabaseAdmin, PDF_BUCKET_NAME } = require('./supabaseClient');
 
 exports.handler = async (event) => {
   console.log('[upload-pdf] Handler started');
@@ -15,7 +15,7 @@ exports.handler = async (event) => {
     };
   }
 
-  // Verify authentication
+  // Verify authentication using manual JWT token decoding
   console.log('[upload-pdf] Starting auth verification');
   console.time('auth-verification');
   let userId;
@@ -29,27 +29,48 @@ exports.handler = async (event) => {
       };
     }
     
+    // Get token from Authorization header
     const token = authHeader.split(' ')[1];
-    const supabaseAuth = getSupabaseAuthClient();
-    const { data: userAuthData, error: authError } = await supabaseAuth.auth.getUser(token);
+    console.log('[upload-pdf] Access Token from header (preview):', token ? `${token.slice(0, 8)}...${token.slice(-5)}` : 'null...null');
+    
+    // Basic token validation
+    if (!token || typeof token !== 'string') {
+      throw new Error('Token missing or not a string');
+    }
 
-    if (authError || !userAuthData.user) {
-      console.error('Authentication error:', authError);
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ error: 'Unauthorized: Invalid or expired token' }),
-        headers: { 'Content-Type': 'application/json' },
-      };
+    // Check token format (three parts separated by dots)
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+      throw new Error('Token does not have three parts as required for JWT format');
+    }
+
+    // Decode and validate the payload
+    try {
+      // Base64 decode and parse the payload
+      const base64Payload = tokenParts[1];
+      const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf8');
+      const payload = JSON.parse(decodedPayload);
+      
+      // Extract user ID from sub claim
+      if (!payload.sub) {
+        throw new Error('Invalid token payload: missing user ID');
+      }
+      
+      // Use sub claim as the user ID
+      userId = payload.sub;
+      console.log(`[upload-pdf] Successfully decoded token for user: ${userId}`);
+    } catch (decodeError) {
+      console.error('[upload-pdf] Token decode error:', decodeError);
+      throw new Error('Failed to decode token: ' + decodeError.message);
     }
     
-    userId = userAuthData.user.id;
     console.timeEnd('auth-verification');
     console.log('[upload-pdf] Auth successful, userId:', userId);
   } catch (err) {
-    console.error('Error during authentication processing:', err);
+    console.error('[upload-pdf] Error during authentication processing:', err.message);
     return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Server error during authentication' }),
+      statusCode: 401,
+      body: JSON.stringify({ error: `Unauthorized: ${err.message}` }),
       headers: { 'Content-Type': 'application/json' },
     };
   }

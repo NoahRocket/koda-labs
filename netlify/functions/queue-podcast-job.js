@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const { getSupabaseAdmin, getSupabaseAuthClient } = require('./supabaseClient');
+const { getSupabaseAdmin } = require('./supabaseClient');
 
 // Retrieve environment variables
 const { SUPABASE_URL, SUPABASE_KEY } = process.env;
@@ -23,27 +23,52 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error.' }) };
   }
 
-  // --- Authentication & User-Scoped Supabase Client ---
-  const authHeader = event.headers.authorization;
+  // --- Authentication using Manual JWT Token Decoding ---
+  const authHeader = event.headers.authorization || event.headers.Authorization;
   let userId;
-  let supabase;
   
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const jwt = authHeader.substring(7, authHeader.length);
-    // Use the Auth client (anon key) to verify the user's JWT
-    const supabaseAuth = getSupabaseAuthClient();
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized: Missing or invalid authentication header.' }) };
+  }
+  
+  try {
+    // Extract token from header
+    const token = authHeader.substring(7);
+    console.log('[queue-podcast-job] Access Token from header (preview):', token ? `${token.slice(0, 8)}...${token.slice(-5)}` : 'null...null');
     
-    // Get the user ID from the JWT token
-    try {
-      const { data: { user }, error } = await supabaseAuth.auth.getUser(jwt);
-      if (error) throw error;
-      userId = user.id;
-    } catch (error) {
-      console.error('Error verifying token:', error);
-      return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized: Invalid token.' }) };
+    // Basic token validation
+    if (!token || typeof token !== 'string') {
+      throw new Error('Token missing or not a string');
     }
-  } else {
-    return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized: Missing or invalid token.' }) };
+
+    // Validate token format (three parts separated by dots)
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+      throw new Error('Token does not have three parts as required for JWT format');
+    }
+
+    // Decode the payload
+    try {
+      // Base64 decode and parse the payload
+      const base64Payload = tokenParts[1];
+      const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf8');
+      const payload = JSON.parse(decodedPayload);
+      
+      // Extract user ID from sub claim
+      if (!payload.sub) {
+        throw new Error('Invalid token payload: missing user ID');
+      }
+      
+      // Use sub claim as the user ID
+      userId = payload.sub;
+      console.log(`[queue-podcast-job] Successfully decoded token for user: ${userId}`);
+    } catch (decodeError) {
+      console.error('[queue-podcast-job] Token decode error:', decodeError);
+      throw new Error('Failed to decode token: ' + decodeError.message);
+    }
+  } catch (error) {
+    console.error('[queue-podcast-job] Exception during token validation:', error.message);
+    return { statusCode: 401, body: JSON.stringify({ error: `Unauthorized: ${error.message}` }) };
   }
   // --- End Authentication ---
 

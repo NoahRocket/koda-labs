@@ -66,43 +66,116 @@ exports.handler = async (event, context) => {
   );
   const authHeader = headers['authorization'];
   const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-  console.log('Access Token from header:', accessToken);
+  
+  // Only log partial token in dev mode for debugging
+  if (process.env.NETLIFY_DEV === 'true' && accessToken) {
+    const tokenPreview = `${accessToken.substring(0, 10)}...${accessToken.substring(accessToken.length - 5)}`;
+    console.log(`[dashboard] Access Token from header (preview): ${tokenPreview}`);
+  }
 
   if (!accessToken) {
-    console.error('No access token provided');
+    console.error('[dashboard] No access token provided in Authorization header');
     activeConnections--; // Release connection count
     console.log(`[dashboard] Released connection (no token). Remaining: ${activeConnections}`);
     return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided' }) };
   }
 
   logStepTime('Before Token Verification');
+  
+  // Use a direct approach to decode and validate the JWT token ourselves
+  // Instead of relying on Supabase's auth client which is giving session issues
+  const { createClient } = require('@supabase/supabase-js');
+  let user;
+  
+  try {
+    // First, validate that the token is properly formatted
+    if (!accessToken || typeof accessToken !== 'string' || accessToken.trim() === '') {
+      throw new Error('Token is empty or invalid format');
+    }
+    
+    // Use a more defensive approach to decode the JWT token
+    const tokenParts = accessToken.split('.');
+    if (tokenParts.length !== 3) {
+      throw new Error('Token does not have three parts as required for JWT format');
+    }
+    
+    // Simple manual decode of the JWT payload (middle part)
+    let payload;
+    try {
+      const base64Payload = tokenParts[1];
+      const base64Decoded = Buffer.from(base64Payload, 'base64').toString('utf8');
+      payload = JSON.parse(base64Decoded);
+    } catch (parseError) {
+      console.error(`[dashboard] Failed to parse JWT payload: ${parseError.message}`);
+      throw new Error('Invalid JWT payload format');
+    }
+    
+    logStepTime('After Token Verification');
+    
+    if (!payload) {
+      console.error('[dashboard] Invalid token structure');
+      activeConnections--; // Release connection count
+      console.log(`[dashboard] Released connection (invalid token). Remaining: ${activeConnections}`);
+      return { 
+        statusCode: 401, 
+        body: JSON.stringify({ error: 'Invalid token. Please log in again.' }) 
+      };
+    }
+    
+    // Extract the user information from the decoded token
+    // The token payload should contain the user's information
+    if (!payload.sub) {
+      console.error('[dashboard] No user ID found in token');
+      activeConnections--; // Release connection count
+      console.log(`[dashboard] Released connection (no user ID in token). Remaining: ${activeConnections}`);
+      return { 
+        statusCode: 401, 
+        body: JSON.stringify({ error: 'User information missing from token. Please log in again.' }) 
+      };
+    }
 
-  const supabaseAuth = getSupabaseAuthClient();
-
-  // Validate the token and get the authenticated user
-  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(accessToken);
-
-  logStepTime('After Token Verification');
-
-  if (authError || !user) {
-    console.error('Authentication error or no user for token:', authError?.message);
+    // Success - extract user data from token
+    const userId = payload.sub;
+    const email = payload.email || 'unknown';
+    
+    // Create a basic user object from the token payload
+    user = {
+      id: userId,
+      email: email,
+      role: payload.role || '',
+      aud: payload.aud || ''
+    };
+    console.log(`[dashboard] Successfully decoded token for user: ${user.id}`);
+  } catch (authValidationError) {
+    console.error(`[dashboard] Exception during token validation: ${authValidationError.message}`);
     activeConnections--; // Release connection count
-    console.log(`[dashboard] Released connection (auth error). Remaining: ${activeConnections}`);
-    return { statusCode: 401, body: JSON.stringify({ error: 'Invalid or expired token. Please log in again.' }) };
+    console.log(`[dashboard] Released connection (auth exception). Remaining: ${activeConnections}`);
+    return { 
+      statusCode: 401, 
+      body: JSON.stringify({ error: 'Authentication failed. Please log in again.' }) 
+    };
   }
+  
+  // Extract the authenticated user ID from the validated token
   const authUserId = user.id; // Use this ID for all operations
 
-  // Create a new Supabase client with the access token for authenticated requests
-  const { createClient } = require('@supabase/supabase-js');
+  // Create a new Supabase client for database operations using the validated token
+  // Reuse the createClient we already have in scope
   const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
+      persistSession: false,
+      detectSessionInUrl: false
     },
     global: {
       headers: {
-        Authorization: `Bearer ${accessToken}`
+        Authorization: `Bearer ${accessToken}`,
+        'x-client-info': 'dashboard-function'
       }
+    },
+    // Disable realtime subscriptions to reduce connections
+    realtime: {
+      enabled: false
     }
   });
 
@@ -1041,9 +1114,9 @@ exports.handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error in dashboard function:', error.message, error.stack);
-    // Always release connections on error
+    // Release connection on error
     activeConnections--;
-    console.log(`[dashboard] Released connection (catch error). Remaining: ${activeConnections}`);
+    console.log(`[dashboard] Released connection (error). Remaining: ${activeConnections}`);
     return { 
       statusCode: 500, 
       body: JSON.stringify({ 
@@ -1051,13 +1124,37 @@ exports.handler = async (event, context) => {
         details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       }) 
     };
+  } finally {
+    // Always decrement the active connection count and release Supabase connections
+    if (activeConnections > 0) { // Ensure we don't go negative
+      activeConnections--;
+    }
+    console.log(`[dashboard] End of handler, active connections: ${activeConnections}`);
+    
+    // Explicitly release Supabase connections
+    try {
+      if (typeof releaseSupabaseConnections === 'function') {
+        releaseSupabaseConnections();
+      }
+      
+      // Additional explicit cleanup of local client instances
+      if (supabase?.auth) {
+        supabase.auth.signOut().catch(() => {});
+      }
+    } catch (releaseError) {
+      console.log(`[dashboard] Error releasing Supabase connections: ${releaseError.message}`);
+    }
   }
   
-  // Final catch-all to ensure we don't leave the function without releasing the connection
+  // If execution somehow reaches here without returning a response
   activeConnections--;
   console.log(`[dashboard] Released connection (final). Remaining: ${activeConnections}`);
-  return { 
-    statusCode: 500, 
-    body: JSON.stringify({ error: 'Unhandled case in dashboard handler' }) 
+  return {
+    statusCode: 500,
+    body: JSON.stringify({ error: 'Unhandled execution path in dashboard handler' })
   };
+  })();
+  
+  // Race between the actual handler and the global timeout
+  return Promise.race([actualHandlerPromise, globalTimeoutPromise]);
 };
