@@ -74,7 +74,7 @@ const getSupabaseAdmin = () => {
       autoRefreshToken: false
     },
     global: {
-      fetch: fetchWithTimeout(8000), // 8 second timeout for admin operations
+      fetch: fetchWithTimeout(process.env.NETLIFY_DEV === 'true' ? 28000 : 8000), // 28s for local dev, 8s for prod
     },
     db: {
       schema: 'public'
