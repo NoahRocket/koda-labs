@@ -1,7 +1,46 @@
 const fetch = require('node-fetch');
-const { getSupabaseAuthClient } = require('./supabaseClient'); // Import the specific client
+const { getSupabaseAuthClient, releaseSupabaseConnections } = require('./supabaseClient'); // Import the specific client
+
+// Track active connections to ensure proper cleanup
+let activeConnections = 0;
+const MAX_CONNECTIONS = 5; // Limit concurrent connections
 
 exports.handler = async (event, context) => {
+  // Set a hard timeout for the entire function execution
+  const GLOBAL_TIMEOUT = 10000; // 10 seconds max execution time
+  let isTimedOut = false;
+  const globalTimeoutPromise = new Promise(resolve => {
+    setTimeout(() => {
+      isTimedOut = true;
+      console.log('[dashboard] Global timeout reached, terminating execution');
+      resolve({ 
+        statusCode: 504, 
+        body: JSON.stringify({ error: 'Request timed out. Please try again.' }) 
+      });
+    }, GLOBAL_TIMEOUT);
+  });
+
+  // Execute the actual handler with a race against the timeout
+  const actualHandlerPromise = (async () => {
+  // Set up context.callbackWaitsForEmptyEventLoop = false to prevent the function from waiting
+  if (context && typeof context.callbackWaitsForEmptyEventLoop !== 'undefined') {
+    context.callbackWaitsForEmptyEventLoop = false;
+    console.log('[dashboard] Set callbackWaitsForEmptyEventLoop = false');
+  }
+
+  // Check if we have too many active connections
+  if (activeConnections >= MAX_CONNECTIONS) {
+    console.log(`[dashboard] Too many active connections: ${activeConnections}/${MAX_CONNECTIONS}`);
+    return {
+      statusCode: 503,
+      body: JSON.stringify({ error: 'Service temporarily unavailable due to high load. Please try again.' })
+    };
+  }
+  
+  // Track this connection
+  activeConnections++;
+  console.log(`[dashboard] Active connections: ${activeConnections}`);
+  
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_KEY;
 
@@ -31,6 +70,8 @@ exports.handler = async (event, context) => {
 
   if (!accessToken) {
     console.error('No access token provided');
+    activeConnections--; // Release connection count
+    console.log(`[dashboard] Released connection (no token). Remaining: ${activeConnections}`);
     return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided' }) };
   }
 
@@ -45,6 +86,8 @@ exports.handler = async (event, context) => {
 
   if (authError || !user) {
     console.error('Authentication error or no user for token:', authError?.message);
+    activeConnections--; // Release connection count
+    console.log(`[dashboard] Released connection (auth error). Remaining: ${activeConnections}`);
     return { statusCode: 401, body: JSON.stringify({ error: 'Invalid or expired token. Please log in again.' }) };
   }
   const authUserId = user.id; // Use this ID for all operations
@@ -988,6 +1031,9 @@ exports.handler = async (event, context) => {
 
       logStepTime('After Data Processing');
 
+      // Decrement active connections before returning successfully
+      activeConnections--;
+      console.log(`[dashboard] Released connection (success). Remaining: ${activeConnections}`);
       return {
         statusCode: 200,
         body: JSON.stringify({ topics: transformedTopics })
@@ -995,6 +1041,9 @@ exports.handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error in dashboard function:', error.message, error.stack);
+    // Always release connections on error
+    activeConnections--;
+    console.log(`[dashboard] Released connection (catch error). Remaining: ${activeConnections}`);
     return { 
       statusCode: 500, 
       body: JSON.stringify({ 
@@ -1003,4 +1052,12 @@ exports.handler = async (event, context) => {
       }) 
     };
   }
+  
+  // Final catch-all to ensure we don't leave the function without releasing the connection
+  activeConnections--;
+  console.log(`[dashboard] Released connection (final). Remaining: ${activeConnections}`);
+  return { 
+    statusCode: 500, 
+    body: JSON.stringify({ error: 'Unhandled case in dashboard handler' }) 
+  };
 };
