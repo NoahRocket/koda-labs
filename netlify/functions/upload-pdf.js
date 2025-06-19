@@ -192,10 +192,16 @@ exports.handler = async (event) => {
     console.time('supabaseUpload');
     
     // Create a unique path for the file in storage
-    const filePath = `${userId}/${Date.now()}-${fileData.originalFilename.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
+    // Adding 'public/' prefix which is often required for Supabase RLS policies
+    const filePath = `public/${userId}/${Date.now()}-${fileData.originalFilename.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
     console.log(`Attempting to upload to Supabase Storage: bucket='${PDF_BUCKET_NAME}', path='${filePath}'`);
     
     const supabaseAdmin = getSupabaseAdmin();
+    
+    // Note: We're assuming the 'podcasts' bucket already exists in Supabase
+    // We'll skip the bucket existence check as the service role may not have permission to list buckets
+    console.log(`[upload-pdf] Assuming bucket '${PDF_BUCKET_NAME}' exists and attempting direct upload`);
+    
     const { data: storageData, error: storageError } = await supabaseAdmin.storage
       .from(PDF_BUCKET_NAME)
       .upload(filePath, fileData.buffer, {
@@ -207,12 +213,32 @@ exports.handler = async (event) => {
     
     // Handle storage upload errors
     if (storageError) {
-      console.error('Supabase Storage upload error:', storageError);
+      console.error('[upload-pdf] Storage upload failed with error code:', storageError.statusCode || storageError.status);
+      console.error('[upload-pdf] Storage error message:', storageError.message);
+      console.error('[upload-pdf] Storage error details:', JSON.stringify(storageError, null, 2));
+      console.error(`[upload-pdf] Upload attempted for: bucket='${PDF_BUCKET_NAME}', path='${filePath}'`);
+      
+      // Check if this could be a permission issue
+      if (storageError.statusCode === 400 || storageError.status === 400 || 
+          storageError.message?.includes('security policy')) {
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ 
+            error: 'Storage permission error. Make sure your service role has proper permissions.', 
+            details: `The server has permission to access the API but lacks permission to upload to the '${PDF_BUCKET_NAME}' bucket. Check bucket permissions in Supabase dashboard.`,
+            code: storageError.code || storageError.statusCode || 'permission_denied'
+          }),
+          headers: { 'Content-Type': 'application/json' },
+        };
+      }
+
+      // General error response
       return {
         statusCode: 500,
         body: JSON.stringify({ 
           error: 'Failed to upload PDF to storage.', 
-          details: storageError.message 
+          details: storageError.message,
+          code: storageError.statusCode || storageError.status || 'unknown'
         }),
         headers: { 'Content-Type': 'application/json' },
       };
