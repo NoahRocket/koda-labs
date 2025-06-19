@@ -321,8 +321,14 @@
         generateButton.disabled = true;
         
         try {
-          // Get authentication token
-          const token = localStorage.getItem('sb-token');
+          // Get authentication token - try multiple possible storage keys
+          // Note: The application might be using different key formats for storage
+          const token = localStorage.getItem('sb-token') || 
+                      localStorage.getItem('accessToken') || 
+                      localStorage.getItem('supabase-auth-token');
+          
+          console.log('Using auth token:', token ? 'Token found' : 'No token found');
+          
           if (!token) {
             throw new Error('Authentication required. Please log in again.');
           }
@@ -332,6 +338,7 @@
           // to extract meaningful concepts from the text
           const concepts = [extractedText.substring(0, Math.min(500, extractedText.length))];
           
+          console.log('Sending podcast generation request...');
           // Call the queue-podcast-job endpoint to start podcast generation
           const response = await fetch('/.netlify/functions/queue-podcast-job', {
             method: 'POST',
@@ -345,16 +352,17 @@
             })
           });
           
+          console.log('Podcast generation response:', response.status);
           const data = await response.json();
           
           if (response.ok) {
             showMessage('Podcast generation started! It will appear in your list when ready.', 'success');
             // Hide the generation container
             document.getElementById('generatePodcastContainer').classList.add('hidden');
-            // Refresh the podcasts list to show the pending podcast
+            // Refresh podcast list to show the pending job
             loadPodcasts();
           } else {
-            throw new Error(data.error || 'Failed to queue podcast generation');
+            throw new Error(data.error || `Failed to queue podcast generation: HTTP ${response.status}`);
           }
         } catch (error) {
           console.error('Error generating podcast:', error);
