@@ -556,11 +556,16 @@
         return; // Exit if essential elements are missing
       }
 
-      // Direct click handler for upload dropzone
-      dropzone.addEventListener('click', function(e) {
-        console.log('Upload area clicked');
-        fileInput.click();
-        e.stopPropagation();
+      // No need for a direct click handler on dropzone
+      // The label's native behavior will trigger the file input
+      // Just add a class to highlight on hover
+      dropzone.addEventListener('mouseover', function() {
+        console.log('Dropzone hover');
+        this.classList.add('border-blue-400');
+      });
+      
+      dropzone.addEventListener('mouseout', function() {
+        this.classList.remove('border-blue-400');
       });
       
       // Log when file input changes
