@@ -5,6 +5,18 @@ exports.handler = async (event, context) => {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_KEY;
 
+  // Add detailed timing for local dev
+  const startTime = Date.now();
+  let lastStepTime = startTime;
+  const logStepTime = (step) => {
+    if (process.env.NETLIFY_DEV === 'true') {
+      const now = Date.now();
+      console.log(`[dashboard] Step ${step}: ${now - lastStepTime}ms since last step, ${now - startTime}ms total`);
+      lastStepTime = now;
+    }
+  };
+  logStepTime('Handler Start');
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -22,10 +34,14 @@ exports.handler = async (event, context) => {
     return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided' }) };
   }
 
+  logStepTime('Before Token Verification');
+
   const supabaseAuth = getSupabaseAuthClient();
 
   // Validate the token and get the authenticated user
   const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(accessToken);
+
+  logStepTime('After Token Verification');
 
   if (authError || !user) {
     console.error('Authentication error or no user for token:', authError?.message);
@@ -46,6 +62,8 @@ exports.handler = async (event, context) => {
       }
     }
   });
+
+  logStepTime('Before Supabase Queries');
 
   // userIdFromBody can be used for non-critical logging if needed, but not for auth-sensitive ops
   const { action, userId: userIdFromBody, topicName, topicId, emoji, bookmarkUrl, bookmarkId, chatHistory, noteContent, noteId, conversationId, messageId } = JSON.parse(event.body || '{}');
@@ -408,6 +426,8 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ summary: summary || null }) 
       };
     } else if (action === 'getTopicDetails') {
+      logStepTime('After Supabase Queries');
+
       // Fetch the topic itself to get name
       const { data: topic, error: topicError } = await supabase
         .from('topics')
@@ -498,6 +518,8 @@ exports.handler = async (event, context) => {
         : null;
       
       console.log(`[GET_TOPIC_DETAILS] Found ${conversations.length} conversations, ${bookmarks.length} bookmarks, ${notes.length} notes, and ${summary ? 'existing key concepts' : 'no existing key concepts'} for topic ${topicId}`);
+
+      logStepTime('Before Data Processing');
 
       return {
         statusCode: 200,
@@ -926,6 +948,8 @@ exports.handler = async (event, context) => {
       if (updateError2) throw updateError2;
       return { statusCode: 200, body: JSON.stringify({ message: 'Emoji updated' }) };
     } else {
+      logStepTime('After Supabase Queries');
+
       // Get topics with conversation, bookmark, and note counts
       const { data: rawTopics, error: topicsError } = await supabase
         .from('topics')
@@ -948,6 +972,8 @@ exports.handler = async (event, context) => {
         };
       }
       
+      logStepTime('Before Data Processing');
+
       const transformedTopics = rawTopics.map(topic => ({
         id: topic.id,
         name: topic.name,
@@ -959,6 +985,8 @@ exports.handler = async (event, context) => {
       }));
       
       console.log(`[GET_TOPICS_WITH_COUNTS] Found ${transformedTopics.length} topics with their counts`);
+
+      logStepTime('After Data Processing');
 
       return {
         statusCode: 200,

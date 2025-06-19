@@ -75,7 +75,9 @@ exports.handler = async (event, context) => {
     logStepTime('Timeout Promise Set');
     
     if (action === 'signup') {
+      logStepTime('Before Supabase Call');
       const signupPromise = supabase.auth.signUp({ email, password });
+      logStepTime('After Supabase Call');
       logStepTime('Signup Promise Created');
       const { data, error } = await Promise.race([signupPromise, timeoutPromise]);
       logStepTime('Signup Promise Resolved');
@@ -96,7 +98,9 @@ exports.handler = async (event, context) => {
       
       return response;
     } else if (action === 'login') {
+      logStepTime('Before Supabase Call');
       const loginPromise = supabase.auth.signInWithPassword({ email, password });
+      logStepTime('After Supabase Call');
       logStepTime('Login Promise Created');
       const { data, error } = await Promise.race([loginPromise, timeoutPromise]);
       logStepTime('Login Promise Resolved');
@@ -118,7 +122,9 @@ exports.handler = async (event, context) => {
       return response;
     } else if (action === 'refresh') {
       const { refreshToken } = JSON.parse(event.body || '{}');
+      logStepTime('Before Supabase Call');
       const refreshPromise = supabase.auth.refreshSession({ refresh_token: refreshToken });
+      logStepTime('After Supabase Call');
       logStepTime('Refresh Promise Created');
       const { data, error } = await Promise.race([refreshPromise, timeoutPromise]);
       logStepTime('Refresh Promise Resolved');
@@ -143,18 +149,20 @@ exports.handler = async (event, context) => {
       
       return response;
     } else if (action === 'verify') {
+      logStepTime('Before Token Verification');
       // Extract token from header
       const headers = Object.fromEntries(
         Object.entries(event.headers).map(([key, value]) => [key.toLowerCase(), value])
       );
-      const authHeader = headers['authorization'];
-      const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-
+      const accessToken = headers['authorization']?.startsWith('Bearer ') ? headers['authorization'].split(' ')[1] : null;
+      
       if (!accessToken) {
         return { statusCode: 401, body: JSON.stringify({ error: 'No access token provided for verification' }) };
       }
-      // Use the supabase client with timeout
+      logStepTime('After Token Verification');
+      logStepTime('Before Supabase Call');
       const getUserPromise = supabase.auth.getUser(accessToken);
+      logStepTime('After Supabase Call');
       logStepTime('GetUser Promise Created');
       const { data: { user }, error } = await Promise.race([getUserPromise, timeoutPromise]);
       logStepTime('GetUser Promise Resolved');

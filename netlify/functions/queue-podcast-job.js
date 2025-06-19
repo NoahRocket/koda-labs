@@ -48,10 +48,13 @@ exports.handler = async (event) => {
   // --- End Authentication ---
 
   try {
-    const { concepts, pdfName = 'Uploaded PDF' } = JSON.parse(event.body);
+    const { concepts, pdfName = 'Uploaded PDF', storagePath } = JSON.parse(event.body);
 
     if (!concepts || !Array.isArray(concepts) || concepts.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing or invalid concepts data.' }) };
+    }
+    if (!storagePath) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Missing storagePath for the PDF.' }) };
     }
 
     // Use the Admin client (service key) to insert the job
@@ -60,9 +63,10 @@ exports.handler = async (event) => {
       .from('podcast_jobs')
       .insert({
         user_id: userId,
-        status: 'pending',
-        concepts: concepts,
-        filename: pdfName
+        status: 'pending_analysis', // Updated initial status
+        concepts: concepts, // These are still the simplified concepts for now
+        filename: pdfName,
+        source_pdf_url: storagePath // Store the path to the PDF in Supabase Storage
       })
       .select()
       .single();
@@ -89,9 +93,9 @@ exports.handler = async (event) => {
     try {
       const domain = event.headers.host;
       const protocol = domain.includes('localhost') ? 'http' : 'https';
-      const workerUrl = `${protocol}://${domain}/.netlify/functions/process-podcast-job`;
+      const workerUrl = `${protocol}://${domain}/.netlify/functions/analyze-pdf-text`; // Changed to trigger analyze-pdf-text
       
-      console.log(`Triggering worker at: ${workerUrl}`);
+      console.log(`Triggering text analysis worker at: ${workerUrl}`);
       
       // Launch worker asynchronously in a fire-and-forget approach
       const workerResponse = await fetch(workerUrl, {

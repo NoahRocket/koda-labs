@@ -193,7 +193,10 @@
     const loadingIndicator = document.getElementById('loadingIndicator');
     const podcastList = document.getElementById('podcastList');
     const uploadDropzone = document.getElementById('uploadDropzone');
-    
+    let activePollers = {}; // To store active polling intervals { jobId: intervalId }
+    let jobDetails = {}; // To store details like { jobId: { originalFilename: 'name.pdf', statusElement: DOMNode } }
+    const POLLING_INTERVAL_MS = 5000; // Poll every 5 seconds
+
     // Helper function to display default avatar
     function showDefaultAvatar(imgElement, loadingElement) {
       console.log('[Podcasts] showDefaultAvatar called for element:', imgElement); // Added for debugging
@@ -308,10 +311,11 @@
       
       generateButton.addEventListener('click', async function() {
         const extractedText = this.dataset.extractedText;
-        const filename = this.dataset.filename || 'document.pdf';
+        const storagePath = this.dataset.storagePath;
+        const originalFilename = this.dataset.originalFilename;
         
-        if (!extractedText) {
-          showMessage('No text content available to generate podcast', 'error');
+        if (!extractedText || !storagePath || !originalFilename) {
+          showMessage('Essential data (text, storage path, or filename) is missing. Please try uploading the PDF again.', 'error');
           return;
         }
         
@@ -363,7 +367,8 @@
             },
             body: JSON.stringify({
               concepts: concepts,
-              pdfName: filename
+              pdfName: originalFilename, // Use the original filename from dataset
+              storagePath: storagePath   // Pass the PDF's storage path
             })
           });
           
@@ -440,8 +445,19 @@
       uploadButton.disabled = true;
       showMessage('Uploading and processing PDF...');
       try {
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+          showMessage('Authentication token not found. Please log in again.', 'error');
+          uploadButton.disabled = false;
+          loadingIndicator.classList.add('hidden');
+          return;
+        }
+
         const res = await fetch('/.netlify/functions/upload-pdf', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          },
           body: formData
         });
 
@@ -460,10 +476,12 @@
             
             // Store the complete text and filename as data attributes for later use
             generateButton.dataset.extractedText = data.extractedText;
-            generateButton.dataset.filename = file.name;
+            generateButton.dataset.storagePath = data.storagePath; // Store the PDF's storage path
+            generateButton.dataset.originalFilename = data.originalFilename; // Store the original filename
             
             // Show the generate container
             generateContainer.classList.remove('hidden');
+            showMessage('PDF processed. You can now generate the podcast.', 'success');
           } else if (data.error) {
             showMessage(`Processing finished, but: ${data.error}`, 'error');
           } else {
@@ -621,9 +639,6 @@
     
     // Load podcasts when page loads
     document.addEventListener('DOMContentLoaded', () => {
-      // Initialize UI components
-      initializeUI();
-      
       // Load existing podcasts
       loadPodcasts();
       
@@ -678,6 +693,134 @@
         deletePodcast(podcastId);
       }
     });
+
+    // --- Polling Functions ---
+    function stopPolling(jobId) {
+      if (activePollers[jobId]) {
+        clearInterval(activePollers[jobId]);
+        delete activePollers[jobId];
+        console.log(`Polling stopped for job ${jobId}`);
+      }
+    }
+
+    async function checkStatus(jobId) { // Note: originalFilename is available via jobDetails[jobId].originalFilename
+      console.log(`Checking status for job ${jobId}`);
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        showMessage('Authentication token not found. Cannot check status.', 'error');
+        stopPolling(jobId); // Stop polling if auth is lost
+        return;
+      }
+      try {
+        const response = await fetch(`/.netlify/functions/check-podcast-status?jobId=${jobId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response from status check.' }));
+          throw new Error(`Status check failed: ${response.status} - ${errorData.error || 'Unknown error'}`);
+        }
+        const data = await response.json();
+        updateUIAfterPoll(jobId, data.status, data.podcastUrl, data.error);
+        // stopPolling is now called within updateUIAfterPoll for completed/failed states
+      } catch (error) {
+        console.error(`Error checking status for job ${jobId}:`, error);
+        showMessage(`Error checking job status: ${error.message}`, 'error');
+        // Consider stopping polling here for certain types of errors if not handled by updateUIAfterPoll
+      }
+    }
+
+    function updateUIAfterPoll(jobId, status, podcastUrl, errorMessage) {
+      console.log(`Job ${jobId} status: ${status}, URL: ${podcastUrl}, Error: ${errorMessage}`);
+      const detail = jobDetails[jobId];
+      if (!detail || !detail.statusElement) {
+        console.warn(`No UI element found for job ${jobId} to update.`);
+        if (status === 'completed') fetchPodcasts(); // Still refresh list if UI element was somehow lost
+        if (status === 'completed' || status === 'failed') stopPolling(jobId);
+        return;
+      }
+
+      const filename = detail.originalFilename || 'your PDF';
+      let statusText = '';
+      let itemClass = 'p-3 mb-2 rounded shadow-sm text-sm job-status-item ';
+
+      switch (status) {
+        case 'pending_analysis': statusText = `Analyzing ${filename}...`; itemClass += 'bg-blue-100 text-blue-700'; break;
+        case 'analyzing_text': statusText = `Extracting concepts for ${filename}...`; itemClass += 'bg-blue-100 text-blue-700'; break;
+        case 'text_analyzed': statusText = `Concepts extracted. Preparing script for ${filename}...`; itemClass += 'bg-blue-100 text-blue-700'; break;
+        case 'generating_script': statusText = `Generating script for ${filename}...`; itemClass += 'bg-indigo-100 text-indigo-700'; break;
+        case 'script_generated': statusText = `Script ready. Generating audio for ${filename}...`; itemClass += 'bg-indigo-100 text-indigo-700'; break;
+        case 'generating_tts': statusText = `Converting to speech for ${filename}... <i class="fas fa-spinner fa-spin ml-2"></i>`; itemClass += 'bg-purple-100 text-purple-700'; break;
+        case 'uploading': statusText = `Uploading podcast: ${filename}... <i class="fas fa-upload ml-2"></i>`; itemClass += 'bg-purple-100 text-purple-700'; break;
+        case 'completed':
+          detail.statusElement.remove();
+          delete jobDetails[jobId];
+          fetchPodcasts();
+          showMessage(`Podcast for ${filename} generated successfully!`, 'success');
+          stopPolling(jobId);
+          if (Object.keys(activePollers).length === 0) {
+            loadingIndicator.classList.add('hidden');
+            uploadDropzone.classList.remove('hidden');
+            document.getElementById('pdfFileName').textContent = 'Drag & drop PDF here, or click to select';
+            document.getElementById('pdfUploadText').classList.remove('hidden');
+            document.getElementById('pdfIcon').classList.remove('hidden');
+            document.getElementById('uploadButton').disabled = true;
+            pdfInput.value = '';
+            currentFile = null; // Reset currentFile
+            document.getElementById('generatePodcastContainer').classList.add('hidden'); // Hide preview
+
+          }
+          return;
+        case 'failed':
+          statusText = `Failed: ${filename} - ${errorMessage || 'Unknown error'}`;
+          itemClass += 'bg-red-100 text-red-700';
+          stopPolling(jobId);
+          if (Object.keys(activePollers).length === 0) {
+             loadingIndicator.classList.add('hidden');
+             // Optionally reset parts of the UI here too, or allow retry
+            uploadDropzone.classList.remove('hidden'); // Allow new upload attempts
+            document.getElementById('pdfFileName').textContent = 'Drag & drop PDF here, or click to select';
+            document.getElementById('pdfUploadText').classList.remove('hidden');
+            document.getElementById('pdfIcon').classList.remove('hidden');
+            document.getElementById('uploadButton').disabled = true;
+            pdfInput.value = '';
+            currentFile = null;
+            document.getElementById('generatePodcastContainer').classList.add('hidden');
+          }
+          break;
+        default: statusText = `Job ${jobId} (for ${filename}): ${status}`; itemClass += 'bg-gray-200 text-gray-800';
+      }
+
+      detail.statusElement.innerHTML = statusText;
+      detail.statusElement.className = itemClass;
+    }
+
+    function startPolling(jobId, originalFilename) {
+      if (activePollers[jobId]) {
+        console.log(`Polling already active for job ${jobId}`);
+        return;
+      }
+      console.log(`Starting polling for job ${jobId} with filename ${originalFilename}`);
+      
+      const statusElement = document.createElement('div');
+      statusElement.id = `job-item-${jobId}`;
+      statusElement.className = 'p-3 mb-2 bg-gray-100 rounded shadow-sm text-sm job-status-item';
+      statusElement.textContent = `Preparing to process ${originalFilename}...`;
+      podcastList.prepend(statusElement);
+
+      jobDetails[jobId] = { originalFilename, statusElement };
+
+      checkStatus(jobId);
+      activePollers[jobId] = setInterval(() => checkStatus(jobId), POLLING_INTERVAL_MS);
+      
+      uploadDropzone.classList.add('hidden');
+      generateContainer.classList.add('hidden'); 
+      loadingIndicator.classList.remove('hidden');
+    }
+    // --- End Polling Functions ---
+
     // Add standard navigation event handlers - same as dashboard.html
     // Add document ready function
     function initializeUpload() {

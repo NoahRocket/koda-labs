@@ -10,8 +10,8 @@ const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech/';
 const VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Example voice ID (Adam) - replace if needed
 
 // Helper function to update job status
-async function updateJobStatus(supabase, jobId, status, error = null, podcastUrl = null) {
-  console.log(`Updating job ${jobId} to status: ${status}${error ? ' with error: ' + error : ''}`);
+async function updateJobStatus(supabase, jobId, status, error = null, podcastUrl = null, script = null) {
+  console.log(`Updating job ${jobId} to status: ${status}${error ? ' with error: ' + error : ''}${script ? ' and storing script' : ''}`);
   
   const updateData = { 
     status: status, 
@@ -20,6 +20,7 @@ async function updateJobStatus(supabase, jobId, status, error = null, podcastUrl
   
   if (error) updateData.error_message = error;
   if (podcastUrl) updateData.podcast_url = podcastUrl;
+  if (script) updateData.generated_script = script; // Store the generated script
   
   const { error: updateError } = await supabase
     .from('podcast_jobs')
@@ -87,8 +88,8 @@ exports.handler = async (event) => {
     
     console.log(`Found job:`, job);
     
-    // Check job status
-    if (job.status !== 'pending') {
+    // Check job status - should be 'text_analyzed' from the previous step
+    if (job.status !== 'text_analyzed') {
       return { 
         statusCode: 200, 
         body: JSON.stringify({ 
@@ -99,9 +100,9 @@ exports.handler = async (event) => {
       };
     }
 
-    // Update job status to processing
+    // Update job status to 'generating_script'
     try {
-      await updateJobStatus(supabase, job.job_id, 'processing');
+      await updateJobStatus(supabase, job.job_id, 'generating_script');
     } catch (err) {
       console.error('Failed to update job status to processing:', err);
       return { statusCode: 500, body: JSON.stringify({ error: 'Failed to update job status.' }) };
@@ -171,20 +172,27 @@ Generate only the script body.`;
 
       console.log('Generated script text length:', scriptText.length);
 
-      // Instead of directly processing the script here, trigger the TTS generation function
+      // Store the script and update status to 'script_generated'
       try {
-        // Get host information from the request
+        await updateJobStatus(supabase, job.job_id, 'script_generated', null, null, scriptText);
+        console.log(`Job ${job.job_id} status updated to script_generated and script stored.`);
+      } catch (scriptSaveError) {
+        console.error('Failed to save script or update status to script_generated:', scriptSaveError);
+        // Don't necessarily fail the whole process if only status update failed, but log it.
+        // If saving script itself failed, it's more critical.
+        // For now, we proceed to trigger TTS, but this could be a point of failure to handle more gracefully.
+      }
+
+      // Trigger the TTS generation function
+      try {
         const domain = event.headers.host;
         const protocol = domain.includes('localhost') ? 'http' : 'https';
-        // Point to the new TTS generation function
         const ttsGenerationUrl = `${protocol}://${domain}/.netlify/functions/generate-tts-background`;
         
-        console.log(`Triggering TTS generation at: ${ttsGenerationUrl}`);
+        console.log(`Triggering TTS generation at: ${ttsGenerationUrl} for job ${job.job_id}`);
         
-        // Update job status to show we're kicking off the TTS generation part
-        await updateJobStatus(supabase, job.job_id, 'generating_tts', null);
+        // Note: generate-tts-background should update status to 'generating_tts' upon starting.
         
-        // Invoke the TTS generation function asynchronously
         fetch(ttsGenerationUrl, {
           method: 'POST',
           headers: {

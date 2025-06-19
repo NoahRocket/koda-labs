@@ -1,103 +1,189 @@
 const fetch = require('node-fetch');
+const { getSupabaseAdmin } = require('./supabaseClient');
+const pdf = require('pdf-parse');
+
+const PDF_BUCKET_NAME = 'podcast_source_files'; // Ensure this matches upload-pdf.js
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+// Helper to update job status and error
+async function updateJobStatus(jobId, status, errorMessage = null, concepts = null) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const updateData = { status: status };
+  if (errorMessage) updateData.error_message = errorMessage;
+  if (concepts) updateData.concepts = concepts;
+
+  const { error } = await supabaseAdmin
+    .from('podcast_jobs')
+    .update(updateData)
+    .eq('job_id', jobId);
+  if (error) {
+    console.error(`Failed to update job ${jobId} to status ${status}:`, error);
+  }
+}
+
+// Helper to trigger the next step in the pipeline
+async function triggerNextStep(jobId, currentEvent) {
+  try {
+    const domain = currentEvent.headers.host;
+    const protocol = domain.includes('localhost') ? 'http' : 'https';
+    const workerUrl = `${protocol}://${domain}/.netlify/functions/process-podcast-job`;
+    
+    console.log(`[analyze-pdf-text] Triggering process-podcast-job for job ${jobId} at: ${workerUrl}`);
+    
+    const response = await fetch(workerUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Use service role key for inter-function communication if needed, or ensure function is protected
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY}` 
+      },
+      body: JSON.stringify({ jobId: jobId }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[analyze-pdf-text] Warning: Failed to trigger process-podcast-job for job ${jobId}: ${response.status} ${errorText}`);
+      // Optionally update job status to reflect this failure to trigger
+    }
+  } catch (error) {
+    console.error(`[analyze-pdf-text] Error triggering process-podcast-job for job ${jobId}:`, error);
+  }
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method Not Allowed' })
-    };
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
-  let text;
+  if (!OPENAI_API_KEY) {
+    console.error('[analyze-pdf-text] OPENAI_API_KEY not configured.');
+    // No jobId available here to update status, this is a server config issue
+    return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error: LLM API key missing.' }) };
+  }
+
+  let jobId;
   try {
     const body = JSON.parse(event.body);
-    text = body.text;
-  } catch {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'Invalid request body.' })
-    };
+    jobId = body.jobId;
+    if (!jobId) throw new Error('Missing jobId in request body.');
+  } catch (parseError) {
+    console.error('[analyze-pdf-text] Invalid request body:', parseError);
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid request body. Expected { jobId: "..." }' }) };
   }
 
-  if (!text || typeof text !== 'string' || !text.trim()) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'No text provided for analysis.' })
-    };
-  }
-
-  // Word count check
-  const wordCount = text.trim().split(/\s+/).length;
-  if (wordCount > 10000) {
-    return {
-      statusCode: 413,
-      body: JSON.stringify({ error: 'Text is too long (max 10,000 words).' })
-    };
-  }
-
-  // Prepare prompt for LLM
-  // Prepare prompt for LLM
-  const prompt = `Analyze the following text. Identify the top 3-5 key concepts and provide a brief (1-2 sentence) explanation for each. Return your answer as a JSON array of objects with \'concept\' and \'explanation\' fields.\n\nText:\n"""${text.substring(0, 8000)}"""`;
-
-  // Securely load API key
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-  if (!OPENAI_API_KEY) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'LLM API key not configured.' })
-    };
-  }
+  console.log(`[analyze-pdf-text] Processing job ID: ${jobId}`);
+  await updateJobStatus(jobId, 'analyzing_text');
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // 1. Fetch job details (source_pdf_url)
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: jobData, error: fetchError } = await supabaseAdmin
+      .from('podcast_jobs')
+      .select('source_pdf_url, filename')
+      .eq('job_id', jobId)
+      .single();
+
+    if (fetchError || !jobData || !jobData.source_pdf_url) {
+      await updateJobStatus(jobId, 'failed', `Failed to fetch job details or source_pdf_url missing: ${fetchError?.message || 'No job data'}`);
+      return { statusCode: 404, body: JSON.stringify({ error: 'Job not found or source_pdf_url missing.' }) };
+    }
+
+    // 2. Download PDF from Supabase Storage
+    console.log(`[analyze-pdf-text] Downloading PDF from: ${jobData.source_pdf_url}`);
+    const { data: blobData, error: downloadError } = await supabaseAdmin.storage
+      .from(PDF_BUCKET_NAME)
+      .download(jobData.source_pdf_url);
+
+    if (downloadError) {
+      await updateJobStatus(jobId, 'failed', `Failed to download PDF: ${downloadError.message}`);
+      return { statusCode: 500, body: JSON.stringify({ error: 'Failed to download PDF from storage.' }) };
+    }
+    const fileBuffer = Buffer.from(await blobData.arrayBuffer());
+
+    // 3. Extract text from PDF
+    console.log(`[analyze-pdf-text] Extracting text from PDF: ${jobData.filename}`);
+    const pdfExtract = await pdf(fileBuffer);
+    const extractedText = pdfExtract.text || '';
+    if (!extractedText.trim()) {
+      await updateJobStatus(jobId, 'failed', 'No text found in PDF.');
+      return { statusCode: 400, body: JSON.stringify({ error: 'No text could be extracted from the PDF.' }) };
+    }
+    console.log(`[analyze-pdf-text] Extracted ${extractedText.length} characters.`);
+
+    // Word count check (optional, can be adjusted)
+    const wordCount = extractedText.trim().split(/\s+/).length;
+    if (wordCount > 15000) { // Increased limit slightly
+      await updateJobStatus(jobId, 'failed', 'Text content too long (max 15,000 words).');
+      return { statusCode: 413, body: JSON.stringify({ error: 'Text is too long (max 15,000 words).' }) };
+    }
+
+    // 4. Analyze concepts using OpenAI
+    const prompt = `Analyze the following text. Identify the top 3-5 key concepts and provide a brief (1-2 sentence) explanation for each. Return your answer as a JSON array of objects with 'concept' and 'explanation' fields.\n\nText:\n"""${extractedText.substring(0, 12000)}"""`; // Use a larger substring for prompt if text is long
+    
+    console.log('[analyze-pdf-text] Sending text to OpenAI for concept extraction.');
+    const llmResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-3.5-turbo', // Consider gpt-4-turbo-preview for longer context if available/needed
         messages: [
           { role: 'system', content: 'You are an expert assistant for extracting key concepts from documents.' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 700,
+        max_tokens: 800, // Increased tokens for potentially more complex concepts
         temperature: 0.3
       })
     });
-    if (!response.ok) {
-      throw new Error(`LLM API error: ${response.status}`);
+
+    if (!llmResponse.ok) {
+      const errorBody = await llmResponse.text();
+      await updateJobStatus(jobId, 'failed', `LLM API error: ${llmResponse.status} - ${errorBody}`);
+      throw new Error(`LLM API error: ${llmResponse.status} - ${errorBody}`);
     }
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    // Attempt to parse LLM response as JSON
-    let concepts = null;
+
+    const llmData = await llmResponse.json();
+    const llmContent = llmData.choices?.[0]?.message?.content;
+    let conceptsArray = null;
     try {
-      concepts = JSON.parse(content);
+      conceptsArray = JSON.parse(llmContent);
     } catch {
-      // Try to extract JSON from within text if LLM returns extra text
-      const match = content.match(/\[.*\]/s);
-      if (match) {
-        concepts = JSON.parse(match[0]);
-      }
+      const match = llmContent.match(/\[.*?\]/s); // More robust regex for JSON array
+      if (match && match[0]) conceptsArray = JSON.parse(match[0]);
     }
-    if (!Array.isArray(concepts)) {
+
+    if (!Array.isArray(conceptsArray)) {
+      await updateJobStatus(jobId, 'failed', 'LLM response for concepts not in expected JSON array format.');
       throw new Error('LLM response not in expected format.');
     }
-    // Sanitize output (basic)
-    concepts = concepts.map(({ concept, explanation }) => ({
-      concept: String(concept).replace(/[<>]/g, ''),
-      explanation: String(explanation).replace(/[<>]/g, '')
-    }));
+    
+    const sanitizedConcepts = conceptsArray.map(({ concept, explanation }) => ({
+      concept: String(concept || '').replace(/[<>]/g, ''),
+      explanation: String(explanation || '').replace(/[<>]/g, '')
+    })).filter(c => c.concept && c.explanation); // Ensure concepts are valid
+
+    console.log(`[analyze-pdf-text] Concepts extracted successfully for job ${jobId}.`);
+
+    // 5. Update job with concepts and new status
+    await updateJobStatus(jobId, 'text_analyzed', null, sanitizedConcepts);
+
+    // 6. Trigger next step (process-podcast-job.js)
+    await triggerNextStep(jobId, event);
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ concepts })
+      body: JSON.stringify({ success: true, message: `Text analysis complete for job ${jobId}. Triggered script generation.` })
     };
+
   } catch (error) {
-    console.error('LLM analysis error:', error);
+    console.error(`[analyze-pdf-text] Error processing job ${jobId}:`, error);
+    // Ensure status is updated to failed if not already
+    await updateJobStatus(jobId, 'failed', error.message || 'Unknown error during text analysis.');
     return {
-      statusCode: 502,
-      body: JSON.stringify({ error: 'Unable to analyze text. Please try again later.' })
+      statusCode: 500,
+      body: JSON.stringify({ error: `Failed to analyze text for job ${jobId}: ${error.message}` })
     };
   }
 };
