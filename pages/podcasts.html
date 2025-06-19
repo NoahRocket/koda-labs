@@ -321,14 +321,29 @@
         generateButton.disabled = true;
         
         try {
-          // Get authentication token - try multiple possible storage keys
-          // Note: The application might be using different key formats for storage
-          const token = localStorage.getItem('sb-token') || 
-                      localStorage.getItem('accessToken') || 
+          // Retrieve authentication token.
+          // 1. Prefer the explicit `accessToken` our app stores.
+          // 2. Fall back to other keys that Supabase/browser extensions might have stored.
+          // 3. Gracefully handle tokens stored as JSON strings by extracting `access_token`.
+          let token = localStorage.getItem('accessToken') ||
+                      localStorage.getItem('sb-token') ||
                       localStorage.getItem('supabase-auth-token');
-          
-          console.log('Using auth token:', token ? 'Token found' : 'No token found');
-          
+
+          // Some Supabase helpers store the whole session as a JSON string. Detect & parse it.
+          if (token && token.trim().startsWith('{')) {
+            try {
+              const parsed = JSON.parse(token);
+              token = parsed.access_token ||
+                      parsed.currentSession?.access_token ||
+                      parsed.session?.access_token ||
+                      '';
+            } catch (parseErr) {
+              console.warn('Failed to parse auth token JSON:', parseErr);
+            }
+          }
+
+          console.log('Auth token present?', !!token);
+
           if (!token) {
             throw new Error('Authentication required. Please log in again.');
           }
