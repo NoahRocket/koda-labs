@@ -292,9 +292,9 @@ exports.handler = async (event) => {
               'Authorization': event.headers.authorization || event.headers.Authorization
             },
             body: JSON.stringify({
-              job_id: jobId,
-              user_id: userId,
-              extracted_text: extractedText
+              jobId: jobId, // Changed from job_id to jobId to match what analyze-pdf-text expects
+              userId: userId, // Changed to camelCase for consistency
+              extractedText: extractedText // Changed to camelCase for consistency
             })
           });
           
