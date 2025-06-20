@@ -252,6 +252,62 @@ exports.handler = async (event) => {
       storagePath: storageData.path,
       originalFilename: fileData.originalFilename
     };
+    
+    // Create a new job in the podcast_jobs table
+    console.log('[upload-pdf] Creating podcast job in database');
+    const jobId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    
+    try {
+      // Insert the job into the podcast_jobs table
+      const { data: jobData, error: dbError } = await supabaseAdmin
+        .from('podcast_jobs')
+        .insert([
+          {
+            job_id: jobId,
+            user_id: userId,
+            status: 'pending_analysis',
+            filename: fileData.originalFilename,
+            extracted_text: extractedText,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ])
+        .select();
+        
+      if (dbError) {
+        console.error('[upload-pdf] Error creating podcast job:', dbError);
+      } else {
+        console.log(`[upload-pdf] Created podcast job with ID: ${jobId}`);
+        
+        // Trigger the analyze-pdf-text function
+        console.log('[upload-pdf] Triggering analyze-pdf-text function');
+        try {
+          // Call the analyze-pdf-text function
+          const analyzeResponse = await fetch(`${process.env.URL || 'http://localhost:8888'}/.netlify/functions/analyze-pdf-text`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': event.headers.authorization || event.headers.Authorization
+            },
+            body: JSON.stringify({
+              job_id: jobId,
+              user_id: userId,
+              extracted_text: extractedText
+            })
+          });
+          
+          if (!analyzeResponse.ok) {
+            console.error(`[upload-pdf] Error triggering analyze-pdf-text: ${analyzeResponse.status} ${analyzeResponse.statusText}`);
+          } else {
+            console.log('[upload-pdf] Successfully triggered analyze-pdf-text');
+          }
+        } catch (analyzeError) {
+          console.error('[upload-pdf] Exception triggering analyze-pdf-text:', analyzeError);
+        }
+      }
+    } catch (jobError) {
+      console.error('[upload-pdf] Exception creating podcast job:', jobError);
+    }
 
     // After successfully parsing, delete the PDF since we don't need to store it permanently
     // The extracted text will be stored in the podcast_jobs table
