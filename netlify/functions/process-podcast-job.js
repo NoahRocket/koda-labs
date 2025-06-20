@@ -138,14 +138,35 @@ exports.handler = async (event) => {
           })
         });
         
-        if (!response.ok) {
+        // Special handling for 202 Accepted (async processing started)
+        if (response.status === 202) {
+          console.log(`Background script generation successfully initiated for job ${job.job_id}`);
+          let responseText = '';
+          try {
+            // Try to read the response, but don't fail if it can't be parsed as JSON
+            responseText = await response.text();
+            const result = JSON.parse(responseText);
+            console.log(`Background script generation response:`, result);
+          } catch (parseError) {
+            // It's ok if we can't parse the response as long as we got a 202
+            console.log(`Note: Could not parse 202 response as JSON: ${responseText}`);
+          }
+        }
+        // Handle other error cases
+        else if (!response.ok) {
           const errorText = await response.text();
           console.error(`Error starting background script generation: ${response.status} - ${errorText}`);
           throw new Error(`Failed to start background script generation: ${response.status} - ${errorText}`);
         }
-        
-        const result = await response.json();
-        console.log(`Background script generation initiated:`, result);
+        // Handle 200 OK (synchronous completion)
+        else {
+          try {
+            const result = await response.json();
+            console.log(`Background script generation completed synchronously:`, result);
+          } catch (parseError) {
+            console.warn(`Warning: Received OK status but could not parse response: ${parseError.message}`);
+          }
+        }
         
         // Return success immediately, before the 30-second timeout
         return {

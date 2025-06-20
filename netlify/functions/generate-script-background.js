@@ -234,18 +234,39 @@ Format your response as a plain text podcast script without any additional notes
   // Return immediately with a success status to avoid Netlify timeout
   // The actual processing continues in the background
   try {
+    // Safety check - make sure jobId exists before returning response
+    const safeJobId = jobId || 'unknown';
+    
+    // Always ensure we're returning a valid JSON response
+    const responseBody = JSON.stringify({ 
+      success: true, 
+      message: `Script generation started for job ${safeJobId} and will continue in the background` 
+    });
+    
+    console.log('[generate-script-background] Returning early success response:', responseBody);
+    
     return {
       statusCode: 202, // Accepted
-      body: JSON.stringify({ 
-        success: true, 
-        message: `Script generation started for job ${jobId} and will continue in the background` 
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: responseBody
     };
   } catch (error) {
     console.error('[generate-script-background] Error in handler:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Internal server error' })
-    };
+    
+    // Ensure even error responses are valid JSON
+    try {
+      return {
+        statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Internal server error', details: error.message || 'Unknown error' })
+      };
+    } catch (jsonError) {
+      // Last resort if JSON.stringify fails
+      return {
+        statusCode: 500,
+        headers: { 'Content-Type': 'text/plain' },
+        body: 'Internal server error: Failed to serialize error response'
+      };
+    }
   }
 };
