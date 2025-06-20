@@ -73,13 +73,14 @@ exports.handler = async (event) => {
   // --- End Authentication ---
 
   try {
-    const { concepts, pdfName = 'Uploaded PDF', storagePath } = JSON.parse(event.body);
+    const { concepts, pdfName = 'Uploaded PDF', extractedText } = JSON.parse(event.body);
 
     if (!concepts || !Array.isArray(concepts) || concepts.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing or invalid concepts data.' }) };
     }
-    if (!storagePath) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Missing storagePath for the PDF.' }) };
+    // We don't require storagePath anymore, as we're not storing PDFs permanently
+    if (!extractedText) {
+      console.warn('[queue-podcast-job] Warning: Missing extractedText. Using empty text.');  
     }
 
     // Use the Admin client (service key) to insert the job
@@ -88,10 +89,10 @@ exports.handler = async (event) => {
       .from('podcast_jobs')
       .insert({
         user_id: userId,
-        status: 'pending_analysis', // Updated initial status
+        status: 'pending_analysis', // Initial status
         concepts: concepts, // These are still the simplified concepts for now
         filename: pdfName,
-        source_pdf_url: storagePath // Store the path to the PDF in Supabase Storage
+        generated_script: extractedText || '' // Store the extracted text instead of a PDF path
       })
       .select()
       .single();

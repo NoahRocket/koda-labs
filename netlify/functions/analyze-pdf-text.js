@@ -75,35 +75,22 @@ exports.handler = async (event) => {
   await updateJobStatus(jobId, 'analyzing_text');
 
   try {
-    // 1. Fetch job details (source_pdf_url)
+    // 1. Fetch job details with the extracted text we already have
     const supabaseAdmin = getSupabaseAdmin();
     const { data: jobData, error: fetchError } = await supabaseAdmin
       .from('podcast_jobs')
-      .select('source_pdf_url, filename')
+      .select('generated_script, filename')
       .eq('job_id', jobId)
       .single();
 
-    if (fetchError || !jobData || !jobData.source_pdf_url) {
-      await updateJobStatus(jobId, 'failed', `Failed to fetch job details or source_pdf_url missing: ${fetchError?.message || 'No job data'}`);
-      return { statusCode: 404, body: JSON.stringify({ error: 'Job not found or source_pdf_url missing.' }) };
+    if (fetchError || !jobData) {
+      await updateJobStatus(jobId, 'failed', `Failed to fetch job details: ${fetchError?.message || 'No job data'}`);
+      return { statusCode: 404, body: JSON.stringify({ error: 'Job not found.' }) };
     }
 
-    // 2. Download PDF from Supabase Storage
-    console.log(`[analyze-pdf-text] Downloading PDF from: ${jobData.source_pdf_url}`);
-    const { data: blobData, error: downloadError } = await supabaseAdmin.storage
-      .from(PDF_BUCKET_NAME)
-      .download(jobData.source_pdf_url);
-
-    if (downloadError) {
-      await updateJobStatus(jobId, 'failed', `Failed to download PDF: ${downloadError.message}`);
-      return { statusCode: 500, body: JSON.stringify({ error: 'Failed to download PDF from storage.' }) };
-    }
-    const fileBuffer = Buffer.from(await blobData.arrayBuffer());
-
-    // 3. Extract text from PDF
-    console.log(`[analyze-pdf-text] Extracting text from PDF: ${jobData.filename}`);
-    const pdfExtract = await pdf(fileBuffer);
-    const extractedText = pdfExtract.text || '';
+    // 2. Get the text that was previously extracted in upload-pdf.js
+    console.log(`[analyze-pdf-text] Using pre-extracted text from job record for: ${jobData.filename}`);
+    const extractedText = jobData.generated_script || '';
     if (!extractedText.trim()) {
       await updateJobStatus(jobId, 'failed', 'No text found in PDF.');
       return { statusCode: 400, body: JSON.stringify({ error: 'No text could be extracted from the PDF.' }) };

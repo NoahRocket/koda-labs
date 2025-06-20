@@ -198,58 +198,16 @@ exports.handler = async (event) => {
     
     const supabaseAdmin = getSupabaseAdmin();
     
-    // Note: We're assuming the 'podcasts' bucket already exists in Supabase
-    // We'll skip the bucket existence check as the service role may not have permission to list buckets
-    console.log(`[upload-pdf] Assuming bucket '${PDF_BUCKET_NAME}' exists and attempting direct upload`);
+    // We DO NOT store the PDF file in Supabase Storage permanently
+    // The PDF is only used for text extraction and then discarded
+    console.log('[upload-pdf] Skipping permanent PDF storage - using extracted text only');
     
-    const { data: storageData, error: storageError } = await supabaseAdmin.storage
-      .from(PDF_BUCKET_NAME)
-      .upload(filePath, fileData.buffer, {
-        contentType: fileData.mimetype,
-        upsert: true,
-      });
-
+    // Log end of time measurement for consistency in logs
     console.timeEnd('supabaseUpload');
-    
-    // Handle storage upload errors
-    if (storageError) {
-      console.error('[upload-pdf] Storage upload failed with error code:', storageError.statusCode || storageError.status);
-      console.error('[upload-pdf] Storage error message:', storageError.message);
-      console.error('[upload-pdf] Storage error details:', JSON.stringify(storageError, null, 2));
-      console.error(`[upload-pdf] Upload attempted for: bucket='${PDF_BUCKET_NAME}', path='${filePath}'`);
-      
-      // Check if this could be a permission issue
-      if (storageError.statusCode === 400 || storageError.status === 400 || 
-          storageError.message?.includes('security policy')) {
-        return {
-          statusCode: 500,
-          body: JSON.stringify({ 
-            error: 'Storage permission error. Make sure your service role has proper permissions.', 
-            details: `The server has permission to access the API but lacks permission to upload to the '${PDF_BUCKET_NAME}' bucket. Check bucket permissions in Supabase dashboard.`,
-            code: storageError.code || storageError.statusCode || 'permission_denied'
-          }),
-          headers: { 'Content-Type': 'application/json' },
-        };
-      }
-
-      // General error response
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ 
-          error: 'Failed to upload PDF to storage.', 
-          details: storageError.message,
-          code: storageError.statusCode || storageError.status || 'unknown'
-        }),
-        headers: { 'Content-Type': 'application/json' },
-      };
-    }
-    
-    console.log('Supabase Storage upload successful:', storageData);
     
     // Store the response data
     const responseData = {
       extractedText: extractedText,
-      storagePath: storageData.path,
       originalFilename: fileData.originalFilename
     };
     
@@ -265,9 +223,7 @@ exports.handler = async (event) => {
             user_id: userId,
             status: 'pending_analysis',
             filename: fileData.originalFilename,
-            source_pdf_url: storageData.path,  // Using the correct field name based on schema
-            // Temporarily store the extracted text in generated_script since there's no dedicated field
-            generated_script: extractedText,
+            generated_script: extractedText,  // Store extracted text directly
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
@@ -300,8 +256,7 @@ exports.handler = async (event) => {
             body: JSON.stringify({
               concepts: simpleConcepts,
               pdfName: fileData.originalFilename,
-              storagePath: storageData.path,
-              extractedText: extractedText // Additional data that might be useful
+              extractedText: extractedText // Pass extracted text directly
             })
           });
           
@@ -316,25 +271,6 @@ exports.handler = async (event) => {
       }
     } catch (jobError) {
       console.error('[upload-pdf] Exception creating podcast job:', jobError);
-    }
-
-    // After successfully parsing, delete the PDF since we don't need to store it permanently
-    // The extracted text will be stored in the podcast_jobs table
-    try {
-      console.log(`[upload-pdf] Cleaning up: Deleting temporary PDF from storage: ${filePath}`);
-      const { error: deleteError } = await supabaseAdmin.storage
-        .from(PDF_BUCKET_NAME)
-        .remove([filePath]);
-      
-      if (deleteError) {
-        console.warn(`[upload-pdf] Warning: Could not delete temporary PDF: ${deleteError.message}`);
-        // Continue despite deletion error - this is not critical
-      } else {
-        console.log('[upload-pdf] Temporary PDF successfully deleted from storage');
-      }
-    } catch (deleteErr) {
-      console.warn('[upload-pdf] Exception during PDF deletion cleanup:', deleteErr);
-      // Continue despite error - PDF cleanup is not critical to the main flow
     }
 
     // Return success response with extracted text and storage details
