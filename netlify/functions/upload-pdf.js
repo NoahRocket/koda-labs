@@ -245,17 +245,39 @@ exports.handler = async (event) => {
     }
     
     console.log('Supabase Storage upload successful:', storageData);
+    
+    // Store the response data
+    const responseData = {
+      extractedText: extractedText,
+      storagePath: storageData.path,
+      originalFilename: fileData.originalFilename
+    };
+
+    // After successfully parsing, delete the PDF since we don't need to store it permanently
+    // The extracted text will be stored in the podcast_jobs table
+    try {
+      console.log(`[upload-pdf] Cleaning up: Deleting temporary PDF from storage: ${filePath}`);
+      const { error: deleteError } = await supabaseAdmin.storage
+        .from(PDF_BUCKET_NAME)
+        .remove([filePath]);
+      
+      if (deleteError) {
+        console.warn(`[upload-pdf] Warning: Could not delete temporary PDF: ${deleteError.message}`);
+        // Continue despite deletion error - this is not critical
+      } else {
+        console.log('[upload-pdf] Temporary PDF successfully deleted from storage');
+      }
+    } catch (deleteErr) {
+      console.warn('[upload-pdf] Exception during PDF deletion cleanup:', deleteErr);
+      // Continue despite error - PDF cleanup is not critical to the main flow
+    }
 
     // Return success response with extracted text and storage details
     console.timeEnd('total-execution');
     console.log('[upload-pdf] Function completed successfully');
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        extractedText: extractedText,
-        storagePath: storageData.path,
-        originalFilename: fileData.originalFilename
-      }),
+      body: JSON.stringify(responseData),
       headers: { 'Content-Type': 'application/json' },
     };
     

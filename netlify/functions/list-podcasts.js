@@ -95,7 +95,7 @@ exports.handler = async (event) => {
     
     try {
       // Try different methods to list files in the bucket
-      // Method 1: Default listing
+      // Method 1: Check the default root folder
       const { data: files1, error: storageError1 } = await supabase
         .storage
         .from('podcasts')
@@ -106,6 +106,24 @@ exports.handler = async (event) => {
         .storage
         .from('podcasts')
         .list('', { sortBy: { column: 'created_at', order: 'desc' } });
+        
+      // Method 3: IMPORTANT - Check the 'public' folder where audio files are likely stored
+      const { data: publicFiles, error: publicError } = await supabase
+        .storage
+        .from('podcasts')
+        .list('public');
+        
+      // Method 4: If user ID is available, check user's specific folder
+      let userFiles = [];
+      let userError = null;
+      if (userId) {
+        const { data: files, error } = await supabase
+          .storage
+          .from('podcasts')
+          .list(`public/${userId}`);
+        userFiles = files;
+        userError = error;
+      }
       
       // Method 3: Try using the admin client differently with direct API call
       const { data: bucketInfo, error: bucketError } = await supabase
@@ -124,20 +142,72 @@ exports.handler = async (event) => {
       if (storageError1) {
         console.error('[list-podcasts] Method 1 error:', storageError1.message);
       } else {
-        console.log(`[list-podcasts] Method 1 found ${files1?.length || 0} files`);  
+        console.log(`[list-podcasts] Method 1 found ${files1?.length || 0} files in root`);  
       }
       
       if (storageError2) {
         console.error('[list-podcasts] Method 2 error:', storageError2.message);
       } else {
-        console.log(`[list-podcasts] Method 2 found ${files2?.length || 0} files`);  
+        console.log(`[list-podcasts] Method 2 found ${files2?.length || 0} files in empty path`);  
+      }
+
+      if (publicError) {
+        console.error('[list-podcasts] Public folder error:', publicError.message);
+      } else {
+        console.log(`[list-podcasts] Found ${publicFiles?.length || 0} files in public folder`);  
       }
       
-      // Use files from successful method
-      let files = files1 || files2 || [];
+      if (userId) {
+        if (userError) {
+          console.error(`[list-podcasts] User folder error for ${userId}:`, userError.message);
+        } else {
+          console.log(`[list-podcasts] Found ${userFiles?.length || 0} files in user ${userId}'s folder`);  
+        }
+      }
       
-      // Filter for MP3 files
-      storageFiles = files.filter(file => file.name && file.name.endsWith('.mp3'));
+      // Combine files from all successful methods, prioritizing user-specific files
+      // For files in the public/userId directory, we need to include the full path
+      const rootFiles = (files1 || files2 || []).filter(file => file.name && file.name.endsWith('.mp3'));
+      
+      // Handle files in the public directory - they need path prefix
+      let publicFolderFiles = [];
+      if (publicFiles && publicFiles.length > 0) {
+        // These are folders inside 'public', we need to list their contents
+        for (const folder of publicFiles) {
+          if (folder.id) { // It's a folder
+            const { data: folderFiles, error: folderError } = await supabase
+              .storage
+              .from('podcasts')
+              .list(`public/${folder.name}`);
+              
+            if (!folderError && folderFiles) {
+              // Add path info to each file
+              const processedFiles = folderFiles
+                .filter(file => file.name && file.name.endsWith('.mp3'))
+                .map(file => ({
+                  ...file,
+                  fullPath: `public/${folder.name}/${file.name}`
+                }));
+              publicFolderFiles = [...publicFolderFiles, ...processedFiles];
+            }
+          }
+        }
+      }
+      
+      // Add path info to user files
+      const userFolderFiles = userId && userFiles ? 
+        userFiles
+          .filter(file => file.name && file.name.endsWith('.mp3'))
+          .map(file => ({
+            ...file,
+            fullPath: `public/${userId}/${file.name}`
+          })) : [];
+      
+      // Combine all files, prioritizing user's files
+      storageFiles = [...userFolderFiles, ...publicFolderFiles, ...rootFiles];
+      
+      // Log the final count
+      console.log(`[list-podcasts] Total MP3 files found: ${storageFiles.length}`);
       console.log(`[list-podcasts] Found ${storageFiles.length} MP3 files in storage bucket:`);
       if (storageFiles.length > 0) {
         storageFiles.forEach(file => {
@@ -249,52 +319,158 @@ exports.handler = async (event) => {
       console.log('[list-podcasts] No podcasts found in database, checking storage bucket directly');
       
       try {
-        // List all files in the podcasts storage bucket
-        const { data: storageFiles, error: listError } = await supabase
+        // Try different methods to list files in the bucket to handle the new structure
+        console.log('[list-podcasts] Searching for podcast files in storage...');
+        
+        // Check if 'public' folder exists
+        const { data: rootContents, error: rootError } = await supabase
           .storage
           .from('podcasts')
-          .list();
-        
-        if (listError) {
-          console.error('[list-podcasts] Error listing files in storage:', listError);
-          // Continue with empty podcast list
-        } else if (storageFiles && storageFiles.length > 0) {
-          console.log(`[list-podcasts] Found ${storageFiles.length} files in storage bucket`);
+          .list('');
           
-          // Filter for MP3 files only
-          const mp3Files = storageFiles.filter(file => file.name.toLowerCase().endsWith('.mp3'));
-          
-          // Generate podcast entries from files found in storage
-          podcastList = mp3Files.map(file => {
-            // Generate a proper URL for each file
-            const publicUrl = supabase.storage.from('podcasts').getPublicUrl(file.name).data.publicUrl;
-            console.log(`[list-podcasts] Created URL for file ${file.name}: ${publicUrl}`);
-            
-            // Format the title by removing prefix, extension, and replacing dashes with spaces
-            const prettyTitle = file.name
-              .replace(/^podcast_/, '')
-              .replace(/\.mp3$/, '')
-              .replace(/-/g, ' ');
-            
-            // Extract potential job_id from filename
-            const jobIdMatch = file.name.match(/podcast_([\w-]+)\.mp3$/i);
-            const jobId = jobIdMatch ? jobIdMatch[1] : file.name.replace(/\.mp3$/, '');
-            
-            return {
-              id: jobId,
-              job_id: jobId,
-              title: prettyTitle || 'Podcast',
-              created_at: file.created_at || new Date().toISOString(),
-              audio_url: publicUrl,
-              concepts: []
-            };
-          });
-          
-          console.log(`[list-podcasts] Created ${podcastList.length} podcast entries from storage files`);
+        if (rootError) {
+          console.error('[list-podcasts] Error listing root folder:', rootError);
+          podcastList = [];
+          return; // exit the try block but continue execution
         }
+        
+        console.log(`[list-podcasts] Found ${rootContents?.length || 0} items in root of podcasts bucket`);
+        
+        // Check for public folder
+        const publicFolder = rootContents?.find(item => item.name === 'public');
+        if (!publicFolder) {
+          console.log('[list-podcasts] No public folder found, checking for MP3 files in root');
+          // Just look for MP3s in the root
+          const mp3Files = rootContents?.filter(file => file.name.endsWith('.mp3')) || [];
+          
+          if (mp3Files.length > 0) {
+            console.log(`[list-podcasts] Found ${mp3Files.length} MP3 files in root folder`);
+            podcastList = mp3Files.map(file => {
+              const publicUrl = supabase.storage.from('podcasts').getPublicUrl(file.name).data.publicUrl;
+              
+              // Format the title from the filename
+              const prettyTitle = file.name
+                .replace(/^podcast_/, '')
+                .replace(/\.mp3$/, '')
+                .replace(/-/g, ' ');
+                
+              return {
+                id: file.id || file.name,
+                title: prettyTitle || 'Untitled Podcast',
+                created_at: file.created_at || new Date().toISOString(),
+                audio_url: publicUrl,
+                concepts: []
+              };
+            });
+            return; // exit the try block but continue execution
+          }
+          
+          podcastList = [];
+          return; // exit the try block but continue execution
+        }
+        
+        // If public folder exists, list its contents
+        console.log('[list-podcasts] Public folder found, checking its contents...');
+        const { data: publicContents, error: publicError } = await supabase
+          .storage
+          .from('podcasts')
+          .list('public');
+          
+        if (publicError) {
+          console.error('[list-podcasts] Error listing public folder:', publicError);
+          podcastList = [];
+          return; // exit the try block but continue execution
+        }
+        
+        console.log(`[list-podcasts] Found ${publicContents?.length || 0} items in public folder`);
+        
+        // If we have a userId, check their specific folder
+        let userFiles = [];
+        if (userId && publicContents) {
+          const userFolder = publicContents.find(item => item.name === userId);
+          if (userFolder) {
+            console.log(`[list-podcasts] Found folder for user ${userId}, checking contents...`);
+            const { data: userContents, error: userError } = await supabase
+              .storage
+              .from('podcasts')
+              .list(`public/${userId}`);
+              
+            if (!userError && userContents) {
+              const userMp3s = userContents.filter(file => file.name.endsWith('.mp3'));
+              console.log(`[list-podcasts] Found ${userMp3s.length} MP3 files for user ${userId}`);
+              
+              userFiles = userMp3s.map(file => {
+                const filePath = `public/${userId}/${file.name}`;
+                const publicUrl = supabase.storage.from('podcasts').getPublicUrl(filePath).data.publicUrl;
+                
+                // Format the title from the filename
+                const prettyTitle = file.name
+                  .replace(/^podcast_/, '')
+                  .replace(/\.mp3$/, '')
+                  .replace(/-/g, ' ');
+                  
+                return {
+                  id: file.id || file.name,
+                  title: prettyTitle || 'Untitled Podcast',
+                  created_at: file.created_at || new Date().toISOString(),
+                  audio_url: publicUrl,
+                  concepts: []
+                };
+              });
+            }
+          }
+        }
+        
+        // Also check all user folders for public podcasts
+        let allUserFiles = [];
+        for (const folder of publicContents || []) {
+          // Skip the current user's folder as we already processed it
+          if (userId && folder.name === userId) continue;
+          
+          const { data: folderContents, error: folderError } = await supabase
+            .storage
+            .from('podcasts')
+            .list(`public/${folder.name}`);
+            
+          if (!folderError && folderContents) {
+            const mp3Files = folderContents.filter(file => file.name.endsWith('.mp3'));
+            
+            if (mp3Files.length > 0) {
+              console.log(`[list-podcasts] Found ${mp3Files.length} MP3 files in user folder ${folder.name}`);
+              
+              const files = mp3Files.map(file => {
+                const filePath = `public/${folder.name}/${file.name}`;
+                const publicUrl = supabase.storage.from('podcasts').getPublicUrl(filePath).data.publicUrl;
+                
+                // Format the title from the filename
+                const prettyTitle = file.name
+                  .replace(/^podcast_/, '')
+                  .replace(/\.mp3$/, '')
+                  .replace(/-/g, ' ');
+                  
+                return {
+                  id: file.id || file.name,
+                  title: prettyTitle || 'Untitled Podcast',
+                  created_at: file.created_at || new Date().toISOString(),
+                  audio_url: publicUrl,
+                  concepts: []
+                };
+              });
+              
+              allUserFiles = [...allUserFiles, ...files];
+            }
+          }
+        }
+        
+        // Combine all found files, prioritizing the current user's files
+        const combinedFiles = [...userFiles, ...allUserFiles];
+        console.log(`[list-podcasts] Found total of ${combinedFiles.length} MP3 files across all folders`);
+        
+        podcastList = combinedFiles;
       } catch (storageError) {
         console.error('[list-podcasts] Error accessing storage bucket:', storageError);
         // Continue with empty podcast list
+        podcastList = [];
       }
     }
 
