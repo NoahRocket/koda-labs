@@ -255,7 +255,6 @@ exports.handler = async (event) => {
     
     // Create a new job in the podcast_jobs table
     console.log('[upload-pdf] Creating podcast job in database');
-    const jobId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
     try {
       // Insert the job into the podcast_jobs table
@@ -263,11 +262,12 @@ exports.handler = async (event) => {
         .from('podcast_jobs')
         .insert([
           {
-            job_id: jobId,
             user_id: userId,
             status: 'pending_analysis',
             filename: fileData.originalFilename,
-            extracted_text: extractedText,
+            source_pdf_url: storageData.path,  // Using the correct field name based on schema
+            // Temporarily store the extracted text in generated_script since there's no dedicated field
+            generated_script: extractedText,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
@@ -277,6 +277,8 @@ exports.handler = async (event) => {
       if (dbError) {
         console.error('[upload-pdf] Error creating podcast job:', dbError);
       } else {
+        // Get the database-generated job_id from the returned data
+        const jobId = jobData?.[0]?.job_id;
         console.log(`[upload-pdf] Created podcast job with ID: ${jobId}`);
         
         // Trigger the analyze-pdf-text function
