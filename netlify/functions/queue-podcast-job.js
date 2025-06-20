@@ -73,7 +73,7 @@ exports.handler = async (event) => {
   // --- End Authentication ---
 
   try {
-    const { concepts, pdfName = 'Uploaded PDF', extractedText } = JSON.parse(event.body);
+    const { concepts, pdfName = 'Uploaded PDF', extractedText, jobId: existingJobId } = JSON.parse(event.body);
 
     if (!concepts || !Array.isArray(concepts) || concepts.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing or invalid concepts data.' }) };
@@ -83,37 +83,72 @@ exports.handler = async (event) => {
       console.warn('[queue-podcast-job] Warning: Missing extractedText. Using empty text.');  
     }
 
-    // Use the Admin client (service key) to insert the job
+    // Use the Admin client (service key)
     const supabaseAdmin = getSupabaseAdmin();
-    const { data: job, error } = await supabaseAdmin
-      .from('podcast_jobs')
-      .insert({
-        user_id: userId,
-        status: 'pending_analysis', // Initial status
-        concepts: concepts, // These are still the simplified concepts for now
-        filename: pdfName,
-        generated_script: extractedText || '' // Store the extracted text instead of a PDF path
-      })
-      .select()
-      .single();
+    let job;
+    let jobError;
+    let currentJobId;
+    
+    // Check if we're updating an existing job or creating a new one
+    if (existingJobId) {
+      console.log(`[queue-podcast-job] Using existing job ID: ${existingJobId}`);
+      
+      // Update the existing job instead of creating a new one
+      const { data: updatedJob, error: updateError } = await supabaseAdmin
+        .from('podcast_jobs')
+        .update({
+          concepts: concepts,
+          generated_script: extractedText || '',
+          filename: pdfName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('job_id', existingJobId)
+        .select()
+        .single();
+      
+      job = updatedJob;
+      jobError = updateError;
+      currentJobId = existingJobId;
+    } else {
+      // Create a new job (original behavior)
+      const { data: newJob, error: insertError } = await supabaseAdmin
+        .from('podcast_jobs')
+        .insert({
+          user_id: userId,
+          status: 'pending_analysis', // Initial status
+          concepts: concepts, // These are still the simplified concepts for now
+          filename: pdfName,
+          generated_script: extractedText || '' // Store the extracted text instead of a PDF path
+        })
+        .select()
+        .single();
+      
+      job = newJob;
+      jobError = insertError;
+      if (job) {
+        currentJobId = job.job_id || job.id;
+      }
+    }
 
-    if (error) {
-      console.error('Error creating job:', error);
-      throw new Error('Failed to create podcast job.');
+    if (jobError) {
+      console.error('Error processing job:', jobError);
+      throw new Error('Failed to process podcast job.');
     }
 
     // Log the entire job object to see its structure
-    console.log('Created job:', job);
+    console.log('Job being processed:', job);
     
-    // Extract the job ID - try job_id first, then fall back to id
-    const jobId = job.job_id || job.id;
-    
-    if (!jobId) {
-      console.error('No job ID returned from insert operation');
-      throw new Error('Failed to create podcast job: No job ID returned');
+    if (!currentJobId) {
+      console.error('No job ID available');
+      throw new Error('Failed to process podcast job: No job ID available');
     }
     
-    console.log(`Created podcast job with ID: ${jobId}`);
+    // Log operation type - new or updated job
+    if (existingJobId) {
+      console.log(`Updated existing podcast job with ID: ${currentJobId}`);
+    } else {
+      console.log(`Created new podcast job with ID: ${currentJobId}`);
+    }
 
     // Trigger the background worker with the job ID
     try {
@@ -130,7 +165,7 @@ exports.handler = async (event) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_KEY}` // Using server key for background processing
         },
-        body: JSON.stringify({ jobId: jobId }),
+        body: JSON.stringify({ jobId: currentJobId }),
       });
       
       console.log(`Worker triggered with status: ${workerResponse.status}`);
@@ -151,7 +186,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({ 
         success: true, 
         message: 'Podcast generation has been queued.',
-        jobId: jobId
+        jobId: currentJobId
       })
     };
   } catch (error) {

@@ -90,120 +90,62 @@ exports.handler = async (event) => {
     
     // Check job status - should be 'text_analyzed' from the previous step
     if (job.status !== 'text_analyzed') {
+      // If the job is already past the text_analyzed stage, we can just return its current status
+      // This prevents re-triggering background jobs multiple times
       return { 
         statusCode: 200, 
         body: JSON.stringify({ 
-          message: `Job is already ${job.status}.`,
+          message: `Job is already in '${job.status}' status.`,
           jobId: job.job_id,
           status: job.status
         }) 
       };
     }
 
-    // Update job status to 'generating_script'
+    // Update job status to 'delegating_to_background'
     try {
-      await updateJobStatus(supabase, job.job_id, 'generating_script');
+      await updateJobStatus(supabase, job.job_id, 'delegating_to_background');
     } catch (err) {
-      console.error('Failed to update job status to processing:', err);
+      console.error('Failed to update job status:', err);
       return { statusCode: 500, body: JSON.stringify({ error: 'Failed to update job status.' }) };
     }
 
     console.log(`Processing podcast job ${job.job_id} for user ${job.user_id}`);
     
     try {
-      // --- 1. Generate Script using OpenAI --- 
-      const intro = "Welcome to your Koda Tutor podcast. Today, we'll explore some key concepts.\n\n";
-      const outro = "\n\nThat concludes our summary. Thanks for listening!";
-
-      // Prepare concepts for the prompt
-      console.log('Preparing concepts for prompt...');
-      const conceptsString = job.concepts.map(({ concept, explanation }) => `- ${concept}: ${explanation}`).join('\n');
-      console.log('Concepts prepared:', conceptsString);
-
-      const prompt = `You are a podcast script writer. Given the following key concepts and their explanations, generate a conversational and engaging podcast script body that explains these concepts clearly. Aim for a script that would take approximately 3-4 minutes to read aloud. Do not include an intro or outro, just the main content discussing the concepts.
-
-Here are the concepts:
-${conceptsString}
-
-Generate only the script body.`;
-
-      console.log('Calling OpenAI API to generate script...');
-      let scriptBody = '';
-      try {
-          const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${OPENAI_API_KEY}`
-              },
-              body: JSON.stringify({
-                  model: 'gpt-4o-mini-2024-07-18',
-                  messages: [{ role: 'user', content: prompt }],
-                  max_completion_tokens: 800 // Using correct parameter for the model
-              })
-          });
-
-          if (!openaiResponse.ok) {
-              const errorBody = await openaiResponse.text();
-              console.error('OpenAI API Error:', openaiResponse.status, errorBody);
-              throw new Error(`OpenAI API request failed: ${openaiResponse.statusText}`);
-          }
-
-          const openaiData = await openaiResponse.json();
-          console.log('OpenAI response:', JSON.stringify(openaiData).substring(0, 200) + '...');
-          
-          scriptBody = openaiData.choices?.[0]?.message?.content?.trim() || '';
-
-          if (!scriptBody) {
-               console.error('OpenAI API returned an empty script body.');
-               throw new Error('Failed to generate script content from OpenAI.');
-          }
-          
-          console.log('Script body generated successfully:', scriptBody.substring(0, 100) + '...');
-
-      } catch (apiError) {
-          console.error('Error calling OpenAI API:', apiError);
-          await updateJobStatus(supabase, job.job_id, 'failed', 'Failed to generate podcast script.');
-          return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate podcast script.' }) };
-      }
+      // Instead of directly generating the script with OpenAI here, we'll delegate to our background worker
+      // This avoids the Netlify function timeout limit
       
-      // Assemble the full script
-      const scriptText = intro + scriptBody + outro;
-
-      console.log('Generated script text length:', scriptText.length);
-
-      // Store the script and update status to 'script_generated'
-      try {
-        await updateJobStatus(supabase, job.job_id, 'script_generated', null, null, scriptText);
-        console.log(`Job ${job.job_id} status updated to script_generated and script stored.`);
-      } catch (scriptSaveError) {
-        console.error('Failed to save script or update status to script_generated:', scriptSaveError);
-        // Don't necessarily fail the whole process if only status update failed, but log it.
-        // If saving script itself failed, it's more critical.
-        // For now, we proceed to trigger TTS, but this could be a point of failure to handle more gracefully.
-      }
-
-      // Trigger the TTS generation function
+      console.log(`Delegating script generation to background worker for job ${job.job_id}`);
+      
+      // Trigger the background script generation function
       try {
         const domain = event.headers.host;
         const protocol = domain.includes('localhost') ? 'http' : 'https';
-        const ttsGenerationUrl = `${protocol}://${domain}/.netlify/functions/generate-tts-background`;
+        const scriptGenerationUrl = `${protocol}://${domain}/.netlify/functions/generate-script-background`;
         
-        console.log(`Triggering TTS generation at: ${ttsGenerationUrl} for job ${job.job_id}`);
+        console.log(`Triggering background script generation at: ${scriptGenerationUrl} for job ${job.job_id}`);
         
-        // Note: generate-tts-background should update status to 'generating_tts' upon starting.
-        
-        fetch(ttsGenerationUrl, {
+        const response = await fetch(scriptGenerationUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            // Use service role key for background processing
+            'Authorization': `Bearer ${SUPABASE_KEY}`
           },
           body: JSON.stringify({
-            jobId: job.job_id,
-            userId: job.user_id, // Pass userId needed for storage path/policy later
-            scriptText: scriptText
-          }),
-        }).catch(err => console.error('Error triggering TTS generation:', err));
+            jobId: job.job_id
+          })
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error starting background script generation: ${response.status} - ${errorText}`);
+          throw new Error(`Failed to start background script generation: ${response.status} - ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log(`Background script generation initiated:`, result);
         
         // Return success immediately, before the 30-second timeout
         return {

@@ -247,6 +247,7 @@ exports.handler = async (event) => {
           ];
 
           // Call the queue-podcast-job function which will properly handle the multi-step pipeline
+          // IMPORTANT: Pass the existing jobId to prevent duplicate job creation
           const queueResponse = await fetch(`${process.env.URL || 'http://localhost:8888'}/.netlify/functions/queue-podcast-job`, {
             method: 'POST',
             headers: {
@@ -254,6 +255,7 @@ exports.handler = async (event) => {
               'Authorization': event.headers.authorization || event.headers.Authorization
             },
             body: JSON.stringify({
+              jobId: jobId, // Pass the existing job ID to prevent duplicates
               concepts: simpleConcepts,
               pdfName: fileData.originalFilename,
               extractedText: extractedText // Pass extracted text directly
