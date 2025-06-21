@@ -57,33 +57,16 @@ exports.handler = async (event) => {
     // Initialize Supabase admin client WITH SERVICE ROLE for RLS bypass
     const supabase = getSupabaseAdmin(); // Use Admin client
 
-    // Get the job using direct SQL to bypass RLS
-    const { data, error } = await supabase
-      .rpc('admin_get_podcast_job', { job_id_param: jobId });
-    
-    // Fallback to legacy method if RPC not available
-    let job = data?.[0]; // Get the first row from the result set
+    // Use the admin client to fetch the job, which bypasses RLS
+    const { data: job, error } = await supabase
+      .from('podcast_jobs')
+      .select('*')
+      .eq('job_id', jobId)
+      .single(); // Use single() to get one record or throw an error
+
     if (error || !job) {
-      console.log('RPC call failed or not available, trying direct query with service role key...');
-      
-      // Try direct query with explicit auth bypass
-      const { data: directData, error: directError } = await supabase
-        .from('podcast_jobs')
-        .select('*')
-        .eq('job_id', jobId)
-        .maybeSingle();
-        
-      if (directError || !directData) {
-        console.error('Error fetching job via direct query:', directError);
-        return { statusCode: 404, body: JSON.stringify({ error: 'Job not found.' }) };
-      }
-      
-      job = directData;
-    }
-    
-    if (!job) {
-      console.error('Could not find job after trying multiple methods');
-      return { statusCode: 404, body: JSON.stringify({ error: 'Job not found after multiple attempts.' }) };
+      console.error('Error fetching job:', error);
+      return { statusCode: 404, body: JSON.stringify({ error: 'Job not found.' }) };
     }
     
     console.log(`Found job:`, job);

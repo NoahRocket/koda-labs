@@ -237,38 +237,28 @@ exports.handler = async (event) => {
         const jobId = jobData?.[0]?.job_id;
         console.log(`[upload-pdf] Created podcast job with ID: ${jobId}`);
         
-        // Trigger the queue-podcast-job function (which will handle the rest of the pipeline)
-        console.log('[upload-pdf] Triggering queue-podcast-job function');
+        // Trigger the analyze-pdf-text function to start the analysis pipeline
+        console.log('[upload-pdf] Triggering analyze-pdf-text function');
         try {
-          // Extract simplified concepts from the text directly (basic implementation)
-          // This is a simple placeholder - queue-podcast-job will pass this to analyze-pdf-text for proper analysis
-          const simpleConcepts = [
-            { concept: "Document Analysis", explanation: "Initial extraction from uploaded PDF" }
-          ];
-
-          // Call the queue-podcast-job function which will properly handle the multi-step pipeline
-          // IMPORTANT: Pass the existing jobId to prevent duplicate job creation
-          const queueResponse = await fetch(`${process.env.URL || 'http://localhost:8888'}/.netlify/functions/queue-podcast-job`, {
+          const analyzeResponse = await fetch(`${process.env.URL || 'http://localhost:8888'}/.netlify/functions/analyze-pdf-text`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': event.headers.authorization || event.headers.Authorization
             },
             body: JSON.stringify({
-              jobId: jobId, // Pass the existing job ID to prevent duplicates
-              concepts: simpleConcepts,
-              pdfName: fileData.originalFilename,
-              extractedText: extractedText // Pass extracted text directly
+              jobId: jobId,
+              extractedText: extractedText
             })
           });
-          
-          if (!queueResponse.ok) {
-            console.error(`[upload-pdf] Error triggering queue-podcast-job: ${queueResponse.status} ${queueResponse.statusText}`);
+
+          if (!analyzeResponse.ok) {
+            console.error(`[upload-pdf] Error triggering analyze-pdf-text: ${analyzeResponse.status} ${analyzeResponse.statusText}`);
           } else {
-            console.log('[upload-pdf] Successfully triggered queue-podcast-job');
+            console.log('[upload-pdf] Successfully triggered analyze-pdf-text');
           }
-        } catch (queueError) {
-          console.error('[upload-pdf] Exception triggering queue-podcast-job:', queueError);
+        } catch (analyzeError) {
+          console.error('[upload-pdf] Exception triggering analyze-pdf-text:', analyzeError);
         }
       }
     } catch (jobError) {

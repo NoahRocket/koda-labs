@@ -28,8 +28,8 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'No audio data provided.' }) };
     }
     
-    if (!filename || !jobId) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Missing required parameters.' }) };
+    if (!filename || !jobId || !userId) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Missing required parameters: jobId, userId, and filename are required.' }) };
     }
 
     console.log(`Attempting direct upload for job: ${jobId}, filename: ${filename}`);

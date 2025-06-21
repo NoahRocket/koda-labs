@@ -737,7 +737,7 @@
       const detail = jobDetails[jobId];
       if (!detail || !detail.statusElement) {
         console.warn(`No UI element found for job ${jobId} to update.`);
-        if (status === 'completed') fetchPodcasts(); // Still refresh list if UI element was somehow lost
+        if (status === 'completed') loadPodcasts(); // Still refresh list if UI element was somehow lost
         if (status === 'completed' || status === 'failed') stopPolling(jobId);
         return;
       }
@@ -757,7 +757,7 @@
         case 'completed':
           detail.statusElement.remove();
           delete jobDetails[jobId];
-          fetchPodcasts();
+          loadPodcasts();
           showMessage(`Podcast for ${filename} generated successfully!`, 'success');
           stopPolling(jobId);
           if (Object.keys(activePollers).length === 0) {

@@ -128,17 +128,24 @@ exports.handler = async (event) => {
     // If we have a filename, try to delete the file from storage
     if (filename) {
       try {
+        // The path in storage includes the user ID, matching the upload path
+        const filePath = `public/${userId}/${filename}`;
+        console.log(`[delete-podcast] Attempting to delete from storage: ${filePath}`);
+
         const { error: storageError } = await supabase
           .storage
           .from('podcasts')
-          .remove([filename]);
+          .remove([filePath]);
           
         if (storageError) {
-          console.warn('Storage delete warning:', storageError);
-          // Continue even if storage deletion fails
+          // Log a warning but don't fail the whole request,
+          // as the DB record is the most important part.
+          console.warn(`[delete-podcast] Storage deletion warning for ${filePath}:`, storageError);
+        } else {
+          console.log(`[delete-podcast] Successfully deleted ${filePath} from storage.`);
         }
       } catch (storageErr) {
-        console.warn('Storage delete exception:', storageErr);
+        console.warn('[delete-podcast] Storage delete exception:', storageErr);
         // Continue even if storage deletion throws
       }
     }

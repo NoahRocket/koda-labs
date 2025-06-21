@@ -49,7 +49,7 @@ async function triggerNextStep(jobId, hostname) {
         // Use service role key for inter-function communication
         'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY}` 
       },
-      body: JSON.stringify({ jobId }),
+      body: JSON.stringify({ jobId: jobId, userId: job.user_id, scriptText: generatedScript }),
     });
     
     if (!response.ok) {
@@ -234,14 +234,51 @@ Format your response as a plain text podcast script without any additional notes
       
       // 6. Generate the script using our improved function with timeout and error handling
       let generatedScript;
-      // Generate the script using the OpenAI API
-      // The function was previously defined above as an inline implementation
-      // Now we'll use that result directly
       try {
         console.log(`[generate-script-background] Generating script for job ${jobId}`);
 
-        // Execute the script generation directly as the code is already in place above
-        // We're no longer using a nested function as that was causing reference issues
+        // Define the function to generate the podcast script
+        async function generatePodcastScript(concepts) {
+          const conceptDetails = concepts.map(c => `- ${c.concept}: ${c.explanation}`).join('\n');
+          const prompt = `
+            You are a podcast scriptwriter. Your task is to create an engaging, educational podcast script based on the following key concepts.
+            The podcast should be approximately 5-7 minutes long. Structure it with a brief intro, a main body discussing each concept, and a short outro.
+            Make it sound natural and conversational, not just a dry reading of explanations.
+
+            Key Concepts:
+            ${conceptDetails}
+
+            Return ONLY the script content, without any extra commentary or formatting.
+          `;
+
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-3.5-turbo',
+              messages: [
+                { role: 'system', content: 'You are a podcast scriptwriter.' },
+                { role: 'user', content: prompt }
+              ],
+              max_tokens: 2000,
+              temperature: 0.7
+            })
+          });
+
+          if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`LLM API error: ${response.status} - ${errorBody}`);
+          }
+
+          const data = await response.json();
+          return data.choices[0].message.content.trim();
+        }
+
+        // Execute the script generation
+        generatedScript = await generatePodcastScript(job.concepts);
         
         // 7. Update the job with the generated script
         await updateJobStatus(jobId, 'script_generated', null, generatedScript);
