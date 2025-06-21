@@ -73,14 +73,22 @@ exports.handler = async (event) => {
   // --- End Authentication ---
 
   try {
-    const { concepts, pdfName = 'Uploaded PDF', extractedText, jobId: existingJobId } = JSON.parse(event.body);
+    let { concepts, pdfName = 'Uploaded PDF', extractedText, jobId: existingJobId } = JSON.parse(event.body);
 
-    if (!concepts || !Array.isArray(concepts) || concepts.length === 0) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Missing or invalid concepts data.' }) };
+    // Backwards compatibility fix:
+    // If extractedText is missing, but the 'concepts' field contains a single long string,
+    // treat that string as the extractedText and reset concepts to an empty array.
+    if (!extractedText && Array.isArray(concepts) && concepts.length > 0 && typeof concepts[0] === 'string' && concepts[0].length > 200) {
+        console.warn('[queue-podcast-job] `extractedText` was missing. Using the content of the `concepts` field as a fallback.');
+        extractedText = concepts[0];
+        concepts = []; // Reset concepts, as they will be generated in the next step.
     }
-    // We don't require storagePath anymore, as we're not storing PDFs permanently
+
+    // Now, we must have extracted text to proceed.
     if (!extractedText) {
-      console.warn('[queue-podcast-job] Warning: Missing extractedText. Using empty text.');  
+        const errorMsg = '[queue-podcast-job] Critical error: No extracted text was provided or could be recovered. Cannot queue job.';
+        console.error(errorMsg);
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing required extractedText.' }) };
     }
 
     // Use the Admin client (service key)
@@ -97,8 +105,8 @@ exports.handler = async (event) => {
       const { data: updatedJob, error: updateError } = await supabaseAdmin
         .from('podcast_jobs')
         .update({
-          concepts: concepts,
-          generated_script: extractedText || '',
+          concepts: concepts && concepts.length > 0 ? concepts : null,
+          generated_script: extractedText,
           filename: pdfName,
           updated_at: new Date().toISOString()
         })
@@ -115,10 +123,10 @@ exports.handler = async (event) => {
         .from('podcast_jobs')
         .insert({
           user_id: userId,
-          status: 'pending_analysis', // Initial status
-          concepts: concepts, // These are still the simplified concepts for now
+          status: 'pending_analysis',
+          concepts: concepts && concepts.length > 0 ? concepts : null,
           filename: pdfName,
-          generated_script: extractedText || '' // Store the extracted text instead of a PDF path
+          generated_script: extractedText
         })
         .select()
         .single();
