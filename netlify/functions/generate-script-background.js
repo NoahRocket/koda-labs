@@ -130,78 +130,138 @@ exports.handler = async (event) => {
         }).join('\\n');
       }
       
-      // 4. Create the prompt for OpenAI
-      const prompt = `You are a professional podcast script writer. Create a well-structured, engaging podcast script based on the following text. The script should be conversational, clear, and about 3-5 minutes when read aloud.
+      // 4. Create the prompt for OpenAI with more aggressive text truncation for large PDFs
+      const textLength = extractedText.length;
+      console.log(`[generate-script-background] Source text length: ${textLength} characters`);
+      
+      // More aggressive truncation for very large PDFs
+      const MAX_TEXT_LENGTH = 8000; // Lower limit for safety
+      const truncatedText = extractedText.substring(0, MAX_TEXT_LENGTH);
+      
+      // Log truncation info
+      if (textLength > MAX_TEXT_LENGTH) {
+        console.log(`[generate-script-background] Truncated text from ${textLength} to ${MAX_TEXT_LENGTH} characters`);
+      }
+      
+      // Create a more focused prompt based on the concepts rather than full text for large PDFs
+      const prompt = `You are a professional podcast script writer. Create a well-structured, engaging podcast script based on the following concepts and text summary. The script should be conversational, clear, and about 3-5 minutes when read aloud.
 
-Key concepts to focus on:
+Key concepts to focus on (THESE ARE THE MOST IMPORTANT PARTS):
 ${conceptsText || 'Extract the main ideas from the text and focus on them.'}
 
-Source text:
+Text from the source document (may be truncated):
 """
-${extractedText.substring(0, 12000)} // Limit text length to avoid token limits
+${truncatedText}
 """
 
 Create a podcast script that:
 1. Has a clear introduction, middle, and conclusion
 2. Is conversational in tone 
-3. Presents the most important information from the source text
+3. Focuses primarily on the key concepts listed above
 4. Avoids complex jargon or overly technical language
 5. Is engaging and easy to follow for listeners
 
 Format your response as a plain text podcast script without any additional notes or explanations.`;
       
+      // Save checkpoint in database to track progress
+      await updateJobStatus(jobId, 'sending_to_openai', null, null);
+      console.log(`[generate-script-background] Updated job status to 'sending_to_openai'`);
+      
       console.log(`[generate-script-background] Sending request to OpenAI for job ${jobId}`);
       
-      // 5. Call OpenAI API to generate the podcast script
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo', // Can be configured to use different models
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are a professional podcast script writer creating clear, concise, and engaging scripts.' 
-            },
-            { 
-              role: 'user', 
-              content: prompt 
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 1500 // Adjust based on expected script length
-        })
-      });
+      // 5. Call OpenAI API to generate the podcast script with improved reliability
+      console.log(`[generate-script-background] Creating OpenAI API request with timeout`); 
       
-      // 6. Process the OpenAI response
-      if (!openaiResponse.ok) {
-        const errorBody = await openaiResponse.text();
-        throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorBody}`);
-      }
+      // Create an AbortController for timeout control
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
       
-      const openaiData = await openaiResponse.json();
-      const generatedScript = openaiData.choices?.[0]?.message?.content;
-      
-      if (!generatedScript) {
-        throw new Error('No script content received from OpenAI');
-      }
-      
-      console.log(`[generate-script-background] Successfully generated script for job ${jobId} (${generatedScript.length} chars)`);
-      
-      // 7. Update the job with the generated script
-      await updateJobStatus(jobId, 'script_generated', null, generatedScript);
-      
-      // 8. Trigger the next step in the pipeline (TTS generation)
       try {
-        await triggerNextStep(jobId, hostname);
-        console.log(`[generate-script-background] Successfully triggered next step (TTS generation) for job ${jobId}`);
-      } catch (triggerError) {
-        console.error(`[generate-script-background] Failed to trigger next step for job ${jobId}:`, triggerError);
-        // We don't want to fail the entire process if just the next step triggering fails
-        // The job status is already updated correctly, so manual intervention is possible
+        console.log(`[generate-script-background] Sending request to OpenAI with ${MAX_TEXT_LENGTH} character limit`);
+        
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo', // Using most reliable model
+            messages: [
+              { 
+                role: 'system', 
+                content: 'You are a professional podcast script writer creating clear, concise, and engaging scripts.' 
+              },
+              { 
+                role: 'user', 
+                content: prompt 
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 1000, // Reduced for faster response
+            presence_penalty: 0,
+            frequency_penalty: 0
+          })
+        });
+        
+        // Clear the timeout since we got a response
+        clearTimeout(timeoutId);
+        
+        // Continue with processing the response
+        if (!openaiResponse.ok) {
+          const errorBody = await openaiResponse.text();
+          throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorBody}`);
+        }
+        
+        const openaiData = await openaiResponse.json();
+        const generatedScript = openaiData.choices?.[0]?.message?.content;
+        
+        if (!generatedScript) {
+          throw new Error('No script content received from OpenAI');
+        }
+        
+        console.log(`[generate-script-background] Successfully generated script for job ${jobId} (${generatedScript.length} chars)`);
+      } catch (error) {
+        clearTimeout(timeoutId); // Clean up the timeout
+        
+        if (error.name === 'AbortError') {
+          throw new Error('OpenAI API call timed out after 25 seconds');
+        }
+        
+        throw error; // Re-throw other errors
+      }
+      
+      // 6. Generate the script using our improved function with timeout and error handling
+      let generatedScript;
+      // Generate the script using the OpenAI API
+      // The function was previously defined above as an inline implementation
+      // Now we'll use that result directly
+      try {
+        console.log(`[generate-script-background] Generating script for job ${jobId}`);
+
+        // Execute the script generation directly as the code is already in place above
+        // We're no longer using a nested function as that was causing reference issues
+        
+        // 7. Update the job with the generated script
+        await updateJobStatus(jobId, 'script_generated', null, generatedScript);
+        console.log(`[generate-script-background] Updated job status to 'script_generated'`);  
+        
+        // 8. Trigger the next step in the pipeline (TTS generation)
+        try {
+          await triggerNextStep(jobId, hostname);
+          console.log(`[generate-script-background] Successfully triggered next step (TTS generation) for job ${jobId}`);
+        } catch (triggerError) {
+          console.error(`[generate-script-background] Failed to trigger next step for job ${jobId}:`, triggerError);
+          // We don't want to fail the entire process if just the next step triggering fails
+          // The job status is already updated correctly, so manual intervention is possible
+        }
+      } catch (scriptError) {
+        console.error(`[generate-script-background] Failed to generate script: ${scriptError.message}`);
+        
+        // If the script generation fails, update the job status and rethrow
+        await updateJobStatus(jobId, 'script_generation_failed', `Script generation failed: ${scriptError.message}`);
+        throw scriptError;
       }
       
       return {
@@ -231,8 +291,8 @@ Format your response as a plain text podcast script without any additional notes
     }
   })();
   
-  // Return immediately with a success status to avoid Netlify timeout
-  // The actual processing continues in the background
+  // This function is executed as a background serverless function after a 202 response
+  // We need to capture errors here and update the job status accordingly
   try {
     // Safety check - make sure jobId exists before returning response
     const safeJobId = jobId || 'unknown';
