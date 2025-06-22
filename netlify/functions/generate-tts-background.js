@@ -30,6 +30,14 @@ async function updateJobStatus(supabase, jobId, status, error = null, podcastUrl
 exports.handler = async (event, context) => {
   console.log('generate-tts-background invoked');
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
+
+  // Secure the endpoint: only allow calls with the service role key
+  const authHeader = event.headers.authorization;
+  const expectedAuth = `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
+  if (!authHeader || authHeader !== expectedAuth) {
+    console.warn('[generate-tts-background] Unauthorized access attempt.');
+    return { statusCode: 401, body: 'Unauthorized' };
+  }
   if (!ELEVENLABS_API_KEY || !SUPABASE_URL || !SUPABASE_KEY) {
     console.error('Missing ENV for TTS background');
     return { statusCode: 500, body: 'Server config error' };
