@@ -26,27 +26,33 @@ async function triggerNextStep(jobId, currentEvent) {
   try {
     const domain = currentEvent.headers.host;
     const protocol = domain.includes('localhost') ? 'http' : 'https';
-    const workerUrl = `${protocol}://${domain}/.netlify/functions/process-podcast-job`;
-    
-    console.log(`[analyze-pdf-text] Triggering process-podcast-job for job ${jobId} at: ${workerUrl}`);
-    
+    // Corrected endpoint to trigger script generation directly
+    const workerUrl = `${protocol}://${domain}/.netlify/functions/generate-script-background`;
+
+    console.log(`[analyze-pdf-text] Triggering generate-script-background for job ${jobId} at: ${workerUrl}`);
+
     const response = await fetch(workerUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Use service role key for inter-function communication if needed, or ensure function is protected
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY}` 
+        // Use service role key for inter-function communication
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
       },
       body: JSON.stringify({ jobId: jobId }),
     });
-    
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[analyze-pdf-text] Warning: Failed to trigger process-podcast-job for job ${jobId}: ${response.status} ${errorText}`);
-      // Optionally update job status to reflect this failure to trigger
+      // This is a critical failure in the pipeline, so it should be logged as an error.
+      console.error(`[analyze-pdf-text] CRITICAL: Failed to trigger generate-script-background for job ${jobId}: ${response.status} ${errorText}`);
+      // Update job status to reflect this failure.
+      await updateJobStatus(jobId, 'failed', `Failed to trigger script generation: ${response.status}`);
+    } else {
+      console.log(`[analyze-pdf-text] Successfully triggered generate-script-background for job ${jobId}.`);
     }
   } catch (error) {
-    console.error(`[analyze-pdf-text] Error triggering process-podcast-job for job ${jobId}:`, error);
+    console.error(`[analyze-pdf-text] CRITICAL: Error triggering generate-script-background for job ${jobId}:`, error);
+    await updateJobStatus(jobId, 'failed', `Error triggering script generation: ${error.message}`);
   }
 }
 
@@ -155,7 +161,7 @@ exports.handler = async (event) => {
     // 5. Update job with concepts and new status
     await updateJobStatus(jobId, 'text_analyzed', null, sanitizedConcepts);
 
-    // 6. Trigger next step (process-podcast-job.js)
+    // 6. Trigger next step (generate-script-background.js)
     await triggerNextStep(jobId, event);
 
     return {

@@ -400,8 +400,9 @@ exports.handler = async (event) => {
               console.log(`[list-podcasts] Found ${userMp3s.length} MP3 files for user ${userId}`);
               
               userFiles = userMp3s.map(file => {
-                const filePath = `public/${userId}/${file.name}`;
-                const publicUrl = supabase.storage.from('podcasts').getPublicUrl(filePath).data.publicUrl;
+                // Corrected filePath to avoid double 'public/' in the URL
+                const filePath = `${userId}/${file.name}`;
+                const publicUrl = supabase.storage.from('podcasts').getPublicUrl(`public/${filePath}`).data.publicUrl;
                 
                 // Format the title from the filename
                 const prettyTitle = file.name
@@ -439,8 +440,9 @@ exports.handler = async (event) => {
               console.log(`[list-podcasts] Found ${mp3Files.length} MP3 files in user folder ${folder.name}`);
               
               const files = mp3Files.map(file => {
-                const filePath = `public/${folder.name}/${file.name}`;
-                const publicUrl = supabase.storage.from('podcasts').getPublicUrl(filePath).data.publicUrl;
+                // Corrected filePath to avoid double 'public/' in the URL
+                const filePath = `${folder.name}/${file.name}`;
+                const publicUrl = supabase.storage.from('podcasts').getPublicUrl(`public/${filePath}`).data.publicUrl;
                 
                 // Format the title from the filename
                 const prettyTitle = file.name
