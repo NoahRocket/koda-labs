@@ -128,21 +128,58 @@ exports.handler = async (event) => {
     // If we have a filename, try to delete the file from storage
     if (filename) {
       try {
-        // The path in storage includes the user ID, matching the upload path
-        const filePath = `public/${userId}/${filename}`;
-        console.log(`[delete-podcast] Attempting to delete from storage: ${filePath}`);
-
-        const { error: storageError } = await supabase
-          .storage
-          .from('podcasts')
-          .remove([filePath]);
+        // Try multiple possible locations for the file
+        const possiblePaths = [
+          // Current pattern: userId/filename.mp3
+          `${userId}/${filename}`,
+          // Legacy pattern: filename.mp3 in root
+          `${filename}`,
+          // Old pattern with public prefix: public/userId/filename.mp3
+          `public/${userId}/${filename}`
+        ];
+        
+        console.log(`[delete-podcast] Attempting to delete from storage, trying multiple paths for: ${filename}`);
+        
+        // Try each path until we find the file
+        let deletionSuccess = false;
+        
+        for (const path of possiblePaths) {
+          console.log(`[delete-podcast] Trying path: ${path}`);
           
-        if (storageError) {
-          // Log a warning but don't fail the whole request,
-          // as the DB record is the most important part.
-          console.warn(`[delete-podcast] Storage deletion warning for ${filePath}:`, storageError);
-        } else {
-          console.log(`[delete-podcast] Successfully deleted ${filePath} from storage.`);
+          // First check if the file exists at this path
+          try {
+            const { data: fileExists } = await supabase
+              .storage
+              .from('podcasts')
+              .list(path.split('/').slice(0, -1).join('/') || '', {
+                limit: 100,
+                search: path.split('/').pop()
+              });
+              
+            if (fileExists && fileExists.length > 0) {
+              console.log(`[delete-podcast] Found file at path: ${path}`);
+              
+              // File exists, try to delete it
+              const { error: storageError } = await supabase
+                .storage
+                .from('podcasts')
+                .remove([path]);
+                
+              if (storageError) {
+                console.warn(`[delete-podcast] Storage deletion warning for ${path}:`, storageError);
+              } else {
+                console.log(`[delete-podcast] Successfully deleted ${path} from storage.`);
+                deletionSuccess = true;
+                break; // Exit the loop if deletion was successful
+              }
+            }
+          } catch (checkErr) {
+            console.warn(`[delete-podcast] Error checking path ${path}:`, checkErr);
+          }
+        }
+        
+        if (!deletionSuccess) {
+          console.warn(`[delete-podcast] Could not find or delete file ${filename} in any expected location`);
         }
       } catch (storageErr) {
         console.warn('[delete-podcast] Storage delete exception:', storageErr);
