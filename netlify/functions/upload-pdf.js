@@ -211,32 +211,92 @@ exports.handler = async (event) => {
       originalFilename: fileData.originalFilename
     };
     
-    // Create a new job in the podcast_jobs table
-    console.log('[upload-pdf] Creating podcast job in database');
+    console.log('[upload-pdf] Checking for existing jobs with the same filename');
     
+    let jobId;
     try {
-      // Insert the job into the podcast_jobs table
-      const { data: jobData, error: dbError } = await supabaseAdmin
+      // First check if there's already a job for this filename and user
+      const { data: existingJobs, error: searchError } = await supabaseAdmin
         .from('podcast_jobs')
-        .insert([
-          {
-            user_id: userId,
+        .select('job_id, status')
+        .eq('user_id', userId)
+        .eq('filename', fileData.originalFilename);
+        
+      if (searchError) {
+        console.error('[upload-pdf] Error searching for existing jobs:', searchError);
+        // Continue with creating a new job as fallback
+      } else if (existingJobs && existingJobs.length > 0) {
+        // Found an existing job with the same filename
+        const existingJob = existingJobs[0];
+        jobId = existingJob.job_id;
+        const status = existingJob.status;
+        
+        console.log(`[upload-pdf] Found existing job ${jobId} with status ${status} for filename ${fileData.originalFilename}`);
+        
+        // If job is not in a final state (completed or failed), we don't need to do anything more
+        if (status !== 'completed' && status !== 'failed') {
+          console.log(`[upload-pdf] Using existing job ${jobId} which is still processing`);
+          responseData.jobId = jobId;
+          // Return early with the existing job ID
+          console.timeEnd('total-execution');
+          console.log('[upload-pdf] Function completed with existing job');
+          return {
+            statusCode: 200,
+            body: JSON.stringify(responseData),
+            headers: { 'Content-Type': 'application/json' },
+          };
+        }
+        
+        // If the job is completed or failed, we'll update it instead of creating a new one
+        console.log(`[upload-pdf] Updating existing job ${jobId} from ${status} to pending_analysis`);
+        const { error: updateError } = await supabaseAdmin
+          .from('podcast_jobs')
+          .update({
             status: 'pending_analysis',
-            filename: fileData.originalFilename,
-            generated_script: extractedText,  // Store extracted text directly
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ])
-        .select();
+            generated_script: extractedText,
+            updated_at: new Date().toISOString(),
+            error_message: null // Clear any previous error messages
+          })
+          .eq('job_id', jobId);
+          
+        if (updateError) {
+          console.error('[upload-pdf] Error updating existing job:', updateError);
+          // Continue with creating a new job as fallback
+          jobId = null;
+        }
+      }
+      
+      // If no existing job was found or if updating failed, create a new job
+      if (!jobId) {
+        console.log('[upload-pdf] Creating new podcast job in database');
         
-      if (dbError) {
-        console.error('[upload-pdf] Error creating podcast job:', dbError);
-      } else {
-        // Get the database-generated job_id from the returned data
-        const jobId = jobData?.[0]?.job_id;
-        console.log(`[upload-pdf] Created podcast job with ID: ${jobId}`);
-        
+        const { data: jobData, error: dbError } = await supabaseAdmin
+          .from('podcast_jobs')
+          .insert([
+            {
+              user_id: userId,
+              status: 'pending_analysis',
+              filename: fileData.originalFilename,
+              generated_script: extractedText,  // Store extracted text directly
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ])
+          .select();
+          
+        if (dbError) {
+          console.error('[upload-pdf] Error creating podcast job:', dbError);
+        } else {
+          // Get the database-generated job_id from the returned data
+          jobId = jobData?.[0]?.job_id;
+          console.log(`[upload-pdf] Created podcast job with ID: ${jobId}`);
+        }
+      }
+      
+      // Add the jobId to the response data
+      responseData.jobId = jobId;
+      
+      if (jobId) {
         // Trigger the analyze-pdf-text function to start the analysis pipeline
         console.log('[upload-pdf] Triggering analyze-pdf-text function');
         try {
@@ -262,7 +322,7 @@ exports.handler = async (event) => {
         }
       }
     } catch (jobError) {
-      console.error('[upload-pdf] Exception creating podcast job:', jobError);
+      console.error('[upload-pdf] Exception handling podcast job:', jobError);
     }
 
     // Return success response with extracted text and storage details
