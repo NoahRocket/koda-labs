@@ -37,6 +37,15 @@
       border-color: #0086b7;
       background-color: rgba(0, 163, 224, 0.05);
     }
+    
+    /* Podcast item styles */
+    .podcast-title {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      hyphens: auto;
+      max-width: 100%;
+    }
   </style>
 </head>
 <body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900" style="background: linear-gradient(180deg, #F7F7F7 0%, #FFFFFF 100%);">
@@ -196,7 +205,9 @@
     const podcastList = document.getElementById('podcastList');
     const uploadDropzone = document.getElementById('uploadDropzone');
     let activePollers = {}; // To store active polling intervals { jobId: intervalId }
-    let jobDetails = {}; // To store details like { jobId: { originalFilename: 'name.pdf', statusElement: DOMNode } }
+    // Use local storage to persist job details across page refreshes
+    let jobDetails = JSON.parse(localStorage.getItem('podcastJobDetails') || '{}'); // To store details like { jobId: { originalFilename: 'name.pdf', lastStatus: 'status' } }
+    console.log('Initial jobDetails loaded:', jobDetails);
     const POLLING_INTERVAL_MS = 5000; // Poll every 5 seconds
 
     // Helper function to display default avatar
@@ -337,6 +348,19 @@
       const file = pdfInput.files[0];
       showMessage('', '');
       loadingIndicator.classList.remove('hidden');
+      
+      // Clear any existing job details since we're uploading a new PDF
+      jobDetails = {};
+      localStorage.removeItem('podcastJobDetails');
+      
+      // Hide the Generate Podcast container and reset button state
+      const generateContainer = document.getElementById('generatePodcastContainer');
+      const generateButton = document.getElementById('generatePodcastBtn');
+      if (generateContainer) generateContainer.classList.add('hidden');
+      if (generateButton) {
+        generateButton.disabled = true;
+        generateButton.classList.add('opacity-50', 'cursor-not-allowed');
+      }
 
       if (!file) {
         showMessage('Please select a PDF file to upload.', 'error');
@@ -371,9 +395,30 @@
       try {
         const accessToken = localStorage.getItem('accessToken');
         if (!accessToken) {
-          showMessage('Authentication token not found. Please log in again.', 'error');
+          showErrorToast('Authentication token not found. Please log in again.', 5000);
           uploadButton.disabled = false;
           loadingIndicator.classList.add('hidden');
+          return;
+        }
+        
+        // Check if token is valid before upload
+        try {
+          const tokenParts = accessToken.split('.');
+          if (tokenParts.length !== 3) {
+            throw new Error('Invalid token format');
+          }
+          
+          // Check token expiration
+          const payload = JSON.parse(atob(tokenParts[1]));
+          if (payload.exp && payload.exp * 1000 < Date.now()) {
+            // Token has expired
+            throw new Error('Token has expired');
+          }
+        } catch (tokenError) {
+          console.error('Token validation error:', tokenError);
+          localStorage.removeItem('accessToken'); // Clear invalid token
+          showErrorToast('Your session has expired. Please log in again.', 5000);
+          setTimeout(() => window.location.href = '/pages/login.html', 2000);
           return;
         }
 
@@ -385,7 +430,25 @@
           body: formData
         });
 
-        const data = await res.json();
+        // Handle different response statuses appropriately
+        if (res.status === 401) {
+          // Authentication error
+          console.error('Authentication error during upload');
+          localStorage.removeItem('accessToken'); // Clear invalid token
+          showErrorToast('Your session has expired. Please log in again.', 5000);
+          setTimeout(() => window.location.href = '/pages/login.html', 2000);
+          return;
+        }
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch (jsonError) {
+          // Handle non-JSON responses
+          console.error('Invalid JSON response:', jsonError);
+          showErrorToast(`Server error: ${res.status} ${res.statusText}`, 5000);
+          return;
+        }
 
         if (res.ok) {
           showSuccessToast('PDF processed successfully!', 3000);
@@ -395,11 +458,20 @@
             const generateContainer = document.getElementById('generatePodcastContainer');
             const generateButton = document.getElementById('generatePodcastBtn');
             
-            // Update job details
-            jobDetails.jobId = data.jobId;
-            jobDetails.extractedText = data.extractedText;
+            // Save job ID for later use
+            jobDetails = {
+              jobId: data.jobId,
+              [data.jobId]: {
+                originalFilename: file.name,
+                lastStatus: null
+              }
+            };
             
-            // Update text preview
+            // Store job details in localStorage for persistence
+            localStorage.setItem('podcastJobDetails', JSON.stringify(jobDetails));
+
+            console.log('Job details after upload:', jobDetails);
+            
             if (extractedTextPreview) {
               extractedTextPreview.textContent = data.extractedText.substring(0, 300) + '...';
             }
@@ -417,18 +489,38 @@
             
             console.log('PDF processed, job ID:', data.jobId);
           } else if (data.error) {
-            showErrorToast(`Processing finished, but: ${data.error}`);
+            showErrorToast(`Processing finished, but: ${data.error}`, 5000);
           } else {
-            showErrorToast('PDF uploaded, but no text could be extracted.');
+            showErrorToast('PDF uploaded, but no text could be extracted.', 5000);
           }
           pdfInput.value = '';
         } else {
-          const errorMsg = data.error || 'Upload failed. Please try again.';
-          showMessage(errorMsg, 'error');
+          // Handle specific error codes with better messages
+          if (res.status === 413) {
+            showErrorToast('File too large. Maximum size is 10MB.', 5000);
+          } else if (res.status === 415) {
+            showErrorToast('Invalid file format. Only PDF files are allowed.', 5000);
+          } else if (res.status >= 500) {
+            showErrorToast('Server error. Please try again later.', 5000);
+          } else {
+            const errorMsg = data.error || `Upload failed (${res.status}). Please try again.`;
+            showErrorToast(errorMsg, 5000);
+          }
         }
       } catch (err) {
         console.error('Upload error:', err);
-        showMessage('Upload failed due to a network or server issue.', 'error');
+        // Check for network errors specifically
+        if (!navigator.onLine) {
+          showErrorToast('Network connection lost. Please check your internet connection and try again.', 5000);
+        } else if (err.name === 'AbortError') {
+          showErrorToast('Upload timed out. Please try again with a smaller file or check your connection.', 5000);
+        } else {
+          showErrorToast(`Upload failed: ${err.message || 'Please try again later.'}`, 5000);
+        }
+        
+        // Clear job details on error
+        jobDetails = {};
+        localStorage.removeItem('podcastJobDetails');
       } finally {
         uploadButton.disabled = false;
         loadingIndicator.classList.add('hidden');
@@ -537,8 +629,8 @@
           podcastsHTML += `
             <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
               <div class="flex justify-between items-start">
-                <div>
-                  <h3 class="text-lg font-semibold">${podcast.title || 'Untitled Podcast'}</h3>
+                <div class="flex-1 min-w-0 mr-3">
+                  <h3 class="text-lg font-semibold podcast-title">${podcast.title || 'Untitled Podcast'}</h3>
                   <p class="text-xs text-gray-500">${date}</p>
                   ${topicsHtml}
                 </div>
@@ -583,8 +675,29 @@
       // Initialize upload functionality
       initializeUpload();
       
-      // Setup Generate Podcast functionality
-      setupPodcastGeneration();
+      // Check for saved jobDetails and update UI if a PDF was previously uploaded
+      if (jobDetails && jobDetails.jobId) {
+        console.log('Found existing job details on page load:', jobDetails);
+        const generateContainer = document.getElementById('generatePodcastContainer');
+        const generateButton = document.getElementById('generatePodcastBtn');
+        const extractedTextPreview = document.getElementById('extractedTextPreview');
+        
+        // Show the generate container
+        if (generateContainer) {
+          generateContainer.classList.remove('hidden');
+        }
+        
+        // Enable the generate button
+        if (generateButton) {
+          generateButton.disabled = false;
+          generateButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+        
+        // Set preview content
+        if (extractedTextPreview) {
+          extractedTextPreview.textContent = 'PDF ready for podcast generation';
+        }
+      }
     });
 
     // Function to handle podcast deletion
@@ -811,6 +924,9 @@
     async function setupPodcastGeneration() {
       // Ensure toast system is ready before use
       initToastSystem();
+      
+      // Always get the latest job details from localStorage
+      jobDetails = JSON.parse(localStorage.getItem('podcastJobDetails') || '{}');
       console.log('Setting up podcast generation with jobDetails:', jobDetails);
       
       if (!jobDetails || !jobDetails.jobId) {
@@ -1061,6 +1177,9 @@
           
           // Ensure toast system is ready before use
           initToastSystem();
+          
+          // Always get the latest job details from localStorage
+          jobDetails = JSON.parse(localStorage.getItem('podcastJobDetails') || '{}');
           
           // Check if we have a job ID before proceeding
           if (!jobDetails || !jobDetails.jobId) {
