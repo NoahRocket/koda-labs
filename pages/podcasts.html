@@ -621,9 +621,22 @@
           return;
         }
 
+        // Filter out PDF files and entries without audio URLs
+        const audioOnlyPodcasts = data.podcasts.filter(podcast => {
+          // Only include items with an audio_url and not PDF files
+          return podcast.audio_url && (!podcast.title || !podcast.title.toLowerCase().endsWith('.pdf'));
+        });
+        
+        console.log(`Filtered ${data.podcasts.length} items down to ${audioOnlyPodcasts.length} audio podcasts`);
+        
+        if (audioOnlyPodcasts.length === 0) {
+          podcastList.innerHTML = '<div class="text-center py-8 text-gray-500" style="color: #6B7280;">No podcasts yet—upload a PDF to get started!</div>';
+          return;
+        }
+        
         // Render podcasts
         let podcastsHTML = '';
-        data.podcasts.forEach(podcast => {
+        audioOnlyPodcasts.forEach(podcast => {
           const date = new Date(podcast.created_at).toLocaleDateString();
           const topicsHtml = podcast.topics ? `
             <div class="flex flex-wrap gap-1 mt-2">
@@ -1072,13 +1085,18 @@
           console.log('[checkPodcastStatus] Status received:', data.status);
           
           if (data.status === 'completed') {
+            console.log('[checkPodcastStatus] Podcast generation completed!');
+            
             // Clear the progress animation
             if (progressInterval) {
               clearInterval(progressInterval);
               console.log('[checkPodcastStatus] Progress interval cleared');
             }
             
-            // Update progress display to 100% before removing
+            // Show a prominent success message immediately
+            showSuccessToast('Your podcast has been successfully generated! 🎉', 8000);
+            
+            // Update progress display to 100%
             const progressBar = document.querySelector('#progressBar');
             const progressPercentage = document.querySelector('#progressPercentage');
             const progressStepText = document.querySelector('#progressStepText');
@@ -1089,36 +1107,62 @@
             if (progressStepText) progressStepText.textContent = 'Complete';
             if (progressMessage) progressMessage.textContent = 'Your podcast is ready!';
             
-            // Show a prominent success message
-            showSuccessToast('Your podcast has been successfully generated! 🎉', 8000);
+            // Find and remove the progress container immediately
+            console.log('[checkPodcastStatus] Looking for progress container to remove...');
             
-            // Give a brief moment for the user to see the 100% completion state
-            setTimeout(() => {
-              // Remove progress container with proper ID matching
-              const progressContainers = [
-                document.getElementById('podcastProgressContainer'),
-                document.getElementById('progressContainer'),
-                document.querySelector('.progress-container')
-              ];
-              
-              for (const container of progressContainers) {
-                if (container) {
-                  container.classList.add('fade-out');
-                  setTimeout(() => {
-                    container.remove();
-                    console.log('[checkPodcastStatus] Progress container removed');
-                  }, 500);
-                  break;
+            // Debug what container exists
+            const podcastProgressContainer = document.getElementById('podcastProgressContainer');
+            console.log('Found podcastProgressContainer:', podcastProgressContainer);
+            
+            // Force removal of the progress container
+            const allPossibleContainers = document.querySelectorAll('.bg-white.p-6.rounded-lg.shadow-sm.mt-8');
+            console.log(`Found ${allPossibleContainers.length} potential containers`);
+            
+            let containerFound = false;
+            
+            // Try direct ID match first
+            if (podcastProgressContainer) {
+              console.log('Removing container by direct ID match');
+              podcastProgressContainer.remove();
+              containerFound = true;
+            }
+            
+            // If not found, try to find by content/structure
+            if (!containerFound) {
+              allPossibleContainers.forEach(container => {
+                // Check if this container has podcast generation elements
+                if (container.querySelector('#progressBar') || 
+                    container.querySelector('#progressPercentage') ||
+                    container.textContent.includes('Generating Podcast')) {
+                  console.log('Found container by content match');
+                  container.remove();
+                  containerFound = true;
                 }
+              });
+            }
+            
+            // Reset job details but keep the jobId for reference
+            const completedJobId = jobId;
+            localStorage.setItem('lastCompletedPodcastJobId', completedJobId);
+            
+            // Remove the "Generating your podcast..." message element
+            const allDivs = document.querySelectorAll('div');
+            for (const div of allDivs) {
+              if (div.textContent && div.textContent.includes('Generating your podcast')) {
+                console.log('Found and removing generating message');
+                div.remove();
+                break;
               }
-              
-              // Reset job details but keep the jobId for reference
-              const completedJobId = jobId;
-              localStorage.setItem('lastCompletedPodcastJobId', completedJobId);
-              
-              // Refresh the podcast list to show the new podcast
-              loadPodcasts();
-            }, 1500);
+            }
+            
+            // Clean up any spinner elements
+            document.querySelectorAll('.fa-spin, .spinner').forEach(el => {
+              const parent = el.closest('.text-center');
+              if (parent) parent.remove();
+            });
+            
+            // Refresh the podcast list to show the new podcast
+            loadPodcasts();
             
           } else if (data.status === 'error') {
             if (progressInterval) clearInterval(progressInterval);
