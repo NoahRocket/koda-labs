@@ -298,13 +298,20 @@ exports.handler = async (event) => {
       
       if (jobId) {
         // Trigger the analyze-pdf-text function to start the analysis pipeline
-        console.log('[upload-pdf] Triggering analyze-pdf-text function');
+        console.log('[upload-pdf] Triggering analyze-pdf-text function for job:', jobId);
         try {
-          const analyzeResponse = await fetch(`${process.env.URL || 'http://localhost:8888'}/.netlify/functions/analyze-pdf-text`, {
+          // Use a more robust URL construction
+          const host = event.headers.host;
+          const proto = host.includes('localhost') ? 'http' : 'https';
+          const analyzeUrl = `${proto}://${host}/.netlify/functions/analyze-pdf-text`;
+          
+          console.log(`[upload-pdf] Calling analyze-pdf-text at: ${analyzeUrl}`);
+          
+          const analyzeResponse = await fetch(analyzeUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': event.headers.authorization || event.headers.Authorization
+              'Authorization': event.headers.authorization || event.headers.Authorization || `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
             },
             body: JSON.stringify({
               jobId: jobId,
@@ -312,13 +319,58 @@ exports.handler = async (event) => {
             })
           });
 
+          const responseStatus = analyzeResponse.status;
+          console.log(`[upload-pdf] analyze-pdf-text response status: ${responseStatus}`);
+          
           if (!analyzeResponse.ok) {
-            console.error(`[upload-pdf] Error triggering analyze-pdf-text: ${analyzeResponse.status} ${analyzeResponse.statusText}`);
+            const errorText = await analyzeResponse.text();
+            console.error(`[upload-pdf] Error triggering analyze-pdf-text: ${responseStatus} ${analyzeResponse.statusText}`);
+            console.error(`[upload-pdf] Error response body: ${errorText}`);
+            
+            // Update the job status to indicate there was a problem
+            try {
+              const { error } = await supabaseAdmin
+                .from('podcast_jobs')
+                .update({ 
+                  status: 'failed',
+                  error_message: `Failed to start analysis: ${responseStatus} ${analyzeResponse.statusText}`
+                })
+                .eq('job_id', jobId);
+                
+              if (error) {
+                console.error(`[upload-pdf] Failed to update job status to failed:`, error);
+              }
+            } catch (updateError) {
+              console.error(`[upload-pdf] Exception updating job status:`, updateError);
+            }
           } else {
-            console.log('[upload-pdf] Successfully triggered analyze-pdf-text');
+            // Try to parse the response for additional debugging
+            try {
+              const responseData = await analyzeResponse.json();
+              console.log('[upload-pdf] Successfully triggered analyze-pdf-text with response:', responseData);
+            } catch (parseError) {
+              console.log('[upload-pdf] Successfully triggered analyze-pdf-text, but couldn\'t parse response');
+            }
           }
         } catch (analyzeError) {
           console.error('[upload-pdf] Exception triggering analyze-pdf-text:', analyzeError);
+          
+          // Update the job status to indicate there was a problem
+          try {
+            const { error } = await supabaseAdmin
+              .from('podcast_jobs')
+              .update({ 
+                status: 'failed',
+                error_message: `Exception triggering analysis: ${analyzeError.message}`
+              })
+              .eq('job_id', jobId);
+              
+            if (error) {
+              console.error(`[upload-pdf] Failed to update job status to failed:`, error);
+            }
+          } catch (updateError) {
+            console.error(`[upload-pdf] Exception updating job status:`, updateError);
+          }
         }
       }
     } catch (jobError) {

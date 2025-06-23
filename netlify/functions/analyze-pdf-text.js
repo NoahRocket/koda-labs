@@ -126,7 +126,8 @@ exports.handler = async (event) => {
           { role: 'system', content: 'You are an expert assistant for extracting key concepts from documents.' },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: 800, // Increased tokens for potentially more complex concepts
+        temperature: 0.3, // Lower temperature for more consistent results
+        max_tokens: 800 // Parameter name correction for better reliability
       })
     });
 
