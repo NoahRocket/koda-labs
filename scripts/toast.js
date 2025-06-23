@@ -67,9 +67,9 @@ function showToastImpl(message, type = 'info', duration = 3000) {
   // Validate message to prevent empty toasts
   if (!message || message.trim() === '') {
     console.warn('Attempted to show toast with empty message');
-    message = type === 'error' ? 'An error occurred' : 
-              type === 'success' ? 'Operation successful' : 
-              type === 'warning' ? 'Warning' : 'Notification';
+    message = type === 'error' ? 'An error occurred during processing' : 
+              type === 'success' ? 'Operation completed successfully' : 
+              type === 'warning' ? 'Process warning' : 'Processing update';
   }
   
   // Double check that we have a container

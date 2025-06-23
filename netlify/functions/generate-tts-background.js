@@ -63,7 +63,25 @@ exports.handler = async (event, context) => {
     console.log(`TTS audio received. bytes= ${audioBuffer.length}`);
 
     await updateJobStatus(supabase, jobId, 'uploading');
-    const filename = `podcast_${jobId}_${Date.now()}.mp3`;
+    
+    // Get the original PDF filename to create a human-readable podcast name
+    const { data: jobData } = await supabase
+      .from('podcast_jobs')
+      .select('filename')
+      .eq('job_id', jobId)
+      .single();
+    
+    // Create a human-readable name from the PDF filename
+    let podcastName = 'podcast';
+    if (jobData && jobData.filename) {
+      // Remove .pdf extension and clean up the filename
+      podcastName = jobData.filename
+        .replace(/\.pdf$/i, '') // Remove PDF extension
+        .replace(/[^a-z0-9\s-]/gi, '') // Remove special characters
+        .trim();
+    }
+    
+    const filename = `${podcastName}_${Date.now()}.mp3`;
     const base64Audio = audioBuffer.toString('base64');
 
     const host = event.headers.host;

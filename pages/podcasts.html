@@ -292,16 +292,22 @@
 
     // Function to show message using toast notifications
     function showMessage(message, type = 'info') {
-      // Map our simple types to toast types
-      const toastType = type === 'error' ? 'error' : 
-                       type === 'success' ? 'success' : 
-                       type === 'warning' ? 'warning' : 'info';
+      // Make sure toast system is ready
+      initToastSystem();
       
-      // Show toast notification
-      showToast(message, toastType);
+      // Use the specific toast helper functions with appropriate durations
+      if (type === 'error') {
+        showErrorToast(message, 5000); // Longer duration for errors
+      } else if (type === 'success') {
+        showSuccessToast(message, 4000);
+      } else if (type === 'warning') {
+        showWarningToast(message, 4000);
+      } else {
+        showInfoToast(message, 3000);
+      }
       
       // Also update the message div for backward compatibility
-      messageDiv.textContent = message;
+      messageDiv.textContent = message || ''; // Ensure we don't pass undefined
       messageDiv.className = `message text-center mt-4 ${type === 'error' ? 'text-red-600' : 'text-green-600'}`;
       
       // Auto-hide the message div after 5 seconds
@@ -360,7 +366,8 @@
       const formData = new FormData();
       formData.append('pdf', file);
       uploadButton.disabled = true;
-      showMessage('Uploading and processing PDF...');
+      // Show a clear, specific message about what's happening
+      showInfoToast(`Uploading and processing ${file.name}...`, 4000);
       try {
         const accessToken = localStorage.getItem('accessToken');
         if (!accessToken) {
@@ -807,7 +814,9 @@
       console.log('Setting up podcast generation with jobDetails:', jobDetails);
       
       if (!jobDetails || !jobDetails.jobId) {
-        showErrorToast('Cannot generate podcast without a valid PDF upload.');
+        // This should only show if the Generate Podcast button is clicked without a PDF
+        // The button should be disabled in this case, but as a fallback:
+        showErrorToast('Please upload a PDF first before generating a podcast.');
         return;
       }
       
@@ -816,7 +825,11 @@
         if (loadingIndicator) loadingIndicator.classList.remove('hidden');
         if (generatePodcastContainer) generatePodcastContainer.classList.add('hidden');
         
-        showSuccessToast('Generating podcast in the background. It will appear in your list when ready.', 5000);
+        // Get filename for better user feedback
+        const filename = jobDetails[jobDetails.jobId]?.originalFilename || 'your PDF';
+        
+        // Clear and specific toast message for starting the podcast generation process
+        showInfoToast(`Starting podcast generation for "${filename}"...`, 5000);
         
         // Remove any existing progress container to avoid duplicates
         const existingProgress = document.getElementById('podcastProgressContainer');
@@ -827,37 +840,24 @@
         // Create and configure the progress container
         const progressContainer = document.createElement('div');
         progressContainer.id = 'podcastProgressContainer';
-        progressContainer.className = 'mt-8 p-6 bg-white rounded-lg shadow-sm max-w-3xl mx-auto text-center';
+        progressContainer.className = 'bg-white p-6 rounded-lg shadow-sm mt-8 max-w-3xl mx-auto';
+        
         progressContainer.innerHTML = `
-          <h3 class="text-lg font-semibold mb-4">Generating Your Podcast</h3>
-          <div class="relative pt-1">
-            <div class="flex mb-2 items-center justify-between">
-              <div>
-                <span id="progressStepText" class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
-                  Initializing...
-                </span>
-              </div>
-              <div class="text-right">
-                <span id="progressPercentage" class="text-xs font-semibold inline-block text-blue-600">0%</span>
-              </div>
-            </div>
-            <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
-              <div id="progressBar" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500"></div>
-            </div>
+          <h3 class="text-xl font-bold mb-4">Generating Podcast</h3>
+          <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+            <div id="progressBar" class="bg-blue-500 h-4 rounded-full" style="width: 0%"></div>
           </div>
-          <p id="progressMessage" class="text-sm text-gray-600 mt-2">Getting things ready...</p>
+          <div class="flex justify-between items-center mb-2">
+            <span id="progressStepText" class="font-medium">Starting...</span>
+            <span id="progressPercentage">0%</span>
+          </div>
+          <p id="progressMessage" class="text-gray-600 text-sm">Please wait while we prepare your podcast...</p>
         `;
         
-        // Simplified and more robust progress container insertion
-        const podcastList = document.getElementById('podcastList');
-        if (podcastList && podcastList.parentNode) {
-          // Insert before the podcast list for better visibility
-          podcastList.parentNode.insertBefore(progressContainer, podcastList);
-        } else {
-          // Fallback to appending to main content area if list isn't found
-          const mainContent = document.querySelector('.main-content-area') || document.querySelector('main') || document.body;
-          mainContent.appendChild(progressContainer);
-          console.warn('Could not find podcast list container, appended progress to main content.');
+        // Insert the progress container before the podcast list section
+        const podcastListContainer = document.querySelector('#podcastList').closest('.bg-white');
+        if (podcastListContainer) {
+          podcastListContainer.parentNode.insertBefore(progressContainer, podcastListContainer);
         }
         
         // Start progress simulation and refresh the list
@@ -913,9 +913,10 @@
         progressStepText.textContent = step.text;
         progressMessage.textContent = step.message;
         
-        // Provide toast notification for each step for better feedback
+        // Provide toast notification for each step with detailed messaging
         if (step.percent < 100) {
-            showInfoToast(step.text, 4000);
+            // Use the more descriptive message for the toast instead of just the step text
+            showInfoToast(step.message, 4000);
         }
         
         currentStep++;
@@ -1049,41 +1050,27 @@
       // Setup Generate Podcast button
       const generateButton = document.getElementById('generatePodcastBtn');
       if (generateButton) {
-        generateButton.addEventListener('click', function(event) {
-          event.preventDefault();
-          // Ensure toast system is ready before use
-          initToastSystem();
-
-          if (!jobDetails || !jobDetails.jobId) {
-            showErrorToast('No PDF uploaded. Please upload a PDF first.');
-            return;
-          }
-
-          showInfoToast('Starting podcast generation...', 3000);
-          setupPodcastGeneration();
-        });
-      }
-      if (generateButton) {
         // Make sure the button is initially disabled
         generateButton.disabled = true;
         generateButton.classList.add('opacity-50', 'cursor-not-allowed');
         
+        // Set up a single event handler
         generateButton.addEventListener('click', function(event) {
           // Prevent default button behavior
           event.preventDefault();
           
+          // Ensure toast system is ready before use
+          initToastSystem();
+          
           // Check if we have a job ID before proceeding
           if (!jobDetails || !jobDetails.jobId) {
-            showErrorToast('No PDF uploaded. Please upload a PDF first.');
+            showErrorToast('Please upload a PDF first before generating a podcast.', 5000);
             return;
           }
           
-          // Always show a toast notification when clicked
-          showInfoToast('Starting podcast generation...', 3000);
-          
           console.log('Generate Podcast button clicked, jobId:', jobDetails.jobId);
           
-          // Call the setup function
+          // Call the setup function which will show appropriate toast notifications
           setupPodcastGeneration();
         });
       }
