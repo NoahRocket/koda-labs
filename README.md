@@ -36,8 +36,7 @@ The PDF to Podcast feature transforms uploaded PDF documents into engaging audio
 
 1. **PDF Upload & Text Extraction** (`upload-pdf.js`): Users upload PDFs, and the system extracts text content.
 2. **Concept Extraction** (`analyze-pdf-text.js`): The system analyzes the text and extracts key concepts and explanations using OpenAI.
-3. **Job Management** (`queue-podcast-job.js`): Creates a podcast generation job and tracks its status throughout the process.
-4. **Script Generation** (`process-podcast-job.js`): Using OpenAI, the system creates a conversational podcast script based on the extracted concepts.
+3. **Script Generation** (`generate-script-background.js`): Using OpenAI, the system creates a conversational podcast script based on the extracted concepts.
 5. **Background Text-to-Speech** (`generate-tts-background.js`): The script is converted to natural-sounding speech using ElevenLabs' API in a background process to avoid timeout issues.
 6. **Storage Upload** (`direct-upload.js`): The generated MP3 is stored securely in Supabase Storage.
 7. **Status Monitoring** (`check-podcast-status.js`): Provides real-time status updates as the podcast generation progresses.

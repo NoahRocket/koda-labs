@@ -300,100 +300,6 @@
       messageDiv.className = 'message ' + (type || '');
     }
     
-    // Setup podcast generation functionality
-    function setupPodcastGeneration() {
-      const generateButton = document.getElementById('generatePodcastBtn');
-      
-      if (!generateButton) {
-        console.error('Generate podcast button not found');
-        return;
-      }
-      
-      generateButton.addEventListener('click', async function() {
-        const extractedText = this.dataset.extractedText;
-        const storagePath = this.dataset.storagePath;
-        const originalFilename = this.dataset.originalFilename;
-        
-        if (!extractedText || !storagePath || !originalFilename) {
-          showMessage('Essential data (text, storage path, or filename) is missing. Please try uploading the PDF again.', 'error');
-          return;
-        }
-        
-        // Show loading indicator
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        loadingIndicator.classList.remove('hidden');
-        generateButton.disabled = true;
-        
-        try {
-          // Retrieve authentication token.
-          // 1. Prefer the explicit `accessToken` our app stores.
-          // 2. Fall back to other keys that Supabase/browser extensions might have stored.
-          // 3. Gracefully handle tokens stored as JSON strings by extracting `access_token`.
-          let token = localStorage.getItem('accessToken') ||
-                      localStorage.getItem('sb-token') ||
-                      localStorage.getItem('supabase-auth-token');
-
-          // Some Supabase helpers store the whole session as a JSON string. Detect & parse it.
-          if (token && token.trim().startsWith('{')) {
-            try {
-              const parsed = JSON.parse(token);
-              token = parsed.access_token ||
-                      parsed.currentSession?.access_token ||
-                      parsed.session?.access_token ||
-                      '';
-            } catch (parseErr) {
-              console.warn('Failed to parse auth token JSON:', parseErr);
-            }
-          }
-
-          console.log('Auth token present?', !!token);
-
-          if (!token) {
-            throw new Error('Authentication required. Please log in again.');
-          }
-          
-          // For simplicity, we'll use the first 500 chars as concepts
-          // In a real implementation, you might want to use NLP or other methods
-          // to extract meaningful concepts from the text
-          const concepts = [extractedText.substring(0, Math.min(500, extractedText.length))];
-          
-          console.log('Sending podcast generation request...');
-          // Call the queue-podcast-job endpoint to start podcast generation
-          const response = await fetch('/.netlify/functions/queue-podcast-job', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              concepts: concepts,
-              pdfName: originalFilename, // Use the original filename from dataset
-              storagePath: storagePath   // Pass the PDF's storage path
-            })
-          });
-          
-          console.log('Podcast generation response:', response.status);
-          const data = await response.json();
-          
-          if (response.ok) {
-            showMessage('Podcast generation started! It will appear in your list when ready.', 'success');
-            // Hide the generation container
-            document.getElementById('generatePodcastContainer').classList.add('hidden');
-            // Refresh podcast list to show the pending job
-            loadPodcasts();
-          } else {
-            throw new Error(data.error || `Failed to queue podcast generation: HTTP ${response.status}`);
-          }
-        } catch (error) {
-          console.error('Error generating podcast:', error);
-          showMessage(error.message || 'Failed to start podcast generation', 'error');
-        } finally {
-          loadingIndicator.classList.add('hidden');
-          generateButton.disabled = false;
-        }
-      });
-    }
-    
     // File input change handler
     pdfInput.addEventListener('change', function() {
       const fileSelection = document.getElementById('selectedFile');
@@ -644,9 +550,6 @@
       
       // Initialize upload functionality
       initializeUpload();
-      
-      // Setup Generate Podcast functionality
-      setupPodcastGeneration();
     });
 
     // Function to handle podcast deletion

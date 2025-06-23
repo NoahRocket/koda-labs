@@ -105,8 +105,7 @@ Koda Tutor is a web application designed to be a personal knowledge companion. I
 *   **Backend Processing Pipeline:**
     *   `upload-pdf.js`: Handles PDF file uploads and text extraction
     *   `analyze-pdf-text.js`: Extracts key concepts from PDF text using OpenAI
-    *   `queue-podcast-job.js`: Creates job entries in Supabase and initiates processing
-    *   `process-podcast-job.js`: Orchestrates script generation and triggers TTS conversion
+    *   `generate-script-background.js`: Orchestrates script generation and triggers TTS conversion
     *   `generate-tts-background.js`: Handles long-running text-to-speech conversion as a background process
     *   `direct-upload.js`: Manages uploading generated audio to Supabase Storage
     *   `check-podcast-status.js`: Allows users to check the status of podcast generation jobs
