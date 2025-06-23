@@ -550,6 +550,9 @@
       
       // Initialize upload functionality
       initializeUpload();
+      
+      // Setup Generate Podcast functionality
+      setupPodcastGeneration();
     });
 
     // Function to handle podcast deletion
@@ -726,6 +729,51 @@
 
     // Add standard navigation event handlers - same as dashboard.html
     // Add document ready function
+    // Setup feedback for the podcast generation button
+    function setupPodcastGeneration() {
+      const generateButton = document.getElementById('generatePodcastBtn');
+      
+      if (!generateButton) {
+        console.error('Generate podcast button not found');
+        return;
+      }
+      
+      generateButton.addEventListener('click', async function() {
+        // Show loading indicator and disable button
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        if (loadingIndicator) {
+          loadingIndicator.classList.remove('hidden');
+        }
+        generateButton.disabled = true;
+        
+        try {
+          // Display feedback message to user
+          showMessage('Generating podcast in the background. It will appear in your list when ready.', 'success');
+          
+          // Hide the generation container if needed
+          const generateContainer = document.getElementById('generatePodcastContainer');
+          if (generateContainer) {
+            generateContainer.classList.add('hidden');
+          }
+          
+          // Refresh the podcast list to show the pending job
+          setTimeout(loadPodcasts, 2000);
+          
+        } catch (error) {
+          console.error('Error with podcast generation UI:', error);
+          showMessage(error.message || 'Failed to initiate podcast generation', 'error');
+        } finally {
+          // Hide loading indicator and enable button after delay
+          setTimeout(() => {
+            if (loadingIndicator) {
+              loadingIndicator.classList.add('hidden');
+            }
+            generateButton.disabled = false;
+          }, 1500);
+        }
+      });
+    }
+
     function initializeUpload() {
       console.log('Initializing upload functionality');
       
