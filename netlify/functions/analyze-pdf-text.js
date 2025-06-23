@@ -121,7 +121,7 @@ exports.handler = async (event) => {
         'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo', // Consider gpt-4-turbo-preview for longer context if available/needed
+        model: 'gpt-4.1-mini', 
         messages: [
           { role: 'system', content: 'You are an expert assistant for extracting key concepts from documents.' },
           { role: 'user', content: prompt }

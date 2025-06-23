@@ -49,10 +49,10 @@ Please generate the podcast script. The tone should be informative yet accessibl
             'Authorization': `Bearer ${OPENAI_API_KEY}`
         },
         body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4.1-mini',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
-            max_tokens: 2048,
+            max_tokens: 5000,
         })
     });
 
