@@ -683,20 +683,56 @@
       const filename = detail.originalFilename || 'your PDF';
       let statusText = '';
       let itemClass = 'p-3 mb-2 rounded shadow-sm text-sm job-status-item ';
+      
+      // Track status changes to show appropriate toasts
+      const previousStatus = detail.lastStatus || '';
+      detail.lastStatus = status;
+      
+      // Only show toast if status has changed (prevent duplicates)
+      const statusChanged = previousStatus !== status;
 
       switch (status) {
-        case 'pending_analysis': statusText = `Analyzing ${filename}...`; itemClass += 'bg-blue-100 text-blue-700'; break;
-        case 'analyzing_text': statusText = `Extracting concepts for ${filename}...`; itemClass += 'bg-blue-100 text-blue-700'; break;
-        case 'text_analyzed': statusText = `Concepts extracted. Preparing script for ${filename}...`; itemClass += 'bg-blue-100 text-blue-700'; break;
-        case 'generating_script': statusText = `Generating script for ${filename}...`; itemClass += 'bg-indigo-100 text-indigo-700'; break;
-        case 'script_generated': statusText = `Script ready. Generating audio for ${filename}...`; itemClass += 'bg-indigo-100 text-indigo-700'; break;
-        case 'generating_tts': statusText = `Converting to speech for ${filename}... <i class="fas fa-spinner fa-spin ml-2"></i>`; itemClass += 'bg-purple-100 text-purple-700'; break;
-        case 'uploading': statusText = `Uploading podcast: ${filename}... <i class="fas fa-upload ml-2"></i>`; itemClass += 'bg-purple-100 text-purple-700'; break;
+        case 'pending_analysis': 
+          statusText = `Analyzing ${filename}...`; 
+          itemClass += 'bg-blue-100 text-blue-700'; 
+          if (statusChanged) showInfoToast(`Starting analysis of ${filename}...`, 3000);
+          break;
+        case 'analyzing_text': 
+          statusText = `Extracting concepts for ${filename}...`; 
+          itemClass += 'bg-blue-100 text-blue-700'; 
+          if (statusChanged) showInfoToast(`Extracting key concepts from ${filename}...`, 3000);
+          break;
+        case 'text_analyzed': 
+          statusText = `Concepts extracted. Preparing script for ${filename}...`; 
+          itemClass += 'bg-blue-100 text-blue-700'; 
+          if (statusChanged) showInfoToast(`Key concepts identified! Creating podcast script...`, 3000);
+          break;
+        case 'generating_script': 
+          statusText = `Generating script for ${filename}...`; 
+          itemClass += 'bg-indigo-100 text-indigo-700'; 
+          if (statusChanged) showInfoToast(`Generating podcast script...`, 3000);
+          break;
+        case 'script_generated': 
+          statusText = `Script ready. Generating audio for ${filename}...`; 
+          itemClass += 'bg-indigo-100 text-indigo-700'; 
+          if (statusChanged) showInfoToast(`Script created! Converting to speech...`, 3000);
+          break;
+        case 'generating_tts': 
+          statusText = `Converting to speech for ${filename}... <i class="fas fa-spinner fa-spin ml-2"></i>`; 
+          itemClass += 'bg-purple-100 text-purple-700'; 
+          if (statusChanged) showInfoToast(`Creating audio for your podcast...`, 3000);
+          break;
+        case 'uploading': 
+          statusText = `Uploading podcast: ${filename}... <i class="fas fa-upload ml-2"></i>`; 
+          itemClass += 'bg-purple-100 text-purple-700'; 
+          if (statusChanged) showInfoToast(`Almost done! Uploading your podcast...`, 3000);
+          break;
         case 'completed':
           detail.statusElement.remove();
           delete jobDetails[jobId];
           loadPodcasts();
-          showMessage(`Podcast for ${filename} generated successfully!`, 'success');
+          // Always show completion toast
+          showSuccessToast(`Your podcast for "${filename}" is ready!`, 5000);
           stopPolling(jobId);
           if (Object.keys(activePollers).length === 0) {
             loadingIndicator.classList.add('hidden');
@@ -708,12 +744,13 @@
             pdfInput.value = '';
             currentFile = null; // Reset currentFile
             document.getElementById('generatePodcastContainer').classList.add('hidden'); // Hide preview
-
           }
           return;
         case 'failed':
           statusText = `Failed: ${filename} - ${errorMessage || 'Unknown error'}`;
           itemClass += 'bg-red-100 text-red-700';
+          // Always show error toast
+          showErrorToast(`Failed to generate podcast: ${errorMessage || 'Unknown error'}`, 5000);
           stopPolling(jobId);
           if (Object.keys(activePollers).length === 0) {
              loadingIndicator.classList.add('hidden');
@@ -728,7 +765,9 @@
             document.getElementById('generatePodcastContainer').classList.add('hidden');
           }
           break;
-        default: statusText = `Job ${jobId} (for ${filename}): ${status}`; itemClass += 'bg-gray-200 text-gray-800';
+        default: 
+          statusText = `Job ${jobId} (for ${filename}): ${status}`; 
+          itemClass += 'bg-gray-200 text-gray-800';
       }
 
       detail.statusElement.innerHTML = statusText;
