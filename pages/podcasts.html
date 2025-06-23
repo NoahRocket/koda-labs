@@ -393,16 +393,22 @@
             jobDetails.extractedText = data.extractedText;
             
             // Update text preview
-            extractedTextPreview.textContent = data.extractedText.substring(0, 300) + '...';
+            if (extractedTextPreview) {
+              extractedTextPreview.textContent = data.extractedText.substring(0, 300) + '...';
+            }
             
             // Show the generate container
-            generateContainer.classList.remove('hidden');
+            if (generateContainer) {
+              generateContainer.classList.remove('hidden');
+            }
             
             // Enable the generate button
             if (generateButton) {
               generateButton.disabled = false;
               generateButton.classList.remove('opacity-50', 'cursor-not-allowed');
             }
+            
+            console.log('PDF processed, job ID:', data.jobId);
           } else if (data.error) {
             showErrorToast(`Processing finished, but: ${data.error}`);
           } else {
@@ -757,20 +763,29 @@
     // Add document ready function
     // Function to handle podcast generation
     async function setupPodcastGeneration() {
+      console.log('Setting up podcast generation with jobDetails:', jobDetails);
+      
       if (!jobDetails.jobId) {
-        // Don't show error toast here - the button should be disabled if no PDF is uploaded
+        // Show error toast if somehow the button was clicked without a PDF
+        showErrorToast('No PDF uploaded. Please upload a PDF first.');
         return;
       }
       
       try {
         // Show loading indicator
-        loadingIndicator.classList.remove('hidden');
-        generatePodcastContainer.classList.add('hidden');
+        if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+        if (generatePodcastContainer) generatePodcastContainer.classList.add('hidden');
         
         // Show success toast with longer duration
         showSuccessToast('Generating podcast in the background. It will appear in your list when ready.', 5000);
         
         // Show progress indicator in the UI
+        // First remove any existing progress container
+        const existingProgress = document.getElementById('podcastProgressContainer');
+        if (existingProgress) {
+          existingProgress.remove();
+        }
+        
         const progressContainer = document.createElement('div');
         progressContainer.id = 'podcastProgressContainer';
         progressContainer.className = 'mt-8 p-6 bg-white rounded-lg shadow-sm max-w-3xl mx-auto text-center';
@@ -794,9 +809,31 @@
           <p class="text-sm text-gray-600 mt-2" id="progressMessage">Extracting key concepts from your document...</p>
         `;
         
-        // Insert progress container before podcast list
-        const podcastListContainer = document.querySelector('#podcastList').parentNode.parentNode;
-        document.querySelector('.main-content-area').insertBefore(progressContainer, podcastListContainer);
+        // Insert progress container in a visible location
+        const mainContent = document.querySelector('.main-content-area') || document.querySelector('main') || document.body;
+        
+        // Find the podcast list heading (can't use :contains as it's not standard JS)
+        let podcastListHeading = null;
+        const headings = document.querySelectorAll('h2');
+        for (const heading of headings) {
+          if (heading.textContent.includes('Your Podcasts')) {
+            podcastListHeading = heading;
+            break;
+          }
+        }
+        
+        if (podcastListHeading && podcastListHeading.parentNode) {
+          podcastListHeading.parentNode.insertBefore(progressContainer, podcastListHeading);
+        } else {
+          // Fallback - insert before podcast list if we can find it
+          const podcastList = document.getElementById('podcastList');
+          if (podcastList && podcastList.parentNode) {
+            podcastList.parentNode.insertBefore(progressContainer, podcastList);
+          } else {
+            // Last resort - just append to main content
+            mainContent.appendChild(progressContainer);
+          }
+        }
         
         // Start progress simulation
         simulateProgress(jobDetails.jobId);
@@ -972,14 +1009,27 @@
       // Setup Generate Podcast button
       const generateButton = document.getElementById('generatePodcastBtn');
       if (generateButton) {
-        generateButton.addEventListener('click', function() {
-          // Only show toast when actually starting generation
-          if (jobDetails.jobId) {
-            setupPodcastGeneration();
-          } else {
-            // Button should be disabled, but just in case
-            console.log('No PDF uploaded yet');
+        // Make sure the button is initially disabled
+        generateButton.disabled = true;
+        generateButton.classList.add('opacity-50', 'cursor-not-allowed');
+        
+        generateButton.addEventListener('click', function(event) {
+          // Prevent default button behavior
+          event.preventDefault();
+          
+          // Check if we have a job ID before proceeding
+          if (!jobDetails || !jobDetails.jobId) {
+            showErrorToast('No PDF uploaded. Please upload a PDF first.');
+            return;
           }
+          
+          // Always show a toast notification when clicked
+          showInfoToast('Starting podcast generation...', 3000);
+          
+          console.log('Generate Podcast button clicked, jobId:', jobDetails.jobId);
+          
+          // Call the setup function
+          setupPodcastGeneration();
         });
       }
       

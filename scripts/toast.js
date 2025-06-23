@@ -11,12 +11,15 @@ let toastContainer;
 // Initialize the toast system
 function initToastSystem() {
   // Create toast container if it doesn't exist
-  if (!document.querySelector('.toast-container')) {
+  if (!document.getElementById('toast-container')) {
     toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
     toastContainer.className = 'toast-container';
     document.body.appendChild(toastContainer);
+    console.log('Toast container created');
   } else {
-    toastContainer = document.querySelector('.toast-container');
+    toastContainer = document.getElementById('toast-container');
+    console.log('Using existing toast container');
   }
 }
 
@@ -27,9 +30,15 @@ function initToastSystem() {
  * @param {number} duration - How long to show the toast in milliseconds (default: 3000ms)
  */
 function showToast(message, type = 'info', duration = 3000) {
-  // Initialize if not already done
-  if (!toastContainer) {
+  // Always ensure we have a toast container
+  if (!toastContainer || !document.getElementById('toast-container')) {
     initToastSystem();
+  }
+  
+  // Double check that we have a container
+  if (!toastContainer) {
+    console.error('Failed to create toast container');
+    return null;
   }
   
   // Create toast element

@@ -40,7 +40,7 @@ ${conceptsText}
 Source Text for Context:
 ${truncatedText}
 
-Please generate the podcast script. The tone should be informative yet accessible. Structure it with a brief introduction, a main body that discusses each concept, and a short outro. Return ONLY the script content as plain text.`;
+Please generate the podcast script. The tone should be informative yet accessible. Structure it with a brief introduction, a main body that discusses each concept, and a short outro. Do not include placeholders like "intro music" or "outro music" or any other stage directions. Return ONLY the script content as plain text, focusing solely on the spoken content.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
