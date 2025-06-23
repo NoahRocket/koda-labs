@@ -763,29 +763,29 @@
     // Add document ready function
     // Function to handle podcast generation
     async function setupPodcastGeneration() {
+      // Ensure toast system is ready before use
+      initToastSystem();
       console.log('Setting up podcast generation with jobDetails:', jobDetails);
       
-      if (!jobDetails.jobId) {
-        // Show error toast if somehow the button was clicked without a PDF
-        showErrorToast('No PDF uploaded. Please upload a PDF first.');
+      if (!jobDetails || !jobDetails.jobId) {
+        showErrorToast('Cannot generate podcast without a valid PDF upload.');
         return;
       }
       
       try {
-        // Show loading indicator
+        // Show loading indicator and hide the generation container
         if (loadingIndicator) loadingIndicator.classList.remove('hidden');
         if (generatePodcastContainer) generatePodcastContainer.classList.add('hidden');
         
-        // Show success toast with longer duration
         showSuccessToast('Generating podcast in the background. It will appear in your list when ready.', 5000);
         
-        // Show progress indicator in the UI
-        // First remove any existing progress container
+        // Remove any existing progress container to avoid duplicates
         const existingProgress = document.getElementById('podcastProgressContainer');
         if (existingProgress) {
           existingProgress.remove();
         }
         
+        // Create and configure the progress container
         const progressContainer = document.createElement('div');
         progressContainer.id = 'podcastProgressContainer';
         progressContainer.className = 'mt-8 p-6 bg-white rounded-lg shadow-sm max-w-3xl mx-auto text-center';
@@ -794,61 +794,49 @@
           <div class="relative pt-1">
             <div class="flex mb-2 items-center justify-between">
               <div>
-                <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200" id="progressStepText">
-                  Analyzing PDF
+                <span id="progressStepText" class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
+                  Initializing...
                 </span>
               </div>
               <div class="text-right">
-                <span class="text-xs font-semibold inline-block text-blue-600" id="progressPercentage">25%</span>
+                <span id="progressPercentage" class="text-xs font-semibold inline-block text-blue-600">0%</span>
               </div>
             </div>
             <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
-              <div id="progressBar" style="width:25%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500"></div>
+              <div id="progressBar" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500"></div>
             </div>
           </div>
-          <p class="text-sm text-gray-600 mt-2" id="progressMessage">Extracting key concepts from your document...</p>
+          <p id="progressMessage" class="text-sm text-gray-600 mt-2">Getting things ready...</p>
         `;
         
-        // Insert progress container in a visible location
-        const mainContent = document.querySelector('.main-content-area') || document.querySelector('main') || document.body;
-        
-        // Find the podcast list heading (can't use :contains as it's not standard JS)
-        let podcastListHeading = null;
-        const headings = document.querySelectorAll('h2');
-        for (const heading of headings) {
-          if (heading.textContent.includes('Your Podcasts')) {
-            podcastListHeading = heading;
-            break;
-          }
-        }
-        
-        if (podcastListHeading && podcastListHeading.parentNode) {
-          podcastListHeading.parentNode.insertBefore(progressContainer, podcastListHeading);
+        // Simplified and more robust progress container insertion
+        const podcastList = document.getElementById('podcastList');
+        if (podcastList && podcastList.parentNode) {
+          // Insert before the podcast list for better visibility
+          podcastList.parentNode.insertBefore(progressContainer, podcastList);
         } else {
-          // Fallback - insert before podcast list if we can find it
-          const podcastList = document.getElementById('podcastList');
-          if (podcastList && podcastList.parentNode) {
-            podcastList.parentNode.insertBefore(progressContainer, podcastList);
-          } else {
-            // Last resort - just append to main content
-            mainContent.appendChild(progressContainer);
-          }
+          // Fallback to appending to main content area if list isn't found
+          const mainContent = document.querySelector('.main-content-area') || document.querySelector('main') || document.body;
+          mainContent.appendChild(progressContainer);
+          console.warn('Could not find podcast list container, appended progress to main content.');
         }
         
-        // Start progress simulation
+        // Start progress simulation and refresh the list
         simulateProgress(jobDetails.jobId);
-        
-        // Refresh podcast list after a short delay
         setTimeout(loadPodcasts, 2000);
+
       } catch (error) {
         console.error('Error setting up podcast generation:', error);
-        showErrorToast(`Error: ${error.message}`);
-        loadingIndicator.classList.add('hidden');
+        showErrorToast(`Error starting generation: ${error.message}`);
+        if(loadingIndicator) loadingIndicator.classList.add('hidden');
+        if(generatePodcastContainer) generatePodcastContainer.classList.remove('hidden');
       }
     }
     
     // Function to simulate progress for better user feedback
     function simulateProgress(jobId) {
+      // Ensure toast system is ready
+      initToastSystem();
       if (!jobId) return;
       
       const progressBar = document.getElementById('progressBar');
@@ -856,23 +844,26 @@
       const progressStepText = document.getElementById('progressStepText');
       const progressMessage = document.getElementById('progressMessage');
       
-      if (!progressBar || !progressPercentage || !progressStepText || !progressMessage) return;
+      // Add validation for progress elements
+      if (!progressBar || !progressPercentage || !progressStepText || !progressMessage) {
+        console.error('Progress bar elements not found. Cannot simulate progress.');
+        showErrorToast('Could not display progress updates.');
+        return;
+      }
       
       const steps = [
         { percent: 25, text: 'Analyzing PDF', message: 'Extracting key concepts from your document...' },
         { percent: 50, text: 'Creating Script', message: 'Generating podcast script based on document content...' },
-        { percent: 75, text: 'Text to Speech', message: 'Converting script to audio using text-to-speech...' },
-        { percent: 95, text: 'Finalizing', message: 'Finalizing your podcast and preparing for playback...' },
-        { percent: 100, text: 'Complete', message: 'Your podcast is ready! It will appear in your list momentarily.' }
+        { percent: 75, text: 'Text to Speech', message: 'Converting script to audio...' },
+        { percent: 95, text: 'Finalizing', message: 'Finalizing your podcast...' },
+        { percent: 100, text: 'Complete', message: 'Your podcast is ready!' }
       ];
       
       let currentStep = 0;
       
-      // Update progress every 8-12 seconds to simulate the steps
       const interval = setInterval(() => {
         if (currentStep >= steps.length) {
           clearInterval(interval);
-          // Check if podcast is actually ready
           checkPodcastStatus(jobId, interval);
           return;
         }
@@ -883,23 +874,29 @@
         progressStepText.textContent = step.text;
         progressMessage.textContent = step.message;
         
+        // Provide toast notification for each step for better feedback
+        if (step.percent < 100) {
+            showInfoToast(step.text, 4000);
+        }
+        
         currentStep++;
       }, 10000); // Update every 10 seconds
       
-      // Store the interval ID to clear it if needed
       jobDetails.progressInterval = interval;
     }
     
     // Function to check if podcast is actually ready
     async function checkPodcastStatus(jobId, progressInterval) {
+      // Ensure toast system is ready
+      initToastSystem();
       try {
         const accessToken = localStorage.getItem('accessToken');
         if (!accessToken) return;
         
-        // Poll for podcast status
         const response = await fetch(`/.netlify/functions/check-podcast-status?jobId=${jobId}`, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
           }
         });
         
@@ -907,24 +904,28 @@
           const data = await response.json();
           
           if (data.status === 'completed') {
-            // Podcast is ready, refresh the list and remove progress indicator
+            if (progressInterval) clearInterval(progressInterval);
             loadPodcasts();
             const progressContainer = document.getElementById('podcastProgressContainer');
-            if (progressContainer) {
-              progressContainer.remove();
-            }
+            if (progressContainer) progressContainer.remove();
             showSuccessToast('Your podcast is ready!', 5000);
           } else if (data.status === 'error') {
-            // Show error message
-            showErrorToast(`Error generating podcast: ${data.error || 'Unknown error'}`);
-            clearInterval(progressInterval);
+            if (progressInterval) clearInterval(progressInterval);
+            showErrorToast(`Podcast generation failed: ${data.error || 'Unknown error'}`);
+            const progressContainer = document.getElementById('podcastProgressContainer');
+            if (progressContainer) progressContainer.remove();
           } else {
-            // Still processing, check again in 10 seconds
+            // Still processing, check again
             setTimeout(() => checkPodcastStatus(jobId, progressInterval), 10000);
           }
+        } else {
+            if (progressInterval) clearInterval(progressInterval);
+            showErrorToast('Could not verify podcast status. Please refresh the page.', 5000);
         }
       } catch (error) {
+        if (progressInterval) clearInterval(progressInterval);
         console.error('Error checking podcast status:', error);
+        showErrorToast('An error occurred while checking podcast status.');
       }
     }
 
@@ -1008,6 +1009,21 @@
       
       // Setup Generate Podcast button
       const generateButton = document.getElementById('generatePodcastBtn');
+      if (generateButton) {
+        generateButton.addEventListener('click', function(event) {
+          event.preventDefault();
+          // Ensure toast system is ready before use
+          initToastSystem();
+
+          if (!jobDetails || !jobDetails.jobId) {
+            showErrorToast('No PDF uploaded. Please upload a PDF first.');
+            return;
+          }
+
+          showInfoToast('Starting podcast generation...', 3000);
+          setupPodcastGeneration();
+        });
+      }
       if (generateButton) {
         // Make sure the button is initially disabled
         generateButton.disabled = true;

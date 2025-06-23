@@ -10,16 +10,35 @@ let toastContainer;
 
 // Initialize the toast system
 function initToastSystem() {
-  // Create toast container if it doesn't exist
-  if (!document.getElementById('toast-container')) {
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'toast-container';
-    toastContainer.className = 'toast-container';
-    document.body.appendChild(toastContainer);
-    console.log('Toast container created');
-  } else {
-    toastContainer = document.getElementById('toast-container');
-    console.log('Using existing toast container');
+  try {
+    // Create toast container if it doesn't exist
+    if (!document.getElementById('toast-container')) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'toast-container';
+      toastContainer.className = 'toast-container';
+      document.body.appendChild(toastContainer);
+      console.log('Toast container created');
+    } else {
+      toastContainer = document.getElementById('toast-container');
+      console.log('Using existing toast container');
+    }
+    
+    // Double check that the container is actually in the DOM
+    if (!document.getElementById('toast-container')) {
+      console.error('Toast container was created but not found in the DOM');
+      // Try again with a slight delay to ensure DOM is ready
+      setTimeout(() => {
+        if (!document.getElementById('toast-container')) {
+          toastContainer = document.createElement('div');
+          toastContainer.id = 'toast-container';
+          toastContainer.className = 'toast-container';
+          document.body.appendChild(toastContainer);
+          console.log('Toast container created on retry');
+        }
+      }, 100);
+    }
+  } catch (error) {
+    console.error('Error initializing toast system:', error);
   }
 }
 
@@ -33,10 +52,28 @@ function showToast(message, type = 'info', duration = 3000) {
   // Always ensure we have a toast container
   if (!toastContainer || !document.getElementById('toast-container')) {
     initToastSystem();
+    // Short delay to ensure container is created
+    setTimeout(() => showToastImpl(message, type, duration), 50);
+    return null;
+  } else {
+    return showToastImpl(message, type, duration);
+  }
+}
+
+/**
+ * Internal implementation of showToast after container is verified
+ */
+function showToastImpl(message, type = 'info', duration = 3000) {
+  // Validate message to prevent empty toasts
+  if (!message || message.trim() === '') {
+    console.warn('Attempted to show toast with empty message');
+    message = type === 'error' ? 'An error occurred' : 
+              type === 'success' ? 'Operation successful' : 
+              type === 'warning' ? 'Warning' : 'Notification';
   }
   
   // Double check that we have a container
-  if (!toastContainer) {
+  if (!toastContainer || !document.getElementById('toast-container')) {
     console.error('Failed to create toast container');
     return null;
   }
@@ -107,6 +144,8 @@ function showToast(message, type = 'info', duration = 3000) {
  * @param {HTMLElement} toast - The toast element to close
  */
 function closeToast(toast) {
+  if (!toast) return;
+  
   // Clear the auto-close timeout
   if (toast.dataset.timeoutId) {
     clearTimeout(parseInt(toast.dataset.timeoutId));
@@ -142,3 +181,6 @@ function showWarningToast(message, duration = 4000) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', initToastSystem);
+
+// Also initialize when the window loads (backup)
+window.addEventListener('load', initToastSystem);
