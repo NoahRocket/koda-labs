@@ -60,10 +60,10 @@ Please generate the podcast script. The tone should be informative yet accessibl
                 'Authorization': `Bearer ${OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo', // Use more reliable model instead of gpt-4.1-mini
+                model: 'gpt-4.1-mini', // Use more reliable model instead of gpt-4.1-mini
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,
-                max_tokens: 3000, // Reduced for better reliability
+                max_tokens: 5000, // Reduced for better reliability
             })
         });
 
