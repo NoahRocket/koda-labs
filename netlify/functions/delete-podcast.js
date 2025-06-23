@@ -94,12 +94,77 @@ exports.handler = async (event) => {
       .eq('user_id', userId)
       .single();
     
+    // If we can't find the job in the database, it might be a direct storage file
+    // In this case, we'll try to delete it directly from storage
     if (jobError || !job) {
-      console.error('Job fetch error:', jobError);
-      return { 
-        statusCode: 404, 
-        body: JSON.stringify({ error: 'Podcast not found or access denied' }) 
-      };
+      console.log(`[delete-podcast] Job not found in database: ${jobId}. Will try direct storage deletion.`);
+      
+      // Since we don't have a job record, we'll try to delete based on the jobId as filename
+      // This handles podcasts that were uploaded directly to storage without a DB record
+      try {
+        // Try to delete the file directly from storage using various possible paths
+        const possibleFilenames = [
+          // Try jobId as the filename
+          `${jobId}`,
+          // Try with .mp3 extension
+          `${jobId}.mp3`,
+          // Try with podcast_ prefix
+          `podcast_${jobId}.mp3`
+        ];
+        
+        let deletionSuccess = false;
+        
+        for (const filename of possibleFilenames) {
+          // Try multiple possible locations for each filename
+          const possiblePaths = [
+            // Current pattern: userId/filename.mp3
+            `${userId}/${filename}`,
+            // Legacy pattern: filename.mp3 in root
+            `${filename}`,
+            // Old pattern with public prefix: public/userId/filename.mp3
+            `public/${userId}/${filename}`
+          ];
+          
+          for (const path of possiblePaths) {
+            console.log(`[delete-podcast] Trying to delete: ${path}`);
+            
+            try {
+              const { error: deleteError } = await supabase
+                .storage
+                .from('podcasts')
+                .remove([path]);
+                
+              if (!deleteError) {
+                console.log(`[delete-podcast] Successfully deleted ${path} from storage.`);
+                deletionSuccess = true;
+              }
+            } catch (err) {
+              // Continue trying other paths
+            }
+          }
+        }
+        
+        if (deletionSuccess) {
+          return {
+            statusCode: 200,
+            body: JSON.stringify({ 
+              success: true, 
+              message: 'Podcast deleted successfully from storage'
+            })
+          };
+        } else {
+          return { 
+            statusCode: 404, 
+            body: JSON.stringify({ error: 'Podcast not found or access denied' }) 
+          };
+        }
+      } catch (storageErr) {
+        console.error('[delete-podcast] Storage delete exception:', storageErr);
+        return { 
+          statusCode: 500, 
+          body: JSON.stringify({ error: 'Failed to delete podcast from storage' }) 
+        };
+      }
     }
     
     // Extract filename from the podcast URL if available

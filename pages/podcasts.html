@@ -502,6 +502,10 @@
             </div>
           ` : '';
 
+          // Determine the best ID to use for deletion
+          const deleteId = podcast.job_id || podcast.id;
+          console.log(`Podcast ${podcast.title}: Using ID ${deleteId} for deletion`);
+          
           podcastsHTML += `
             <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
               <div class="flex justify-between items-start">
@@ -510,7 +514,7 @@
                   <p class="text-xs text-gray-500">${date}</p>
                   ${topicsHtml}
                 </div>
-                <button class="delete-podcast text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50" data-id="${podcast.job_id}">
+                <button class="delete-podcast text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50" data-id="${deleteId}">
                   <i class="fas fa-trash"></i>
                 </button>
               </div>
