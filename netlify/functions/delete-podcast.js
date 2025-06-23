@@ -117,12 +117,12 @@ exports.handler = async (event) => {
         for (const filename of possibleFilenames) {
           // Try multiple possible locations for each filename
           const possiblePaths = [
-            // Current pattern: userId/filename.mp3
+            // Current pattern: public/userId/filename.mp3 - matches the fixed storage structure
+            `public/${userId}/${filename}`,
+            // Alternative pattern: userId/filename.mp3
             `${userId}/${filename}`,
             // Legacy pattern: filename.mp3 in root
-            `${filename}`,
-            // Old pattern with public prefix: public/userId/filename.mp3
-            `public/${userId}/${filename}`
+            `${filename}`
           ];
           
           for (const path of possiblePaths) {
@@ -195,12 +195,12 @@ exports.handler = async (event) => {
       try {
         // Try multiple possible locations for the file
         const possiblePaths = [
-          // Current pattern: userId/filename.mp3
+          // Updated current pattern: public/userId/filename
+          `public/${userId}/${filename}`,
+          // Try other possible locations
           `${userId}/${filename}`,
-          // Legacy pattern: filename.mp3 in root
-          `${filename}`,
-          // Old pattern with public prefix: public/userId/filename.mp3
-          `public/${userId}/${filename}`
+          `public/${filename}`,
+          `${filename}`
         ];
         
         console.log(`[delete-podcast] Attempting to delete from storage, trying multiple paths for: ${filename}`);

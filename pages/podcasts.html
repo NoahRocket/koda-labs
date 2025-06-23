@@ -46,6 +46,15 @@
       hyphens: auto;
       max-width: 100%;
     }
+    
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    
+    .fade-out {
+      animation: fadeOut 0.5s ease-out forwards;
+    }
   </style>
 </head>
 <body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900" style="background: linear-gradient(180deg, #F7F7F7 0%, #FFFFFF 100%);">
@@ -1049,6 +1058,8 @@
         const accessToken = localStorage.getItem('accessToken');
         if (!accessToken) return;
         
+        console.log('[checkPodcastStatus] Checking status for jobId:', jobId);
+        
         const response = await fetch(`/.netlify/functions/check-podcast-status?jobId=${jobId}`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -1058,20 +1069,77 @@
         
         if (response.ok) {
           const data = await response.json();
+          console.log('[checkPodcastStatus] Status received:', data.status);
           
           if (data.status === 'completed') {
-            if (progressInterval) clearInterval(progressInterval);
-            loadPodcasts();
-            const progressContainer = document.getElementById('podcastProgressContainer');
-            if (progressContainer) progressContainer.remove();
-            showSuccessToast('Your podcast is ready!', 5000);
+            // Clear the progress animation
+            if (progressInterval) {
+              clearInterval(progressInterval);
+              console.log('[checkPodcastStatus] Progress interval cleared');
+            }
+            
+            // Update progress display to 100% before removing
+            const progressBar = document.querySelector('#progressBar');
+            const progressPercentage = document.querySelector('#progressPercentage');
+            const progressStepText = document.querySelector('#progressStepText');
+            const progressMessage = document.getElementById('progressMessage');
+            
+            if (progressBar) progressBar.style.width = '100%';
+            if (progressPercentage) progressPercentage.textContent = '100%';
+            if (progressStepText) progressStepText.textContent = 'Complete';
+            if (progressMessage) progressMessage.textContent = 'Your podcast is ready!';
+            
+            // Show a prominent success message
+            showSuccessToast('Your podcast has been successfully generated! 🎉', 8000);
+            
+            // Give a brief moment for the user to see the 100% completion state
+            setTimeout(() => {
+              // Remove progress container with proper ID matching
+              const progressContainers = [
+                document.getElementById('podcastProgressContainer'),
+                document.getElementById('progressContainer'),
+                document.querySelector('.progress-container')
+              ];
+              
+              for (const container of progressContainers) {
+                if (container) {
+                  container.classList.add('fade-out');
+                  setTimeout(() => {
+                    container.remove();
+                    console.log('[checkPodcastStatus] Progress container removed');
+                  }, 500);
+                  break;
+                }
+              }
+              
+              // Reset job details but keep the jobId for reference
+              const completedJobId = jobId;
+              localStorage.setItem('lastCompletedPodcastJobId', completedJobId);
+              
+              // Refresh the podcast list to show the new podcast
+              loadPodcasts();
+            }, 1500);
+            
           } else if (data.status === 'error') {
             if (progressInterval) clearInterval(progressInterval);
-            showErrorToast(`Podcast generation failed: ${data.error || 'Unknown error'}`);
-            const progressContainer = document.getElementById('podcastProgressContainer');
-            if (progressContainer) progressContainer.remove();
+            showErrorToast(`Podcast generation failed: ${data.error || 'Unknown error'}`, 8000);
+            
+            // Remove progress container with proper ID matching
+            const progressContainers = [
+              document.getElementById('podcastProgressContainer'),
+              document.getElementById('progressContainer'),
+              document.querySelector('.progress-container')
+            ];
+            
+            for (const container of progressContainers) {
+              if (container) {
+                container.remove();
+                break;
+              }
+            }
           } else {
-            // Still processing, check again
+            // Still processing, check again after delay
+            console.log('[checkPodcastStatus] Still processing, checking again in 10s');
             setTimeout(() => checkPodcastStatus(jobId, progressInterval), 10000);
           }
         } else {
