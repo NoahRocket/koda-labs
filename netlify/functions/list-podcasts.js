@@ -147,7 +147,7 @@ exports.handler = async (event) => {
           if (!allPodcasts.some(p => p.audio_url === publicUrl)) {
             const prettyTitle = file.name
               .replace(/^podcast_/, '')
-              .replace(/\\.mp3$/, '')
+              .replace(/\.mp3$/, '')
               .replace(/-/g, ' ');
             
             allPodcasts.push({
@@ -160,6 +160,77 @@ exports.handler = async (event) => {
             });
           }
         });
+      }
+      
+      // 2.5 Check for podcasts in the public folder (new standard location)
+      console.log('[list-podcasts] Checking for podcasts in public directory');
+      const { data: publicFiles, error: publicError } = await supabase
+        .storage
+        .from('podcasts')
+        .list('public', { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+      
+      if (!publicError && publicFiles) {
+        const mp3Files = publicFiles.filter(file => file.name.endsWith('.mp3'));
+        console.log(`[list-podcasts] Found ${mp3Files.length} MP3 files in public folder`);
+        
+        mp3Files.forEach(file => {
+          // Only include if it's not already in our list
+          const filePath = `public/${file.name}`;
+          const publicUrl = supabase.storage.from('podcasts').getPublicUrl(filePath).data.publicUrl;
+          if (!allPodcasts.some(p => p.audio_url === publicUrl)) {
+            const prettyTitle = file.name
+              .replace(/^podcast_/, '')
+              .replace(/\.mp3$/, '')
+              .replace(/-/g, ' ');
+            
+            allPodcasts.push({
+              id: file.id || file.name,
+              title: prettyTitle || 'Untitled Podcast',
+              created_at: file.created_at || new Date().toISOString(),
+              audio_url: publicUrl,
+              source: 'storage-public',
+              concepts: []
+            });
+          }
+        });
+        
+        // Also look for any user folders in the public directory
+        const userFolders = publicFiles.filter(item => item.id === null); // Folders have null id in Supabase storage
+        
+        for (const folder of userFolders) {
+          console.log(`[list-podcasts] Found user folder in public directory: ${folder.name}`);
+          const { data: userPublicFiles, error: userPublicError } = await supabase
+            .storage
+            .from('podcasts')
+            .list(`public/${folder.name}`, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+            
+          if (!userPublicError && userPublicFiles) {
+            const userMp3Files = userPublicFiles.filter(file => file.name.endsWith('.mp3'));
+            console.log(`[list-podcasts] Found ${userMp3Files.length} MP3 files in public/${folder.name} folder`);
+            
+            userMp3Files.forEach(file => {
+              const filePath = `public/${folder.name}/${file.name}`;
+              const publicUrl = supabase.storage.from('podcasts').getPublicUrl(filePath).data.publicUrl;
+              
+              // Only include if it's not already in our list
+              if (!allPodcasts.some(p => p.audio_url === publicUrl)) {
+                const prettyTitle = file.name
+                  .replace(/^podcast_/, '')
+                  .replace(/\.mp3$/, '')
+                  .replace(/-/g, ' ');
+                
+                allPodcasts.push({
+                  id: file.id || file.name,
+                  title: prettyTitle || 'Untitled Podcast',
+                  created_at: file.created_at || new Date().toISOString(),
+                  audio_url: publicUrl,
+                  source: 'storage-public-user',
+                  concepts: []
+                });
+              }
+            });
+          }
+        }
       }
       
       // 3. Check for podcasts in user's specific folder (current pattern)
