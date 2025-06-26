@@ -111,18 +111,39 @@ exports.handler = async (event, context) => {
         }, 5000); // Reduce to 5 seconds for faster feedback in local dev
       });
       logStepTime('Timeout Promise Set');
-      
-      if (action === 'signup') {
+            if (action === 'signup') {
         logStepTime('Before Supabase Call');
-        const signupPromise = supabase.auth.signUp({ email, password });
+        // Get site domain from request headers for proper redirects
+        const host = event.headers.host || 'koda-labs.netlify.app';
+        const protocol = host.includes('localhost') ? 'http' : 'https';
+        const redirectUrl = `${protocol}://${host}/pages/login.html`;
+        console.log(`[auth] Using redirect URL for email confirmation: ${redirectUrl}`);
+        
+        // Include redirectTo parameter to ensure proper redirection after email confirmation
+        const signupPromise = supabase.auth.signUp({
+          email, 
+          password,
+          options: {
+            emailRedirectTo: redirectUrl
+          }
+        });
         logStepTime('After Supabase Call');
         logStepTime('Signup Promise Created');
         const { data, error } = await Promise.race([signupPromise, timeoutPromise]);
         logStepTime('Signup Promise Resolved');
         if (error) throw error;
         
+        // Handle case where signup succeeds but session is null (email confirmation required)
+        const responseBody = {
+          user: data.user,
+          // Only include session if it exists
+          ...(data.session ? { session: data.session } : { emailConfirmationRequired: true })
+        };
+        
+        console.log(`[auth] Signup successful for ${email}, session present: ${!!data.session}`);
+        
         // Cache successful response in local development
-        const response = { statusCode: 200, body: JSON.stringify({ user: data.user, session: data.session }) };
+        const response = { statusCode: 200, body: JSON.stringify(responseBody) };
         if (isLocalDev) {
           const cacheKey = getCacheKey(event);
           if (cacheKey) {

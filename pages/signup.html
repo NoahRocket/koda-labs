@@ -119,19 +119,45 @@
       e.preventDefault();
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      const response = await fetch('/.netlify/functions/auth', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'signup', email, password }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const result = await response.json();
-      if (response.ok) {
-        localStorage.setItem('userId', result.user.id);
-        localStorage.setItem('accessToken', result.session.access_token);
-        localStorage.setItem('refreshToken', result.session.refresh_token);
-        window.location.href = 'dashboard.html';
-      } else {
-        updateSignupStatus('Signup failed: ' + (result.error || 'Unknown error'), true);
+      
+      // Show loading indication
+      updateSignupStatus('Processing signup...');
+      
+      try {
+        const response = await fetch('/.netlify/functions/auth', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'signup', email, password }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Store user ID regardless of whether session is available
+          localStorage.setItem('userId', result.user.id);
+          
+          // Check if session is available (if email confirmation is not required)
+          if (result.session) {
+            // Normal flow - session available immediately
+            localStorage.setItem('accessToken', result.session.access_token);
+            localStorage.setItem('refreshToken', result.session.refresh_token);
+            window.location.href = 'dashboard.html';
+          } else if (result.emailConfirmationRequired) {
+            // Email confirmation flow
+            showToast('Signup successful! Please check your email to confirm your account.', 'success');
+            updateSignupStatus('Please check your email to confirm your account before logging in.');
+            // Clear the form
+            form.reset();
+          } else {
+            // Unexpected response format
+            updateSignupStatus('Signup completed with an unexpected response. Please try logging in.', true);
+          }
+        } else {
+          updateSignupStatus('Signup failed: ' + (result.error || 'Unknown error'), true);
+        }
+      } catch (error) {
+        console.error('Signup error:', error);
+        updateSignupStatus('Signup failed due to a network or server error. Please try again later.', true);
       }
     });
   </script>
