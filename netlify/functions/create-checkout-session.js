@@ -126,7 +126,7 @@ exports.handler = async (event, context) => {
           trial_period_days: 14, // 14-day free trial
         },
         success_url: `${event.headers.origin}/dashboard.html?subscription=success`,
-        cancel_url: `${event.headers.origin}/pricing`,
+        cancel_url: `${event.headers.origin}/pages/pricing.html`,
         allow_promotion_codes: true,
         metadata: {
           userId: user.id,
