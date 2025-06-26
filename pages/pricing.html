@@ -77,6 +77,38 @@
 
   <!-- Main Content Area -->
   <div class="main-content-area md:ml-64 flex-1 p-4 md:p-6">
+    <!-- Free Tier Limit Alert Banner -->
+    <div id="limitAlert" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-md">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-yellow-800" id="limitAlertTitle">Free Plan Limit Reached</h3>
+          <div class="mt-2 text-sm text-yellow-700">
+            <p id="limitAlertMessage">You've reached a limit on your free plan. Upgrade to Premium for unlimited access.</p>
+          </div>
+          <div class="mt-4">
+            <div class="-mx-2 -my-1.5 flex">
+              <button id="subscribePremiumBtnAlert" class="bg-yellow-100 px-2 py-1.5 rounded-md text-sm font-medium text-yellow-800 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">Upgrade to Premium</button>
+            </div>
+          </div>
+        </div>
+        <div class="ml-auto pl-3">
+          <div class="-mx-1.5 -my-1.5">
+            <button id="dismissLimitAlert" class="inline-flex bg-yellow-50 rounded-md p-1.5 text-yellow-500 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+              <span class="sr-only">Dismiss</span>
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="text-center mb-12">
       <h1 class="text-4xl font-extrabold text-gray-900 mb-4">Choose the Right Plan for You</h1>
       <p class="text-xl text-gray-500 max-w-3xl mx-auto">
@@ -587,13 +619,50 @@
             document.getElementById('currentPlanBtn').classList.remove('hidden');
           }
           
-          // Check URL parameters for subscription status
+          // Check URL parameters for subscription status and limit alerts
           const urlParams = new URLSearchParams(window.location.search);
           if (urlParams.get('subscription') === 'success') {
             showToast('Subscription successful! You now have access to all premium features.', 'success');
           } else if (urlParams.get('subscription') === 'canceled') {
             showToast('Checkout was canceled. You can try again when you\'re ready.', 'info');
           }
+          
+          // Check for limit parameters
+          if (urlParams.get('limit')) {
+            const limitType = urlParams.get('limit');
+            const limitValue = urlParams.get('value') || '';
+            const currentValue = urlParams.get('current') || '';
+            const limitAlert = document.getElementById('limitAlert');
+            const limitAlertTitle = document.getElementById('limitAlertTitle');
+            const limitAlertMessage = document.getElementById('limitAlertMessage');
+            
+            // Show the limit alert
+            limitAlert.classList.remove('hidden');
+            
+            // Set the appropriate message based on limit type
+            if (limitType === 'topics') {
+              limitAlertTitle.textContent = 'Topic Limit Reached';
+              limitAlertMessage.textContent = `You've reached the maximum of ${limitValue} topics allowed on the free plan. Upgrade to Premium for unlimited topics.`;
+            } else if (limitType === 'bookmarks') {
+              limitAlertTitle.textContent = 'Bookmark Limit Reached';
+              limitAlertMessage.textContent = `You've reached the maximum of ${limitValue} bookmarks allowed on the free plan. Upgrade to Premium for unlimited bookmarks.`;
+            } else if (limitType === 'podcast_conversions') {
+              limitAlertTitle.textContent = 'PDF to Podcast Limit Reached';
+              limitAlertMessage.textContent = `You've reached the maximum of ${limitValue} PDF to Podcast conversion allowed per month on the free plan. Upgrade to Premium for unlimited conversions.`;
+            } else if (limitType === 'ai_messages') {
+              limitAlertTitle.textContent = 'AI Message Limit Reached';
+              limitAlertMessage.textContent = `You've reached the maximum of ${limitValue} AI messages allowed per day on the free plan. Upgrade to Premium for unlimited messages.`;
+            }
+            
+            // Add event listeners for the limit alert
+            document.getElementById('subscribePremiumBtnAlert').addEventListener('click', () => {
+              document.getElementById('subscribeBtn').click();
+            });
+            
+            document.getElementById('dismissLimitAlert').addEventListener('click', () => {
+              limitAlert.classList.add('hidden');
+            });
+          } 
         } catch (error) {
           console.error('Error checking subscription status:', error);
         }

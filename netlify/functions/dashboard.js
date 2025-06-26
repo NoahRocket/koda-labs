@@ -1,5 +1,11 @@
 const fetch = require('node-fetch');
 const { getSupabaseAuthClient, releaseSupabaseConnections } = require('./supabaseClient'); // Import the specific client
+const { trackUsageAndCheckLimits } = require('./usage-tracking');
+const { hasActivePremiumSubscription } = require('./stripeClient');
+
+// Free tier limits
+const FREE_TIER_TOPIC_LIMIT = 5;
+const FREE_TIER_BOOKMARK_LIMIT = 50;
 
 // Track active connections to ensure proper cleanup
 let activeConnections = 0;
@@ -190,6 +196,35 @@ exports.handler = async (event, context) => {
       // Use default book emoji
       const emoji = '📚';
 
+      // Check if user has premium subscription or has not exceeded topic limit
+      const hasPremium = await hasActivePremiumSubscription(authUserId);
+      
+      if (!hasPremium) {
+        // Count existing topics for this user
+        const { data: existingTopics, error: countError } = await supabase
+          .from('topics')
+          .select('id', { count: 'exact' })
+          .eq('user_id', authUserId);
+          
+        if (countError) {
+          console.error('Error counting topics:', countError);
+          return { statusCode: 500, body: JSON.stringify({ error: 'Failed to check topic limits' }) };
+        }
+        
+        // Check if user has reached the free tier limit
+        if (existingTopics && existingTopics.length >= FREE_TIER_TOPIC_LIMIT) {
+          return { 
+            statusCode: 403, 
+            body: JSON.stringify({ 
+              error: 'Free tier limit reached', 
+              message: `You have reached the maximum of ${FREE_TIER_TOPIC_LIMIT} topics allowed on the free plan. Please upgrade to Premium for unlimited topics.`,
+              limit: FREE_TIER_TOPIC_LIMIT,
+              current: existingTopics.length
+            }) 
+          };
+        }
+      }
+      
       const { data: newTopic, error: addTopicError } = await supabase
         .from('topics')
         .insert({ name: topicName, user_id: authUserId, emoji })
@@ -322,10 +357,39 @@ exports.handler = async (event, context) => {
       return { statusCode: 200, body: JSON.stringify({ message: 'Topic name updated successfully' }) };
     } else if (action === 'addBookmark') {
       if (!topicId || !bookmarkUrl) return { statusCode: 400, body: 'Missing topic ID or bookmark URL' };
-      const { error } = await supabase
+      
+      // Check if user has premium subscription or has not exceeded bookmark limit
+      const hasPremium = await hasActivePremiumSubscription(authUserId);
+      
+      if (!hasPremium) {
+        // Count existing bookmarks for this user
+        const { data: existingBookmarks, error: countError } = await supabase
+          .from('bookmarks')
+          .select('id', { count: 'exact' })
+          .in('topic_id', supabase.from('topics').select('id').eq('user_id', authUserId));
+          
+        if (countError) {
+          console.error('Error counting bookmarks:', countError);
+          return { statusCode: 500, body: JSON.stringify({ error: 'Failed to check bookmark limits' }) };
+        }
+        
+        // Check if user has reached the free tier limit
+        if (existingBookmarks && existingBookmarks.length >= FREE_TIER_BOOKMARK_LIMIT) {
+          return { 
+            statusCode: 403, 
+            body: JSON.stringify({ 
+              error: 'Free tier limit reached', 
+              message: `You have reached the maximum of ${FREE_TIER_BOOKMARK_LIMIT} bookmarks allowed on the free plan. Please upgrade to Premium for unlimited bookmarks.`,
+              limit: FREE_TIER_BOOKMARK_LIMIT,
+              current: existingBookmarks.length
+            }) 
+          };
+        }
+      }
+      
+      await supabase
         .from('bookmarks')
         .insert({ topic_id: topicId, url: bookmarkUrl });
-      if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ message: 'Bookmark added' }) };
     } else if (action === 'deleteBookmark') {
       if (!bookmarkId) return { statusCode: 400, body: 'Missing bookmark ID' };

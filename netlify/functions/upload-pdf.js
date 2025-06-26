@@ -1,6 +1,11 @@
 const pdf = require('pdf-parse');
 const Busboy = require('busboy');
 const { getSupabaseAdmin, PDF_BUCKET_NAME } = require('./supabaseClient');
+const { trackUsageAndCheckLimits } = require('./usage-tracking');
+const { hasActivePremiumSubscription } = require('./stripeClient');
+
+// Free tier limits
+const FREE_TIER_MONTHLY_PODCAST_LIMIT = 1;
 
 exports.handler = async (event) => {
   console.log('[upload-pdf] Handler started');
@@ -73,6 +78,33 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: `Unauthorized: ${err.message}` }),
       headers: { 'Content-Type': 'application/json' },
     };
+  }
+
+  // Check if user has premium subscription or has not exceeded podcast conversion limit
+  console.log('[upload-pdf] Checking usage limits');
+  try {
+    const hasPremium = await hasActivePremiumSubscription(userId);
+    
+    if (!hasPremium) {
+      // Check podcast conversion usage for this month
+      const usageResult = await trackUsageAndCheckLimits(userId, 'podcast_conversions', FREE_TIER_MONTHLY_PODCAST_LIMIT);
+      
+      if (usageResult.limitExceeded) {
+        return {
+          statusCode: 403,
+          body: JSON.stringify({
+            error: 'Free tier limit reached',
+            message: `You have reached the maximum of ${FREE_TIER_MONTHLY_PODCAST_LIMIT} PDF to Podcast conversion allowed per month on the free plan. Please upgrade to Premium for unlimited conversions.`,
+            limit: FREE_TIER_MONTHLY_PODCAST_LIMIT,
+            current: usageResult.currentUsage
+          }),
+          headers: { 'Content-Type': 'application/json' },
+        };
+      }
+    }
+  } catch (limitError) {
+    console.error('[upload-pdf] Error checking usage limits:', limitError);
+    // Continue processing even if limit check fails to avoid blocking users
   }
 
   // Process the file upload using Busboy
