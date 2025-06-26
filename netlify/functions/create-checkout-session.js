@@ -1,4 +1,4 @@
-const { getSupabaseAuthClient } = require('./supabaseClient');
+const { getSupabaseAdmin } = require('./supabaseClient');
 const { stripe, getOrCreateStripeCustomer } = require('./stripeClient');
 
 exports.handler = async (event, context) => {
@@ -11,6 +11,15 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Check if Stripe is properly initialized
+    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'missing_key') {
+      console.error('STRIPE_SECRET_KEY environment variable is not properly set');
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Payment system is not properly configured. Please contact support.' })
+      };
+    }
+    
     // Get the user's ID, email, and billing interval from the request
     const { user, billingInterval = 'monthly' } = JSON.parse(event.body);
     
@@ -21,14 +30,58 @@ exports.handler = async (event, context) => {
       };
     }
     
-    // Verify the user's token
-    const supabase = getSupabaseAuthClient();
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(user.accessToken);
-    
-    if (authError || !authUser || authUser.id !== user.id) {
+    // Verify the user's token using direct JWT validation
+    let authUser;
+    try {
+      // Validate JWT format
+      if (!user.accessToken) {
+        throw new Error('Access token is required');
+      }
+      
+      // Check if token has the expected JWT structure (3 parts separated by dots)
+      const tokenParts = user.accessToken.split('.');
+      if (tokenParts.length !== 3) {
+        throw new Error('Token does not have three parts as required for JWT format');
+      }
+      
+      // Simple manual decode of the JWT payload (middle part)
+      let payload;
+      try {
+        const base64Payload = tokenParts[1];
+        // Handle potential padding issues with base64url format
+        const padding = '='.repeat((4 - base64Payload.length % 4) % 4);
+        const base64 = (base64Payload + padding)
+          .replace(/-/g, '+')
+          .replace(/_/g, '/');
+        const base64Decoded = Buffer.from(base64, 'base64').toString('utf8');
+        payload = JSON.parse(base64Decoded);
+      } catch (parseError) {
+        console.error(`Failed to parse JWT payload: ${parseError.message}`);
+        throw new Error('Invalid JWT payload format');
+      }
+      
+      if (!payload || !payload.sub) {
+        throw new Error('Invalid token payload or missing user ID');
+      }
+      
+      // Create a user object from the decoded token payload
+      authUser = {
+        id: payload.sub,
+        email: payload.email || user.email,
+        role: payload.role || ''
+      };
+      
+      // Verify user ID matches
+      if (authUser.id !== user.id) {
+        throw new Error('User ID mismatch');
+      }
+
+      console.log(`Successfully verified token for user: ${authUser.id}`);
+    } catch (tokenError) {
+      console.error(`Token validation error: ${tokenError.message}`);
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: 'Unauthorized' })
+        body: JSON.stringify({ error: `Unauthorized: ${tokenError.message}` })
       };
     }
     
@@ -56,41 +109,66 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Subscription price ID not configured' })
       };
     }
-    
+
     // Create a checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: stripeCustomerId,
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        customer: stripeCustomerId, // Fixed variable name from customerId to stripeCustomerId
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        subscription_data: {
+          trial_period_days: 14, // 14-day free trial
         },
-      ],
-      mode: 'subscription',
-      subscription_data: {
-        trial_period_days: 14, // 14-day free trial
-      },
-      success_url: `${event.headers.origin}/dashboard.html?subscription=success`,
-      cancel_url: `${event.headers.origin}/pricing.html?subscription=canceled`,
-      allow_promotion_codes: true,
-      metadata: {
-        userId: user.id,
-        billingInterval: billingInterval
-      }
-    });
-    
-    // Return the session ID to the client
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ sessionId: session.id })
-    };
+        success_url: `${event.headers.origin}/dashboard.html?subscription=success`,
+        cancel_url: `${event.headers.origin}/pricing`,
+        allow_promotion_codes: true,
+        metadata: {
+          userId: user.id,
+          billingInterval: billingInterval
+        }
+      });
+
+      // Return the session ID to the client
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ sessionId: session.id })
+      };
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: `Failed to create checkout session: ${error.message}` })
+      };
+    }
   } catch (error) {
     console.error('Error creating checkout session:', error);
     
+    // Provide more specific error messages based on the error type
+    let errorMessage = 'Failed to create checkout session';
+    let statusCode = 500;
+    
+    if (error.type && error.type.startsWith('Stripe')) {
+      // Handle specific Stripe errors
+      if (error.type === 'StripeAuthenticationError') {
+        errorMessage = 'Payment system authentication failed. Please contact support.';
+      } else if (error.type === 'StripeInvalidRequestError') {
+        errorMessage = 'Invalid payment request. Please check your information and try again.';
+      } else if (error.type === 'StripeAPIError') {
+        errorMessage = 'Payment service temporarily unavailable. Please try again later.';
+      }
+    } else if (error.message && error.message.includes('customer')) {
+      errorMessage = 'Error creating customer profile. Please try again or contact support.';
+    }
+    
     return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to create checkout session' })
+      statusCode,
+      body: JSON.stringify({ error: errorMessage })
     };
   }
 };

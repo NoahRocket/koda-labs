@@ -394,7 +394,26 @@
       loadTutorAvatar();
       
       // Initialize Stripe with a proper key (this should be replaced with your actual publishable key in production)
-      const stripe = Stripe('pk_test_51OXy1fClwD4VYWVaEU1IQIWxVTjCvutdpRGcIOLH2xaCUajrNnEOF10YKgKzmuEt1Qkb6dYBkwMdNLEPY8scG8kA001pSc7gSq');
+      // Get Stripe publishable key from the server
+      let stripe;
+      async function initializeStripe() {
+        try {
+          const response = await fetch('/.netlify/functions/get-stripe-key');
+          const data = await response.json();
+          if (data.error) {
+            console.error('Error getting Stripe key:', data.error);
+            showToast('Error initializing payment system. Please try again later.', 'error');
+            return;
+          }
+          stripe = Stripe(data.publishableKey);
+        } catch (error) {
+          console.error('Error initializing Stripe:', error);
+          showToast('Error initializing payment system. Please try again later.', 'error');
+        }
+      }
+      
+      // Initialize Stripe
+      initializeStripe();
       
       // Check subscription status
       checkSubscriptionStatus();
@@ -442,6 +461,21 @@
       // Handle subscription button click
       document.getElementById('subscribePremiumBtn').addEventListener('click', async function() {
         try {
+          // Show loading state
+          const subscribeBtn = document.getElementById('subscribePremiumBtn');
+          const originalBtnText = subscribeBtn.textContent;
+          subscribeBtn.disabled = true;
+          subscribeBtn.textContent = 'Processing...';
+          
+          // Check if Stripe is initialized
+          if (!stripe) {
+            console.error('Stripe not initialized');
+            showToast('Payment system is not ready. Please refresh the page and try again.', 'error');
+            subscribeBtn.disabled = false;
+            subscribeBtn.textContent = originalBtnText;
+            return;
+          }
+          
           // Create a checkout session
           const response = await fetch('/.netlify/functions/create-checkout-session', {
             method: 'POST',
@@ -458,10 +492,31 @@
             }),
           });
           
-          const { sessionId, error } = await response.json();
+          // Check for HTTP errors
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('HTTP error:', response.status, errorText);
+            showToast(`Server error (${response.status}). Please try again later.`, 'error');
+            subscribeBtn.disabled = false;
+            subscribeBtn.textContent = originalBtnText;
+            return;
+          }
+          
+          const data = await response.json();
+          const { sessionId, error } = data;
           
           if (error) {
             showToast(error, 'error');
+            subscribeBtn.disabled = false;
+            subscribeBtn.textContent = originalBtnText;
+            return;
+          }
+          
+          if (!sessionId) {
+            console.error('No session ID returned');
+            showToast('Invalid response from payment server. Please try again.', 'error');
+            subscribeBtn.disabled = false;
+            subscribeBtn.textContent = originalBtnText;
             return;
           }
           
@@ -471,11 +526,19 @@
           });
           
           if (result.error) {
+            console.error('Stripe redirect error:', result.error);
             showToast(result.error.message, 'error');
+            subscribeBtn.disabled = false;
+            subscribeBtn.textContent = originalBtnText;
           }
         } catch (error) {
           console.error('Error creating checkout session:', error);
-          showToast('An error occurred. Please try again.', 'error');
+          showToast('An error occurred while setting up payment. Please try again or contact support.', 'error');
+          
+          // Reset button state
+          const subscribeBtn = document.getElementById('subscribePremiumBtn');
+          subscribeBtn.disabled = false;
+          subscribeBtn.textContent = 'Subscribe';
         }
       });
       
