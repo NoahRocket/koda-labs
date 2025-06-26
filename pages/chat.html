@@ -6,6 +6,7 @@
   <title>Chat - Koda Tutor</title>
   <link rel="stylesheet" href="../styles/main.css">
   <link rel="stylesheet" href="../styles/navbar.css">
+  <link rel="stylesheet" href="../styles/toast.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="../scripts/utils.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -461,6 +462,16 @@
         });
       }
       
+      // Auto-scroll when new content is added to the chat container
+      const chatObserver = new MutationObserver(() => {
+        scrollToBottom();
+      });
+      
+      // Start observing the chat container for added nodes
+      if (chatContainer) {
+        chatObserver.observe(chatContainer, { childList: true, subtree: true });
+      }
+      
       async function sendMessage() {
         const message = messageInput.value.trim();
         if (!message) return;
@@ -498,7 +509,7 @@
           </div>
         `;
         chatContainer.appendChild(loadingDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        scrollToBottom();
         
         try {
           // Add the system prompt to the history before sending if it's the first user message
@@ -538,6 +549,13 @@
         }
       }
       
+      // Function to scroll chat to bottom smoothly
+      function scrollToBottom() {
+        if (chatContainer) {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      }
+
       function addMessageToChat(type, content) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} opacity-0 transform translate-y-4 transition-all duration-300`;
@@ -574,11 +592,15 @@
         messageDiv.appendChild(messageBubble);
         
         chatContainer.appendChild(messageDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Scroll to bottom after adding the message
+        scrollToBottom();
         
         // Animate the message in
         requestAnimationFrame(() => {
           messageDiv.classList.remove('opacity-0', 'translate-y-4');
+          // Scroll again after animation to ensure visibility
+          setTimeout(scrollToBottom, 100);
         });
       }
       

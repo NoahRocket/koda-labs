@@ -246,16 +246,42 @@
 
   <!-- Main Content -->
   <div class="md:ml-64 flex-1 p-4 md:p-8 min-h-screen">
-    <div class="text-center mb-8">
-      <h1 class="text-4xl font-bold text-gray-800 mb-2" style="border-bottom: 2px solid #00A3E0; display: inline-block; padding-bottom: 4px;">Welcome Back!</h1>
-      <p class="text-lg text-gray-600 mb-6">Here is what you're currently learning about:</p>
+    <div class="flex justify-between items-start mb-8">
+      <div class="text-left">
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">Welcome Back! 🚀</h1>
+        <p class="text-lg text-gray-600">Continue your AI-powered learning journey and unlock your potential</p>
+      </div>
       <button class="new-topic-btn" id="showAddTopicModal">
         <i class="fas fa-plus"></i>
         <span>New Topic</span>
       </button>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 my-8" id="topicsGrid">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+      <!-- Active Topics Card -->
+      <div class="bg-blue-50 rounded-xl p-6 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-700">Active Topics</h3>
+          <p class="text-3xl font-bold text-blue-600" id="activeTopicsCount">0</p>
+        </div>
+        <div class="bg-blue-100 p-4 rounded-full">
+          <i class="fas fa-book text-blue-500 text-2xl"></i>
+        </div>
+      </div>
+      <!-- AI Conversations Card -->
+      <div class="bg-green-50 rounded-xl p-6 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-700">AI Conversations</h3>
+          <p class="text-3xl font-bold text-green-600" id="savedConversationsCount">0</p>
+        </div>
+        <div class="bg-green-100 p-4 rounded-full">
+          <i class="fas fa-comment text-green-500 text-2xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-8" id="topicsGrid">
       <!-- Topics will be loaded here -->
       <div class="flex justify-center items-center" id="topicsLoading">
         <div class="relative w-10 h-10 border-2 border-gray-200 rounded-full">
@@ -512,6 +538,8 @@
       
       const topicsGrid = document.getElementById('topicsGrid');
       const topicsLoading = document.getElementById('topicsLoading');
+      const activeTopicsCount = document.getElementById('activeTopicsCount');
+      const savedConversationsCount = document.getElementById('savedConversationsCount');
       
       if (!topicsGrid) {
         console.error('Topics grid not found');
@@ -552,6 +580,21 @@
         });
         
         topics = result.topics || [];
+        
+        // Update stats cards
+        if (activeTopicsCount) {
+          activeTopicsCount.textContent = topics.length;
+        }
+        
+        // Count saved conversations
+        let totalConversations = 0;
+        topics.forEach(topic => {
+          totalConversations += (topic.conversation_count || 0);
+        });
+        
+        if (savedConversationsCount) {
+          savedConversationsCount.textContent = totalConversations;
+        }
         
         if (topics.length === 0) {
           const emptyState = document.createElement('div');
@@ -610,9 +653,14 @@
     // Create topic card
     function createTopicCard(topic) {
       const card = document.createElement('div');
-      card.className = 'bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden cursor-pointer border-l-4';
-      card.style.borderLeft = '4px solid #00A3E0';
-      card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+      card.className = 'bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer';
+      card.style.borderTop = '3px solid #00A3E0';
+      card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+      card.style.height = '130px'; // Make cards wider than tall
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.transform = 'translateY(0)';
+      card.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
       card.id = `topic-${topic.id}`;
       card.dataset.topicId = topic.id;
 
@@ -624,9 +672,9 @@
       });
 
       card.innerHTML = `
-        <div class="p-5">
-          <div class="flex justify-between items-start mb-3">
-            <h3 class="text-lg font-semibold text-gray-800 line-clamp-1">
+        <div class="p-4 flex-1 flex flex-col">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-base font-semibold text-gray-800 line-clamp-1">
               <span class="emoji mr-2">${topic.emoji || '📚'}</span>
               <span class="topic-name">${topic.name}</span>
             </h3>
@@ -644,10 +692,10 @@
               </div>
             </div>
           </div>
-          <p class="text-gray-600 text-sm mb-4" style="color: #6B7280;">
-            ${topic.description ? topic.description : '<span contenteditable="true" class="italic text-gray-400" style="color:#6B7280;">Add a description…</span>'}
+          <p class="text-gray-500 text-xs mb-2 flex-grow" style="color: #6B7280;">
+            ${topic.description || ''}
           </p>
-          <div class="flex justify-between items-center text-xs text-gray-500">
+          <div class="flex justify-between items-center text-xs text-gray-400 mt-auto">
             <span><i class="fas fa-calendar-alt mr-1"></i> ${formattedDate}</span>
             <span><i class="fas fa-comment mr-1"></i> ${topic.conversation_count || 0} conversation${topic.conversation_count !== 1 ? 's' : ''}</span>
           </div>
@@ -659,6 +707,17 @@
         if (!e.target.closest('.dropdown') && e.target.closest(`#topic-${topic.id}`)) {
           window.location.href = `topic-view.html?topicId=${topic.id}`;
         }
+      });
+      
+      // Add hover effect
+      card.addEventListener('mouseenter', () => {
+        card.style.transform = 'translateY(-3px)';
+        card.style.boxShadow = '0 4px 8px rgba(0,0,0,0.08)';
+      });
+      
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'translateY(0)';
+        card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
       });
 
       const menuBtn = card.querySelector('.topic-menu-btn');
