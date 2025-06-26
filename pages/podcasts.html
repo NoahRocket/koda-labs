@@ -122,21 +122,37 @@
   <!-- Main Content Area -->
   <div class="main-content-area md:ml-64 flex-1 p-4 md:p-6">
     <!-- Upload Container -->
-    <div class="bg-white p-6 shadow-md rounded-lg mb-8">
-      <h2 class="text-2xl font-bold mb-4">Upload a PDF</h2>
-      <!-- Upload Form -->
-      <div class="mb-4">
-        <label for="pdfInput">
-          <div id="uploadDropzone" class="border-2 border-dashed border-blue-500 rounded-lg p-8 text-center cursor-pointer hover:bg-blue-50 transition-colors">
-            <div class="flex justify-center mb-3">
-              <i class="fas fa-cloud-upload-alt text-blue-500 text-4xl"></i>
-            </div>
-            <p class="text-lg mb-1">Click to upload or drag and drop</p>
-            <p class="text-sm text-gray-500">PDF files only (Max. 10MB)</p>
-          </div>
-        </label>
-        <input type="file" id="pdfInput" class="hidden" accept=".pdf">
+    <div class="mb-8">
+      <div class="flex items-center mb-4">
+        <div class="bg-blue-500 rounded-full p-3 mr-3">
+          <i class="fas fa-podcast text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">AI Podcast Studio</h1>
+          <p class="text-gray-600">Transform your PDFs into engaging audio content</p>
+        </div>
+        <div class="ml-auto">
+          <span class="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">AI Powered</span>
+        </div>
       </div>
+      
+      <!-- Upload Form -->
+      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6">
+        <h2 class="text-xl font-semibold mb-2">Upload Your PDF</h2>
+        <p class="text-gray-600 mb-4">Upload a PDF document and our AI will convert it into an engaging podcast episode</p>
+        <div class="mb-4">
+          <label for="pdfInput">
+            <div id="uploadDropzone" class="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center cursor-pointer hover:bg-blue-50 transition-colors">
+              <div class="flex justify-center mb-3">
+                <i class="fas fa-upload text-blue-500 text-3xl"></i>
+              </div>
+              <p class="text-lg font-medium mb-1">Drop your PDF here</p>
+              <p class="text-sm text-gray-500">or click to browse files</p>
+              <p class="text-xs text-gray-400 mt-2">PDF files only · Max 10MB</p>
+            </div>
+          </label>
+          <input type="file" id="pdfInput" class="hidden" accept=".pdf">
+        </div>
       <!-- Selected File -->
       <div id="selectedFile" class="hidden bg-gray-100 p-4 rounded-lg mb-4">
         <p class="flex items-center">
@@ -146,8 +162,8 @@
       </div>
       <!-- Upload Button -->
       <div class="flex justify-end">
-        <button id="uploadButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center" disabled>
-          <i class="fas fa-upload mr-2"></i> Upload
+        <button id="uploadButton" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center" disabled>
+          <i class="fas fa-upload mr-2"></i> Choose File
         </button>
       </div>
       <!-- Text Preview and Generate Button (Hidden by default) -->
@@ -168,6 +184,31 @@
     <div id="loadingIndicator" class="hidden text-center py-4">
       <i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i>
       <p class="text-gray-600 mt-2">Generating your podcast. This may take several minutes...</p>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <!-- Total Podcasts Card -->
+      <div class="bg-blue-50 p-5 rounded-lg flex items-center">
+        <div class="bg-blue-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-podcast text-blue-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-sm text-blue-800 font-medium">Total Podcasts</h3>
+          <p class="text-2xl font-bold" id="totalPodcastsCount">0</p>
+        </div>
+      </div>
+      
+      <!-- Total Duration Card -->
+      <div class="bg-blue-50 p-5 rounded-lg flex items-center">
+        <div class="bg-blue-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-clock text-blue-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-sm text-blue-800 font-medium">Total Duration</h3>
+          <p class="text-2xl font-bold" id="totalDurationTime">00:00</p>
+        </div>
+      </div>
     </div>
 
     <!-- Premium Upgrade Banner -->
@@ -191,12 +232,14 @@
     </div>
     
     <!-- Podcasts List Section -->
-    <div class="bg-white p-6 rounded-lg shadow-sm mt-8 max-w-3xl mx-auto">
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
       <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl md:text-2xl font-bold">Your Podcasts</h2>
-        <button id="refreshPodcasts" class="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-50 transition-colors">
-          <i class="fas fa-sync"></i>
-        </button>
+        <h2 class="text-xl font-bold">Your Podcasts</h2>
+        <div class="flex items-center">
+          <button id="refreshPodcasts" class="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <i class="fas fa-sync"></i> <span class="ml-1">Refresh</span>
+          </button>
+        </div>
       </div>
 
       <div id="podcastList" class="space-y-4">
@@ -596,6 +639,14 @@
     
     // Function to load user's generated podcasts
     async function loadPodcasts() {
+      const podcastList = document.getElementById('podcastList');
+      const totalPodcastsCount = document.getElementById('totalPodcastsCount');
+      const totalDurationTime = document.getElementById('totalDurationTime');
+      
+      if (!podcastList) return;
+      
+      podcastList.innerHTML = '<div class="flex justify-center py-4"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div></div>';
+      
       try {
         const accessToken = localStorage.getItem('accessToken');
         if (!accessToken) {
@@ -618,6 +669,7 @@
 
         if (!data.podcasts || data.podcasts.length === 0) {
           podcastList.innerHTML = '<div class="text-center py-8 text-gray-500" style="color: #6B7280;">No podcasts yet—upload a PDF to get started!</div>';
+          updateStatsCards(0, 0);
           return;
         }
 
@@ -631,8 +683,20 @@
         
         if (audioOnlyPodcasts.length === 0) {
           podcastList.innerHTML = '<div class="text-center py-8 text-gray-500" style="color: #6B7280;">No podcasts yet—upload a PDF to get started!</div>';
+          updateStatsCards(0, 0);
           return;
         }
+        
+        // Calculate total duration
+        let totalSeconds = 0;
+        audioOnlyPodcasts.forEach(podcast => {
+          if (podcast.duration_seconds) {
+            totalSeconds += parseInt(podcast.duration_seconds);
+          }
+        });
+        
+        // Update stats cards
+        updateStatsCards(audioOnlyPodcasts.length, totalSeconds);
         
         // Render podcasts
         let podcastsHTML = '';
@@ -648,24 +712,48 @@
           const deleteId = podcast.job_id || podcast.id;
           console.log(`Podcast ${podcast.title}: Using ID ${deleteId} for deletion`);
           
+          // Get file size in MB if available
+          const fileSizeMB = podcast.file_size ? (podcast.file_size / (1024 * 1024)).toFixed(1) : null;
+          const fileSizeText = fileSizeMB ? `${fileSizeMB} MB` : '';
+          
+          // Get duration if available (or placeholder)
+          const duration = podcast.duration || '0:00';
+          
+          // Generate a random icon for the podcast (in a real app, this would be based on content)
+          const icons = ['chart-line', 'book', 'graduation-cap', 'code', 'lightbulb', 'brain'];
+          const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+          const iconColors = ['bg-blue-500', 'bg-blue-600', 'bg-blue-700', 'bg-blue-400', 'bg-blue-300'];
+          const randomColor = iconColors[Math.floor(Math.random() * iconColors.length)];
+          
           podcastsHTML += `
-            <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-              <div class="flex justify-between items-start">
-                <div class="flex-1 min-w-0 mr-3">
-                  <h3 class="text-lg font-semibold podcast-title">${podcast.title || 'Untitled Podcast'}</h3>
-                  <p class="text-xs text-gray-500">${date}</p>
-                  ${topicsHtml}
+            <div class="border-b border-gray-100 pb-4 mb-4 last:border-b-0 last:mb-0 last:pb-0">
+              <div class="flex">
+                <div class="${randomColor} rounded-lg p-3 mr-4 h-12 w-12 flex items-center justify-center">
+                  <i class="fas fa-${randomIcon} text-white text-xl"></i>
                 </div>
-                <button class="delete-podcast text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50" data-id="${deleteId}">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-              <div class="podcast-player mt-3">
-                <audio controls src="${podcast.audio_url}"></audio>
-                <div class="flex justify-end">
-                  <a href="${podcast.audio_url}" download target="_blank" class="inline-flex items-center">
-                    <i class="fas fa-download mr-1"></i> Download
-                  </a>
+                <div class="flex-1">
+                  <div class="flex justify-between items-start">
+                    <h3 class="text-lg font-semibold podcast-title">${podcast.title || 'Untitled Podcast'}</h3>
+                    <div class="flex space-x-2">
+                      <button class="p-2 text-gray-400 hover:text-gray-600" id="play-${deleteId}">
+                        <i class="fas fa-play"></i>
+                      </button>
+                      <a href="${podcast.audio_url}" download target="_blank" class="p-2 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-download"></i>
+                      </a>
+                      <button class="delete-podcast p-2 text-gray-400 hover:text-red-500" data-id="${deleteId}">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex items-center text-xs text-gray-500 mt-1">
+                    <span class="mr-4"><i class="fas fa-clock mr-1"></i> ${duration}</span>
+                    ${fileSizeText ? `<span class="mr-4"><i class="fas fa-file-audio mr-1"></i> ${fileSizeText}</span>` : ''}
+                    <span><i class="fas fa-calendar-alt mr-1"></i> ${date}</span>
+                  </div>
+                  <div class="mt-4 hidden" id="player-container-${deleteId}">
+                    <audio controls src="${podcast.audio_url}" class="w-full" id="audio-${deleteId}"></audio>
+                  </div>
                 </div>
               </div>
             </div>
@@ -765,14 +853,59 @@
       }
     }
     
-    // Add event delegation for delete buttons
+    // Add event delegation for delete buttons and play buttons
     document.getElementById('podcastList').addEventListener('click', event => {
       const deleteBtn = event.target.closest('.delete-podcast');
       if (deleteBtn) {
         const podcastId = deleteBtn.dataset.id;
         deletePodcast(podcastId);
+        return;
+      }
+      
+      // Handle play button clicks
+      const playBtn = event.target.closest('[id^="play-"]');
+      if (playBtn) {
+        const podcastId = playBtn.id.replace('play-', '');
+        const playerContainer = document.getElementById(`player-container-${podcastId}`);
+        const audioElement = document.getElementById(`audio-${podcastId}`);
+        
+        if (playerContainer && audioElement) {
+          // Toggle player visibility
+          if (playerContainer.classList.contains('hidden')) {
+            playerContainer.classList.remove('hidden');
+            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            audioElement.play();
+          } else {
+            playerContainer.classList.add('hidden');
+            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+            audioElement.pause();
+          }
+        }
       }
     });
+    
+    // Function to update stats cards
+    function updateStatsCards(podcastCount, totalSeconds) {
+      const totalPodcastsCount = document.getElementById('totalPodcastsCount');
+      const totalDurationTime = document.getElementById('totalDurationTime');
+      
+      if (totalPodcastsCount) {
+        totalPodcastsCount.textContent = podcastCount;
+      }
+      
+      if (totalDurationTime) {
+        // Format seconds into MM:SS or HH:MM:SS
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        if (hours > 0) {
+          totalDurationTime.textContent = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+          totalDurationTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+      }
+    }
 
     // --- Polling Functions ---
     function stopPolling(jobId) {
