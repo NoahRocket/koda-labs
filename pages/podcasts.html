@@ -775,12 +775,12 @@
                     </div>
                   </div>
                   <div class="flex items-center text-xs text-gray-500 mt-1">
-                    <span class="mr-4"><i class="fas fa-clock mr-1"></i> ${duration}</span>
+                    <span class="mr-4"><i class="fas fa-clock mr-1"></i> <span id="duration-${deleteId}">0:00</span></span>
                     ${fileSizeText ? `<span class="mr-4"><i class="fas fa-file-audio mr-1"></i> ${fileSizeText}</span>` : ''}
                     <span><i class="fas fa-calendar-alt mr-1"></i> ${date}</span>
                   </div>
                   <div class="mt-4 hidden" id="player-container-${deleteId}">
-                    <audio controls src="${podcast.audio_url}" class="w-full" id="audio-${deleteId}"></audio>
+                    <audio controls src="${podcast.audio_url}" class="w-full" id="audio-${deleteId}" onloadedmetadata="updatePodcastDuration(this, '${deleteId}')"></audio>
                   </div>
                 </div>
               </div>
@@ -932,6 +932,45 @@
         } else {
           totalDurationTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
+      }
+    }
+    
+    // Global object to track podcast durations
+    const podcastDurations = {};
+    let totalDurationSeconds = 0;
+    
+    // Function to update podcast duration when audio metadata is loaded
+    function updatePodcastDuration(audioElement, podcastId) {
+      if (!audioElement || isNaN(audioElement.duration)) return;
+      
+      // Store the duration in seconds
+      const durationSeconds = Math.round(audioElement.duration);
+      podcastDurations[podcastId] = durationSeconds;
+      
+      // Format the duration for display
+      const minutes = Math.floor(durationSeconds / 60);
+      const seconds = durationSeconds % 60;
+      const formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      
+      // Update the duration display for this podcast
+      const durationElement = document.querySelector(`#duration-${podcastId}`);
+      if (durationElement) {
+        durationElement.textContent = formattedDuration;
+      }
+      
+      // Recalculate total duration
+      recalculateTotalDuration();
+    }
+    
+    // Function to recalculate the total duration from all loaded audio elements
+    function recalculateTotalDuration() {
+      // Sum up all durations
+      totalDurationSeconds = Object.values(podcastDurations).reduce((sum, duration) => sum + duration, 0);
+      
+      // Update the stats card with the new total
+      const totalPodcastsCount = document.getElementById('totalPodcastsCount');
+      if (totalPodcastsCount) {
+        updateStatsCards(totalPodcastsCount.textContent, totalDurationSeconds);
       }
     }
 
