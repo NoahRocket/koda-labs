@@ -692,6 +692,22 @@
         audioOnlyPodcasts.forEach(podcast => {
           if (podcast.duration_seconds) {
             totalSeconds += parseInt(podcast.duration_seconds);
+          } else if (podcast.duration) {
+            // Try to parse duration string (e.g., "4:01")
+            const parts = podcast.duration.split(':');
+            if (parts.length === 2) {
+              totalSeconds += parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            }
+          } else {
+            // For podcasts without duration info, estimate based on file size
+            const fileSizeMB = podcast.file_size ? (podcast.file_size / (1024 * 1024)).toFixed(1) : null;
+            if (fileSizeMB) {
+              // Rough estimate: 1MB ≈ 1 minute of audio
+              totalSeconds += Math.floor(fileSizeMB) * 60;
+            } else {
+              // Default to 1 minute if we have no information
+              totalSeconds += 60;
+            }
           }
         });
         
@@ -716,20 +732,32 @@
           const fileSizeMB = podcast.file_size ? (podcast.file_size / (1024 * 1024)).toFixed(1) : null;
           const fileSizeText = fileSizeMB ? `${fileSizeMB} MB` : '';
           
-          // Get duration if available (or placeholder)
-          const duration = podcast.duration || '0:00';
+          // Calculate duration from duration_seconds or use audio element to get duration
+          let duration = '0:00';
+          if (podcast.duration_seconds) {
+            const mins = Math.floor(podcast.duration_seconds / 60);
+            const secs = podcast.duration_seconds % 60;
+            duration = `${mins}:${secs.toString().padStart(2, '0')}`;
+          } else if (podcast.duration) {
+            duration = podcast.duration;
+          } else {
+            // For podcasts without duration info, we'll set a default based on file size
+            // Rough estimate: 1MB ≈ 1 minute of audio at medium quality
+            if (fileSizeMB) {
+              const estimatedMins = Math.floor(fileSizeMB);
+              duration = estimatedMins > 0 ? `${estimatedMins}:00` : '1:00';
+            }
+          }
           
-          // Generate a random icon for the podcast (in a real app, this would be based on content)
-          const icons = ['chart-line', 'book', 'graduation-cap', 'code', 'lightbulb', 'brain'];
-          const randomIcon = icons[Math.floor(Math.random() * icons.length)];
-          const iconColors = ['bg-blue-500', 'bg-blue-600', 'bg-blue-700', 'bg-blue-400', 'bg-blue-300'];
-          const randomColor = iconColors[Math.floor(Math.random() * iconColors.length)];
+          // Use a consistent podcast icon for all podcasts
+          const podcastIcon = 'podcast';
+          const iconColor = 'bg-blue-500';
           
           podcastsHTML += `
             <div class="border-b border-gray-100 pb-4 mb-4 last:border-b-0 last:mb-0 last:pb-0">
               <div class="flex">
-                <div class="${randomColor} rounded-lg p-3 mr-4 h-12 w-12 flex items-center justify-center">
-                  <i class="fas fa-${randomIcon} text-white text-xl"></i>
+                <div class="${iconColor} rounded-lg p-3 mr-4 h-12 w-12 flex items-center justify-center">
+                  <i class="fas fa-${podcastIcon} text-white text-xl"></i>
                 </div>
                 <div class="flex-1">
                   <div class="flex justify-between items-start">
