@@ -1,0 +1,195 @@
+/* Theme CSS Variables */
+:root {
+  /* Light Mode (Default) */
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f3f4f6;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --border-color: #e5e7eb;
+  --accent-color: #00A3E0;
+  --accent-hover: #0088c3;
+  --success-color: #4caf50;
+  --error-color: #f44336;
+  --info-color: #2196f3;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --sidebar-bg: #1a1a2e;
+  --sidebar-text: #ffffff;
+  --sidebar-hover: #2a2a40;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+}
+
+/* Dark Mode */
+.dark-mode {
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #2d2d2d;
+  --text-primary: #f3f4f6;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --border-color: #374151;
+  --accent-color: #00A3E0;
+  --accent-hover: #0088c3;
+  --success-color: #4caf50;
+  --error-color: #f44336;
+  --info-color: #2196f3;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --sidebar-bg: #0f0f23;
+  --sidebar-text: #ffffff;
+  --sidebar-hover: #1a1a2e;
+  --card-bg: #1e1e1e;
+  --input-bg: #2d2d2d;
+  --input-border: #4b5563;
+}
+
+/* Apply theme variables to common elements */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app-sidebar {
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+}
+
+.bg-white, .bg-gray-50 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.bg-gray-100, .bg-gray-200 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.text-gray-800, .text-gray-700, .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+.text-gray-500, .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+.text-gray-600, .text-gray-500 {
+  color: var(--text-tertiary) !important;
+}
+
+.border-gray-700 {
+  border-color: var(--border-color) !important;
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px var(--shadow-color) !important;
+}
+
+/* Form elements */
+input, textarea, select {
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  border-color: var(--input-border);
+}
+
+/* Cards and containers */
+.card, .rounded-lg {
+  background-color: var(--card-bg);
+}
+
+/* Modals */
+.modal-content {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* Buttons */
+.btn-primary, .bg-blue-500 {
+  color: white;
+}
+
+/* Table styling */
+table {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+th, td {
+  border-color: var(--border-color);
+}
+
+/* Chat message styling */
+.message-container {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+.user-message {
+  background-color: var(--bg-tertiary);
+}
+
+.ai-message {
+  background-color: var(--sidebar-hover);
+  color: var(--sidebar-text);
+}
+
+/* Toggle switch styling */
+.theme-toggle {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.theme-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.theme-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.theme-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .theme-toggle-slider {
+  background-color: var(--accent-color);
+}
+
+input:checked + .theme-toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.theme-toggle-slider:after {
+  content: "☀️";
+  position: absolute;
+  left: 8px;
+  top: 7px;
+  font-size: 14px;
+}
+
+input:checked + .theme-toggle-slider:after {
+  content: "🌙";
+  left: auto;
+  right: 8px;
+}

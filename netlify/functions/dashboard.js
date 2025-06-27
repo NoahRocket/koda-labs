@@ -1105,6 +1105,59 @@ exports.handler = async (event, context) => {
         console.error('[getAvatar] Unexpected error:', e.message || e);
         return { statusCode: 200, body: JSON.stringify({ avatarUrl: '../assets/avatars/default.png' }) };
       }
+    } else if (action === 'updateThemePreference') {
+      const { theme } = JSON.parse(event.body || '{}');
+      
+      if (!theme || (theme !== 'light' && theme !== 'dark')) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Invalid theme preference' }) };
+      }
+      
+      console.log(`[UPDATE_THEME] Updating theme preference for user ${authUserId} to ${theme}`);
+      
+      // Check if user_preferences table exists and has a row for this user
+      const { data: existingPrefs, error: prefsError } = await supabase
+        .from('user_preferences')
+        .select('id')
+        .eq('user_id', authUserId)
+        .single();
+      
+      if (prefsError && prefsError.code !== 'PGRST116') { // PGRST116 is "not found" error
+        console.error(`[UPDATE_THEME] Error checking preferences: ${prefsError.message}`);
+        return { statusCode: 500, body: JSON.stringify({ error: 'Failed to check user preferences' }) };
+      }
+      
+      let updateResult;
+      
+      if (!existingPrefs) {
+        // Create new preferences record
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .insert({
+            user_id: authUserId,
+            theme_preference: theme,
+            updated_at: new Date().toISOString()
+          });
+          
+        updateResult = { data, error };
+      } else {
+        // Update existing preferences
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .update({
+            theme_preference: theme,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', authUserId);
+          
+        updateResult = { data, error };
+      }
+      
+      if (updateResult.error) {
+        console.error(`[UPDATE_THEME] Error saving preference: ${updateResult.error.message}`);
+        return { statusCode: 500, body: JSON.stringify({ error: 'Failed to save theme preference' }) };
+      }
+      
+      return { statusCode: 200, body: JSON.stringify({ message: 'Theme preference updated', theme }) };
     } else if (action === 'updateEmoji') {
       if (!topicId || !emoji) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Missing topic ID or emoji' }) };
