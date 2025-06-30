@@ -56,7 +56,7 @@ exports.handler = async (event, context) => {
         'Content-Type': 'application/json',
         'xi-api-key': ELEVENLABS_API_KEY
       },
-      body: JSON.stringify({ text: scriptText, model_id: 'eleven_monolingual_v1', voice_settings: { stability: 0.5, similarity_boost: 0.5 } })
+      body: JSON.stringify({ text: scriptText, model_id: 'eleven_monolingual_v1', voice_settings: { stability: 0.7, similarity_boost: 0.8 } })
     });
     if (!ttsRes.ok) throw new Error(await ttsRes.text());
     const audioBuffer = await ttsRes.buffer();
