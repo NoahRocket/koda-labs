@@ -4,13 +4,15 @@
 
 const { TextToSpeechClient } = require('@google-cloud/text-to-speech');
 const { getSupabaseAdmin } = require('./supabaseClient');
+const getMp3Duration = require('get-mp3-duration');
 
 const { GOOGLE_CLOUD_CREDENTIALS, SUPABASE_URL, SUPABASE_KEY } = process.env;
 
-async function updateJobStatus(supabase, jobId, status, error = null, podcastUrl = null) {
+async function updateJobStatus(supabase, jobId, status, { error = null, podcastUrl = null, duration = null } = {}) {
   const updateData = { status, updated_at: new Date().toISOString() };
   if (error) updateData.error_message = error;
   if (podcastUrl) updateData.podcast_url = podcastUrl;
+  if (duration) updateData.duration_seconds = duration;
   const { data, error: updateError } = await supabase
     .from('podcast_jobs')
     .update(updateData)
@@ -54,13 +56,18 @@ exports.handler = async (event, context) => {
 
     const request = {
       input: { text: scriptText },
-      voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Lapetus' }, // Adjusted to Chirp3-HD model
+      voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-lapetus' }, // Adjusted to Chirp3-HD model
       audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.0 },
     };
 
     const [response] = await client.synthesizeSpeech(request);
     const audioBuffer = response.audioContent;
     console.log(`TTS audio received. bytes= ${audioBuffer.length}`);
+
+    // Calculate duration
+    const durationInMs = getMp3Duration(audioBuffer);
+    const durationInSeconds = Math.round(durationInMs / 1000);
+    console.log(`Calculated podcast duration: ${durationInSeconds}s`);
 
     await updateJobStatus(supabase, jobId, 'uploading');
 
@@ -112,7 +119,7 @@ exports.handler = async (event, context) => {
     }
 
     console.log(`Podcast uploaded successfully. URL: ${podcastUrl}`);
-    await updateJobStatus(supabase, jobId, 'completed', null, podcastUrl);
+    await updateJobStatus(supabase, jobId, 'completed', { podcastUrl, duration: durationInSeconds });
 
     return {
       statusCode: 200,

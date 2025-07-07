@@ -63,15 +63,15 @@ exports.handler = async (event) => {
 
     // Map the database records to the response format.
     const podcastList = jobs.map(job => ({
-      id: job.id,
-      title: job.original_filename || 'Untitled Podcast',
+      id: job.job_id, // Use job_id for consistency
+      title: job.filename ? job.filename.replace(/\.pdf$/i, '') : 'Untitled Podcast',
       created_at: job.created_at,
       audio_url: job.podcast_url,
       source: 'database',
       status: job.status,
       concepts: job.concepts || [],
-      duration_seconds: job.duration_seconds,
-      job_id: job.id
+      duration_seconds: job.duration_seconds || 0, // Default to 0 if not present
+      job_id: job.job_id
     }));
 
     console.log(`[list-podcasts] Found and returning ${podcastList.length} podcasts for user ${userId}.`);
