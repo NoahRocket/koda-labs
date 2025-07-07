@@ -1,6 +1,6 @@
 const pdf = require('pdf-parse');
 const Busboy = require('busboy');
-const { getSupabaseAdmin, PDF_BUCKET_NAME } = require('./supabaseClient');
+const { getSupabaseAdmin } = require('./supabaseClient');
 const { trackUsageAndCheckLimits } = require('./usage-tracking');
 const { hasActivePremiumSubscription } = require('./stripeClient');
 
@@ -219,23 +219,9 @@ exports.handler = async (event) => {
     // Extract text from the PDF
     const extractedText = pdfExtractData.text || 'No text found in PDF.';
 
-    // Upload the PDF to Supabase Storage
-    console.log('[upload-pdf] Starting Supabase Storage upload');
-    console.time('supabaseUpload');
-    
-    // Create a unique path for the file in storage
-    // Adding 'public/' prefix which is often required for Supabase RLS policies
-    const filePath = `public/${userId}/${Date.now()}-${fileData.originalFilename.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
-    console.log(`Attempting to upload to Supabase Storage: bucket='${PDF_BUCKET_NAME}', path='${filePath}'`);
-    
-    const supabaseAdmin = getSupabaseAdmin();
-    
-    // We DO NOT store the PDF file in Supabase Storage permanently
+    // We don't store the PDF file in Supabase Storage
     // The PDF is only used for text extraction and then discarded
-    console.log('[upload-pdf] Skipping permanent PDF storage - using extracted text only');
-    
-    // Log end of time measurement for consistency in logs
-    console.timeEnd('supabaseUpload');
+    console.log('[upload-pdf] Using extracted text only - PDF not stored');
     
     // Store the response data
     const responseData = {
@@ -248,7 +234,7 @@ exports.handler = async (event) => {
     let jobId;
     try {
       // First check if there's already a job for this filename and user
-      const { data: existingJobs, error: searchError } = await supabaseAdmin
+      const { data: existingJobs, error: searchError } = await getSupabaseAdmin()
         .from('podcast_jobs')
         .select('job_id, status')
         .eq('user_id', userId)
@@ -281,7 +267,7 @@ exports.handler = async (event) => {
         
         // If the job is completed or failed, we'll update it instead of creating a new one
         console.log(`[upload-pdf] Updating existing job ${jobId} from ${status} to pending_analysis`);
-        const { error: updateError } = await supabaseAdmin
+        const { error: updateError } = await getSupabaseAdmin()
           .from('podcast_jobs')
           .update({
             status: 'pending_analysis',
@@ -302,7 +288,7 @@ exports.handler = async (event) => {
       if (!jobId) {
         console.log('[upload-pdf] Creating new podcast job in database');
         
-        const { data: jobData, error: dbError } = await supabaseAdmin
+        const { data: jobData, error: dbError } = await getSupabaseAdmin()
           .from('podcast_jobs')
           .insert([
             {
@@ -361,7 +347,7 @@ exports.handler = async (event) => {
             
             // Update the job status to indicate there was a problem
             try {
-              const { error } = await supabaseAdmin
+              const { error } = await getSupabaseAdmin()
                 .from('podcast_jobs')
                 .update({ 
                   status: 'failed',
@@ -389,7 +375,7 @@ exports.handler = async (event) => {
           
           // Update the job status to indicate there was a problem
           try {
-            const { error } = await supabaseAdmin
+            const { error } = await getSupabaseAdmin()
               .from('podcast_jobs')
               .update({ 
                 status: 'failed',

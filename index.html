@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Koda Tutor - Your Personal Knowledge Companion</title>
+  <title>Koda Labs - Alpha Testing</title>
   <!-- Favicon for browsers -->
   <link rel="icon" type="image/png" sizes="32x32" href="/public/icons/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/public/icons/favicon-16x16.png">
@@ -17,7 +17,7 @@
   <!-- iOS Web App specific settings -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Koda Tutor">
+  <meta name="apple-mobile-web-app-title" content="Koda Labs">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="styles/main.css">
   <link rel="stylesheet" href="styles/navbar.css">
@@ -25,8 +25,28 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
+  <style>
+    /*
+      Homepage Dark Mode Fix:
+      This style block applies dark-mode styling ONLY to the sidebar,
+      preventing the main content from being affected.
+    */
+    .dark-mode .app-sidebar {
+      background-color: #0f0f23 !important; /* Dark mode sidebar color */
+      color: #ffffff !important;
+    }
+
+    .dark-mode .app-sidebar .nav-link {
+        color: #A0AEC0; /* Default link color */
+    }
+
+    .dark-mode .app-sidebar .nav-link:hover,
+    .dark-mode .app-sidebar .nav-link.active {
+        color: #ffffff; /* Active/hover link color */
+    }
+  </style>
 </head>
-<body class="bg-gray-50 font-eb-garamond min-h-screen flex">
+<body class="bg-gray-50 font-eb-garamond min-h-screen flex homepage">
   <!-- Mobile Hamburger -->
   <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
     <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
@@ -38,7 +58,7 @@
   <div id="sidebar" class="fixed top-0 left-0 h-screen w-56 app-sidebar transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40">
     <div class="flex flex-col h-full">
       <div class="logo-container pt-12 md:pt-5">
-        <h1 class="app-logo">Koda <span>Tutor</span></h1>
+        <h1 class="app-logo">Koda <span>Labs</span></h1>
         <button id="closeSidebar" class="absolute top-5 right-4 text-gray-500 hover:text-gray-700 md:hidden mobile-touch-target">
           <i class="fas fa-times"></i>
         </button>
@@ -54,10 +74,6 @@
             <a href="pages/chat.html" class="nav-link">
               <i class="fas fa-comments"></i>
               <span class="mobile-readable">Chat</span>
-            </a>
-            <a href="pages/bookmarks.html" class="nav-link">
-              <i class="fas fa-bookmark"></i>
-              <span class="mobile-readable">Bookmarks</span>
             </a>
             <a href="pages/settings.html" class="nav-link">
               <i class="fas fa-cog"></i>
@@ -90,160 +106,39 @@
     </div>
   </div>
 
-  <div class="md:ml-56 flex-1">
-    <section class="bg-gradient-to-r from-blue-500 to-blue-700 text-white py-24 px-4 min-h-screen flex items-center relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent"></div>
-      <div class="container mx-auto text-center relative z-10">
-        <h1 class="text-5xl md:text-6xl font-bold mb-8 leading-tight">Transform How You Learn and Remember</h1>
-        <p class="text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed opacity-90">Your personal AI knowledge companion that organizes conversations, bookmarks, and insights into an intuitive learning system. Never lose valuable information again.</p>
-        <div class="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-6">
-          <a href="pages/signup.html" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg">Start Your Learning Journey</a>
-          <a href="pages/login.html" class="bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 px-8 py-4 rounded-lg font-medium hover:bg-white/20 transition-all duration-300 transform hover:scale-105">Sign In</a>
-        </div>
-      </div>
-    </section>
-
+  <div class="md:ml-56 flex-1 homepage-main-content">
     <section class="bg-white py-20">
-      <div class="container mx-auto px-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div class="feature p-8 rounded-xl bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div class="mb-6">
-              <div class="w-16 h-16 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
-                <i class="fas fa-brain text-3xl text-blue-500"></i>
-              </div>
-              <h2 class="text-2xl font-bold mb-4 text-gray-800">Smart Organization</h2>
-              <p class="text-gray-600 leading-relaxed">Automatically categorize conversations and bookmarks into topic-based folders for easy access and review.</p>
-            </div>
-          </div>
-          <div class="feature p-8 rounded-xl bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div class="mb-6">
-              <div class="w-16 h-16 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
-                <i class="fas fa-lightbulb text-3xl text-blue-500"></i>
-              </div>
-              <h2 class="text-2xl font-bold mb-4 text-gray-800">AI-Powered Insights</h2>
-              <p class="text-gray-600 leading-relaxed">Generate concise summaries and key takeaways from your learning sessions and saved content.</p>
-            </div>
-          </div>
-          <div class="feature p-8 rounded-xl bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div class="mb-6">
-              <div class="w-16 h-16 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
-                <i class="fas fa-sync text-3xl text-blue-500"></i>
-              </div>
-              <h2 class="text-2xl font-bold mb-4 text-gray-800">Active Recall</h2>
-              <p class="text-gray-600 leading-relaxed">Engage with your knowledge through spaced repetition and interactive quizzes for better retention.</p>
-            </div>
-          </div>
+      <div class="container mx-auto px-4 max-w-3xl">
+        <h1 class="text-4xl font-bold mb-8 text-center">Koda Labs - Alpha Testing</h1>
+        
+        <div class="bg-blue-50 rounded-lg p-8 mb-8">
+          <h2 class="text-2xl font-bold mb-4">Current Features</h2>
+          <ul class="list-disc pl-6 space-y-2">
+            <li><strong>Knowledge Management Platform</strong> - Organize information through topics, conversations, bookmarks, and notes</li>
+            <li><strong>PDF-to-Podcast Conversion</strong> - Transform PDF documents into audio content</li>
+            <li><strong>AI Conversation System</strong> - Chat with an AI assistant and save conversations to topics</li>
+            <li><strong>Topic-Based Organization</strong> - Create topics with emoji indicators to store various types of content</li>
+            <li><strong>Learning Enhancement</strong> - YouTube video recommendations and bookmark management</li>
+            <li><strong>Tiered Access</strong> - Free tier with limited usage and premium upgrades</li>
+          </ul>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a href="pages/signup.html" class="btn-primary text-center py-3 px-6 rounded-lg">Sign Up</a>
+          <a href="pages/login.html" class="btn-secondary text-center py-3 px-6 rounded-lg">Log In</a>
         </div>
       </div>
     </section>
 
-    <section class="bg-gray-50 py-20">
-      <div class="container mx-auto px-4">
-        <h2 class="text-4xl font-bold mb-16 text-center text-gray-800">How It Works</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
-          <div class="step relative">
-            <div class="step-number absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white w-12 h-12 flex justify-center items-center rounded-full text-xl font-bold shadow-lg">1</div>
-            <div class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-              <h3 class="text-2xl font-bold mb-4 text-gray-800 text-center">Ask & Learn</h3>
-              <p class="text-gray-600 text-center leading-relaxed">Start conversations, ask questions, and explore topics with our AI assistant.</p>
-            </div>
-          </div>
-          <div class="step relative">
-            <div class="step-number absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white w-12 h-12 flex justify-center items-center rounded-full text-xl font-bold shadow-lg">2</div>
-            <div class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-              <h3 class="text-2xl font-bold mb-4 text-gray-800 text-center">Save & Organize</h3>
-              <p class="text-gray-600 text-center leading-relaxed">Save important threads and bookmarks, automatically categorized by topic.</p>
-            </div>
-          </div>
-          <div class="step relative">
-            <div class="step-number absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white w-12 h-12 flex justify-center items-center rounded-full text-xl font-bold shadow-lg">3</div>
-            <div class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-              <h3 class="text-2xl font-bold mb-4 text-gray-800 text-center">Review & Master</h3>
-              <p class="text-gray-600 text-center leading-relaxed">Access summaries, review key insights, and strengthen your understanding over time.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="bg-white py-20">
-      <div class="container mx-auto px-4">
-        <h2 class="text-4xl font-bold mb-16 text-center text-gray-800">What Our Users Say</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div class="testimonial p-8 rounded-xl bg-gradient-to-br from-gray-50 to-white shadow-lg hover:shadow-xl transition-all duration-300">
-            <div class="mb-8">
-              <img src="https://ui-avatars.com/api/?name=Sarah+Chen&background=3B82F6&color=fff" alt="Sarah Chen" class="w-16 h-16 rounded-full mx-auto mb-4 shadow-md">
-              <p class="text-gray-600 italic text-lg leading-relaxed text-center">"Finally, a tool that helps me make sense of all the information I consume. The organization is intuitive, and the summaries are incredibly helpful."</p>
-            </div>
-            <div class="text-center">
-              <div class="font-bold text-gray-800 mb-1">Sarah Chen</div>
-              <div class="text-blue-500">Software Engineer</div>
-            </div>
-          </div>
-          <div class="testimonial p-8 rounded-xl bg-gradient-to-br from-gray-50 to-white shadow-lg hover:shadow-xl transition-all duration-300">
-            <div class="mb-8">
-              <img src="https://ui-avatars.com/api/?name=Michael+Rodriguez&background=3B82F6&color=fff" alt="Michael Rodriguez" class="w-16 h-16 rounded-full mx-auto mb-4 shadow-md">
-              <p class="text-gray-600 italic text-lg leading-relaxed text-center">"The spaced repetition feature has transformed how I retain information. It's like having a personal learning coach."</p>
-            </div>
-            <div class="text-center">
-              <div class="font-bold text-gray-800 mb-1">Michael Rodriguez</div>
-              <div class="text-blue-500">Medical Student</div>
-            </div>
-          </div>
-          <div class="testimonial p-8 rounded-xl bg-gradient-to-br from-gray-50 to-white shadow-lg hover:shadow-xl transition-all duration-300">
-            <div class="mb-8">
-              <img src="https://ui-avatars.com/api/?name=Emma+Thompson&background=3B82F6&color=fff" alt="Emma Thompson" class="w-16 h-16 rounded-full mx-auto mb-4 shadow-md">
-              <p class="text-gray-600 italic text-lg leading-relaxed text-center">"I love how it automatically organizes everything by topic. It's made my research and learning process so much more efficient."</p>
-            </div>
-            <div class="text-center">
-              <div class="font-bold text-gray-800 mb-1">Emma Thompson</div>
-              <div class="text-blue-500">Content Creator</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <footer class="bg-gray-900 text-white py-12">
-      <div class="container mx-auto px-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <h3 class="text-xl font-bold mb-4">Koda Tutor</h3>
-            <p class="text-gray-400">Your personal AI knowledge companion that transforms how you learn and remember.</p>
-          </div>
-          <div>
-            <h4 class="text-lg font-bold mb-4">Features</h4>
-            <ul class="space-y-2 text-gray-400">
-              <li>Smart Organization</li>
-              <li>AI-Powered Insights</li>
-              <li>Active Recall</li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="text-lg font-bold mb-4">Resources</h4>
-            <ul class="space-y-2 text-gray-400">
-              <li><a href="#" class="hover:text-white transition-colors">Documentation</a></li>
-              <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
-              <li><a href="#" class="hover:text-white transition-colors">Support</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="text-lg font-bold mb-4">Connect</h4>
-            <div class="flex space-x-4">
-              <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fab fa-twitter"></i></a>
-              <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fab fa-linkedin"></i></a>
-              <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fab fa-github"></i></a>
-            </div>
-          </div>
-        </div>
-        <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 Koda Tutor. All rights reserved.</p>
-        </div>
+    <footer class="bg-gray-100 py-6">
+      <div class="container mx-auto px-4 text-center text-gray-600">
+        <p>&copy; 2025 Koda Labs - Alpha Version</p>
       </div>
     </footer>
   </div>
 
   <script src="scripts/utils.js"></script>
+  <script src="scripts/theme.js"></script>
   <script>
     // Call updateNavigation on page load (now defined in utils.js)
     document.addEventListener('DOMContentLoaded', updateNavigation);

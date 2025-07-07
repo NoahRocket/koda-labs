@@ -1,8 +1,6 @@
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_KEY } = process.env;
 const { createClient } = require('@supabase/supabase-js');
 
-const PDF_BUCKET_NAME = 'podcasts'; // Storage bucket for PDFs and podcast files
-
 // Custom fetch with timeout for Supabase
 const fetchWithTimeout = (timeout = 5000) => {
   return async (url, options) => {
@@ -272,6 +270,5 @@ const releaseSupabaseConnections = () => {
 module.exports = { 
   getSupabaseAdmin, 
   getSupabaseAuthClient,
-  releaseSupabaseConnections,
-  PDF_BUCKET_NAME // Export the bucket name
+  releaseSupabaseConnections
 };
