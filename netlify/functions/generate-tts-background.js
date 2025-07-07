@@ -56,9 +56,8 @@ exports.handler = async (event, context) => {
 
     const request = {
       input: { text: scriptText },
-      // Corrected voice name to a standard WaveNet voice
-      voice: { languageCode: 'en-US', name: 'en-US-Wavenet-D' },
-      audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.0 },
+      voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Iapetus' }, // Adjusted to Chirp3-HD model
+      audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.2 },
     };
 
     const [response] = await client.synthesizeSpeech(request);
