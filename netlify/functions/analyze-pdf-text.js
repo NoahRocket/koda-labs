@@ -1,15 +1,16 @@
 const fetch = require('node-fetch');
 const { getSupabaseAdmin } = require('./supabaseClient');
-const pdf = require('pdf-parse');
+const pdf = require('pdf-parse');  // Retained but not used here (for consistency if needed later)
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Helper to update job status and error
-async function updateJobStatus(jobId, status, errorMessage = null, concepts = null) {
+async function updateJobStatus(jobId, status, errorMessage = null, concepts = null, textChunks = null) {
   const supabaseAdmin = getSupabaseAdmin();
   const updateData = { status: status };
   if (errorMessage) updateData.error_message = errorMessage;
   if (concepts) updateData.concepts = concepts;
+  if (textChunks) updateData.text_chunks = textChunks;
 
   const { error } = await supabaseAdmin
     .from('podcast_jobs')
@@ -18,6 +19,23 @@ async function updateJobStatus(jobId, status, errorMessage = null, concepts = nu
   if (error) {
     console.error(`Failed to update job ${jobId} to status ${status}:`, error);
   }
+}
+
+// Helper to chunk text (paragraph-aware, ~10k chars max per chunk)
+function chunkText(text, maxChars = 10000) {
+  const chunks = [];
+  let currentChunk = '';
+  const paragraphs = text.split(/\n\s*\n/);  // Split by double newlines (paragraphs)
+  paragraphs.forEach(para => {
+    if (currentChunk.length + para.length + 2 > maxChars) {  // +2 for newline
+      if (currentChunk) chunks.push(currentChunk.trim());
+      currentChunk = para;
+    } else {
+      currentChunk += (currentChunk ? '\n\n' : '') + para;
+    }
+  });
+  if (currentChunk) chunks.push(currentChunk.trim());
+  return chunks;
 }
 
 // Helper to trigger the next step in the pipeline
@@ -80,11 +98,11 @@ exports.handler = async (event) => {
   await updateJobStatus(jobId, 'analyzing_text');
 
   try {
-    // 1. Fetch job details with the extracted text we already have
+    // 1. Fetch job details with the extracted text and chunking flag
     const supabaseAdmin = getSupabaseAdmin();
     const { data: jobData, error: fetchError } = await supabaseAdmin
       .from('podcast_jobs')
-      .select('generated_script, filename')
+      .select('extracted_text, needs_chunking, filename')
       .eq('job_id', jobId)
       .single();
 
@@ -93,73 +111,87 @@ exports.handler = async (event) => {
       return { statusCode: 404, body: JSON.stringify({ error: 'Job not found.' }) };
     }
 
-    // 2. Get the text that was previously extracted in upload-pdf.js
+    // 2. Get the pre-extracted text
     console.log(`[analyze-pdf-text] Using pre-extracted text from job record for: ${jobData.filename}`);
-    const extractedText = jobData.generated_script || '';
+    const extractedText = jobData.extracted_text || '';
     if (!extractedText.trim()) {
       await updateJobStatus(jobId, 'failed', 'No text found in PDF.');
       return { statusCode: 400, body: JSON.stringify({ error: 'No text could be extracted from the PDF.' }) };
     }
     console.log(`[analyze-pdf-text] Extracted ${extractedText.length} characters.`);
 
-    // Word count check (optional, can be adjusted)
-    const wordCount = extractedText.trim().split(/\s+/).length;
-    if (wordCount > 15000) { // Increased limit slightly
-      await updateJobStatus(jobId, 'failed', 'Text content too long (max 15,000 words).');
-      return { statusCode: 413, body: JSON.stringify({ error: 'Text is too long (max 15,000 words).' }) };
+    // 3. Chunk if needed
+    let chunks = [extractedText];
+    let textChunksToStore = null;
+    if (jobData.needs_chunking) {
+      console.log(`[analyze-pdf-text] Chunking enabled for large document.`);
+      chunks = chunkText(extractedText);
+      textChunksToStore = chunks;  // Store for downstream use
+      console.log(`[analyze-pdf-text] Split into ${chunks.length} chunks.`);
     }
 
-    // 4. Analyze concepts using OpenAI
-    const prompt = `Analyze the following text. Identify the top 3-5 key concepts and provide a brief (1-2 sentence) explanation for each. Return your answer as a JSON array of objects with 'concept' and 'explanation' fields.\n\nText:\n"""${extractedText.substring(0, 12000)}"""`; // Use a larger substring for prompt if text is long
-    
-    console.log('[analyze-pdf-text] Sending text to OpenAI for concept extraction.');
-    const llmResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4.1-mini', 
-        messages: [
-          { role: 'system', content: 'You are an expert assistant for extracting key concepts from documents.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3, // Lower temperature for more consistent results
-        max_tokens: 800 // Parameter name correction for better reliability
-      })
+    // 4. Analyze concepts using OpenAI (parallel for chunks)
+    const conceptPromises = chunks.map(async (chunk, index) => {
+      const chunkLabel = chunks.length > 1 ? `chunk ${index + 1}/${chunks.length}` : 'full text';
+      const prompt = `Analyze the following ${chunkLabel}. Identify the top 3-5 key concepts and provide a brief (1-2 sentence) explanation for each. Return your answer as a JSON array of objects with 'concept' and 'explanation' fields.\n\nText:\n"""${chunk}"""`;
+      
+      console.log(`[analyze-pdf-text] Sending ${chunkLabel} to OpenAI for concept extraction.`);
+      const llmResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4.1-mini',  // Retained as requested
+          messages: [
+            { role: 'system', content: 'You are an expert assistant for extracting key concepts from documents.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.3,  // Lower for consistency
+          max_tokens: 800
+        })
+      });
+
+      if (!llmResponse.ok) {
+        const errorBody = await llmResponse.text();
+        throw new Error(`LLM API error for ${chunkLabel}: ${llmResponse.status} - ${errorBody}`);
+      }
+
+      const llmData = await llmResponse.json();
+      const llmContent = llmData.choices?.[0]?.message?.content;
+      let conceptsArray;
+      try {
+        conceptsArray = JSON.parse(llmContent);
+      } catch {
+        const match = llmContent.match(/\[.*?\]/s);
+        if (match && match[0]) conceptsArray = JSON.parse(match[0]);
+      }
+
+      if (!Array.isArray(conceptsArray)) {
+        throw new Error(`LLM response for ${chunkLabel} not in expected JSON array format.`);
+      }
+
+      return conceptsArray.map(({ concept, explanation }) => ({
+        concept: String(concept || '').replace(/[<>]/g, ''),
+        explanation: String(explanation || '').replace(/[<>]/g, '')
+      })).filter(c => c.concept && c.explanation);
     });
 
-    if (!llmResponse.ok) {
-      const errorBody = await llmResponse.text();
-      await updateJobStatus(jobId, 'failed', `LLM API error: ${llmResponse.status} - ${errorBody}`);
-      throw new Error(`LLM API error: ${llmResponse.status} - ${errorBody}`);
-    }
+    const allConceptsArrays = await Promise.all(conceptPromises);
+    // Aggregate and deduplicate concepts
+    const uniqueConceptsMap = new Map();
+    allConceptsArrays.flat().forEach(concept => {
+      if (!uniqueConceptsMap.has(concept.concept)) {
+        uniqueConceptsMap.set(concept.concept, concept);
+      }
+    });
+    const sanitizedConcepts = Array.from(uniqueConceptsMap.values()).slice(0, 15);  // Limit to top 15 for relevance
 
-    const llmData = await llmResponse.json();
-    const llmContent = llmData.choices?.[0]?.message?.content;
-    let conceptsArray = null;
-    try {
-      conceptsArray = JSON.parse(llmContent);
-    } catch {
-      const match = llmContent.match(/\[.*?\]/s); // More robust regex for JSON array
-      if (match && match[0]) conceptsArray = JSON.parse(match[0]);
-    }
+    console.log(`[analyze-pdf-text] Extracted ${sanitizedConcepts.length} unique concepts for job ${jobId}.`);
 
-    if (!Array.isArray(conceptsArray)) {
-      await updateJobStatus(jobId, 'failed', 'LLM response for concepts not in expected JSON array format.');
-      throw new Error('LLM response not in expected format.');
-    }
-    
-    const sanitizedConcepts = conceptsArray.map(({ concept, explanation }) => ({
-      concept: String(concept || '').replace(/[<>]/g, ''),
-      explanation: String(explanation || '').replace(/[<>]/g, '')
-    })).filter(c => c.concept && c.explanation); // Ensure concepts are valid
-
-    console.log(`[analyze-pdf-text] Concepts extracted successfully for job ${jobId}.`);
-
-    // 5. Update job with concepts and new status
-    await updateJobStatus(jobId, 'text_analyzed', null, sanitizedConcepts);
+    // 5. Update job with concepts, chunks (if applicable), and new status
+    await updateJobStatus(jobId, 'text_analyzed', null, sanitizedConcepts, textChunksToStore);
 
     // 6. Trigger next step (generate-script-background.js)
     await triggerNextStep(jobId, event);
