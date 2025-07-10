@@ -5,6 +5,13 @@
 const { TextToSpeechClient } = require('@google-cloud/text-to-speech');
 const { getSupabaseAdmin } = require('./supabaseClient');
 const getMp3Duration = require('get-mp3-duration');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const fs = require('fs').promises;
+const path = require('path');
+const os = require('os');
+
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 const { GOOGLE_CLOUD_CREDENTIALS, SUPABASE_URL, SUPABASE_KEY } = process.env;
 
@@ -95,9 +102,45 @@ exports.handler = async (event, context) => {
       return audioBuffer;
     }));
 
-    // Concatenate audio buffers directly (works for identical MP3 encodings)
-    const finalAudioBuffer = Buffer.concat(audioBuffers);
-    console.log(`[generate-tts-background] Concatenated audio. Total bytes: ${finalAudioBuffer.length}, duration: ${totalDurationInSeconds}s`);
+    // Use ffmpeg to concatenate audio buffers
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'podcast-audio-'));
+    const listFilePath = path.join(tempDir, 'concat-list.txt');
+    let finalAudioBuffer;
+
+    try {
+      const fileListContent = audioBuffers.map((_, i) => {
+        const tempFilePath = path.join(tempDir, `chunk-${i}.mp3`);
+        // On Windows, path.join uses backslashes. ffmpeg's concat demuxer requires forward slashes.
+        return `file '${tempFilePath.split(path.sep).join('/')}'`;
+      }).join('\n');
+
+      await Promise.all(audioBuffers.map((buffer, i) => {
+        const tempFilePath = path.join(tempDir, `chunk-${i}.mp3`);
+        return fs.writeFile(tempFilePath, buffer);
+      }));
+
+      await fs.writeFile(listFilePath, fileListContent);
+
+      const concatenatedAudioPath = path.join(tempDir, 'final-podcast.mp3');
+
+      await new Promise((resolve, reject) => {
+        ffmpeg()
+          .input(listFilePath)
+          .inputOptions(['-f concat', '-safe 0'])
+          .outputOptions('-c copy')
+          .save(concatenatedAudioPath)
+          .on('end', resolve)
+          .on('error', (err) => reject(new Error(`ffmpeg concatenation failed: ${err.message}`)));
+      });
+
+      finalAudioBuffer = await fs.readFile(concatenatedAudioPath);
+      console.log(`[generate-tts-background] Concatenated audio with ffmpeg. Total bytes: ${finalAudioBuffer.length}, duration: ${totalDurationInSeconds}s`);
+
+    } finally {
+      // Clean up temporary files and directory
+      await fs.rm(tempDir, { recursive: true, force: true });
+      console.log(`Cleaned up temporary directory: ${tempDir}`);
+    }
 
     await updateJobStatus(supabase, jobId, 'uploading');
 

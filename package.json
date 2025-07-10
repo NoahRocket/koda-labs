@@ -5,10 +5,12 @@
     "build": "npx tailwindcss-cli -i ./styles/tailwind-input.css -o ./styles/main.css"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@google-cloud/text-to-speech": "^6.1.0",
     "@supabase/supabase-js": "^2.39.0",
     "aws-sign2": "^0.7.0",
     "busboy": "^1.6.0",
+    "fluent-ffmpeg": "^2.1.3",
     "get-mp3-duration": "^1.0.0",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^2.7.0",
