@@ -5,6 +5,12 @@
 const { TextToSpeechClient } = require('@google-cloud/text-to-speech');
 const { getSupabaseAdmin } = require('./supabaseClient');
 const getMp3Duration = require('get-mp3-duration');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegStatic = require('ffmpeg-static');
+const fs = require('fs');
+const path = require('path');
+
+ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const { GOOGLE_CLOUD_CREDENTIALS, SUPABASE_URL, SUPABASE_KEY } = process.env;
 
@@ -42,45 +48,96 @@ exports.handler = async (event, context) => {
     return { statusCode: 500, body: 'Server config error' };
   }
 
-  const { jobId, userId, scriptText } = JSON.parse(event.body || '{}');
-  if (!jobId || !userId || !scriptText) return { statusCode: 400, body: 'Missing params' };
+  const { jobId, userId } = JSON.parse(event.body || '{}');
+  if (!jobId || !userId) return { statusCode: 400, body: 'Missing params' };
 
   const supabase = getSupabaseAdmin();
   try {
     await updateJobStatus(supabase, jobId, 'generating_tts');
 
-    // Initialize Text-to-Speech client with JSON credentials
+    // Fetch script_chunks (fallback to generated_script)
+    const { data: jobData, error: fetchError } = await supabase
+      .from('podcast_jobs')
+      .select('script_chunks, generated_script, filename')
+      .eq('job_id', jobId)
+      .single();
+
+    if (fetchError || !jobData) {
+      throw new Error(`Failed to fetch job ${jobId}: ${fetchError?.message || 'No job data'}`);
+    }
+
+    let scriptChunks = jobData.script_chunks || [jobData.generated_script];
+    if (!scriptChunks || scriptChunks.length === 0 || scriptChunks.every(s => !s || typeof s !== 'string' || s.trim().length === 0)) {
+      throw new Error(`Job ${jobId} is missing valid script chunks or generated script`);
+    }
+
+    console.log(`[generate-tts-background] Processing ${scriptChunks.length} script chunks for job ${jobId}`);
+
+    // Initialize Text-to-Speech client
     const client = new TextToSpeechClient({
       credentials: JSON.parse(GOOGLE_CLOUD_CREDENTIALS),
     });
 
-    const request = {
-      input: { text: scriptText },
-      voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Iapetus' }, // Adjusted to Chirp3-HD model
-      audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.2 },
-    };
+    // Generate TTS per chunk
+    const audioBuffers = await Promise.all(scriptChunks.map(async (script, index) => {
+      if (script.length > 5000) {
+        throw new Error(`Script chunk ${index + 1} exceeds 5000 characters`);
+      }
+      const request = {
+        input: { text: script },
+        voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Iapetus' },
+        audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.2 },
+      };
 
-    const [response] = await client.synthesizeSpeech(request);
-    const audioBuffer = response.audioContent;
-    console.log(`TTS audio received. bytes= ${audioBuffer.length}`);
+      const [response] = await client.synthesizeSpeech(request);
+      const audioBuffer = response.audioContent;
+      console.log(`TTS audio for chunk ${index + 1} received. bytes= ${audioBuffer.length}`);
+      return audioBuffer;
+    }));
+
+    // Concatenate audio buffers if multiple
+    let finalAudioBuffer;
+    if (audioBuffers.length === 1) {
+      finalAudioBuffer = audioBuffers[0];
+    } else {
+      console.log(`[generate-tts-background] Concatenating ${audioBuffers.length} audio chunks`);
+      finalAudioBuffer = await new Promise((resolve, reject) => {
+        const tempFiles = audioBuffers.map((buf, i) => {
+          const tempPath = path.join('/tmp', `audio_chunk_${i}.mp3`);
+          fs.writeFileSync(tempPath, buf);
+          return tempPath;
+        });
+
+        let command = ffmpeg();
+        tempFiles.forEach(file => command.input(file));
+
+        command
+          .on('error', (err) => {
+            console.error('[generate-tts-background] FFmpeg error:', err);
+            reject(err);
+          })
+          .on('end', () => {
+            const outputPath = path.join('/tmp', 'concatenated.mp3');
+            const buffer = fs.readFileSync(outputPath);
+            // Clean up temp files
+            tempFiles.forEach(fs.unlinkSync);
+            fs.unlinkSync(outputPath);
+            resolve(buffer);
+          })
+          .mergeToFile(path.join('/tmp', 'concatenated.mp3'));
+      });
+    }
 
     // Calculate duration
-    const durationInMs = getMp3Duration(audioBuffer);
+    const durationInMs = getMp3Duration(finalAudioBuffer);
     const durationInSeconds = Math.round(durationInMs / 1000);
     console.log(`Calculated podcast duration: ${durationInSeconds}s`);
 
     await updateJobStatus(supabase, jobId, 'uploading');
 
-    // Get the original PDF filename to create a human-readable podcast name
-    const { data: jobData } = await supabase
-      .from('podcast_jobs')
-      .select('filename')
-      .eq('job_id', jobId)
-      .single();
-
     // Create a human-readable name from the PDF filename
     let podcastName = 'podcast';
-    if (jobData && jobData.filename) {
+    if (jobData.filename) {
       podcastName = jobData.filename
         .replace(/\.pdf$/i, '') // Remove PDF extension
         .replace(/[^a-z0-9\s-]/gi, '') // Remove special characters
@@ -88,7 +145,7 @@ exports.handler = async (event, context) => {
     }
 
     const filename = `${podcastName}_${Date.now()}.mp3`;
-    const base64Audio = audioBuffer.toString('base64');
+    const base64Audio = finalAudioBuffer.toString('base64');
 
     const host = event.headers.host;
     const proto = host.includes('localhost') ? 'http' : 'https';
