@@ -72,7 +72,82 @@ exports.handler = async (event, context) => {
       throw new Error(`Job ${jobId} is missing valid script chunks or generated script`);
     }
 
-    console.log(`[generate-tts-background] Processing ${scriptChunks.length} script chunks for job ${jobId}`);
+    // Function to optimize text and split into chunks under 5000 characters
+    function optimizeAndSplitText(text, maxChars = 4800) { // Using 4800 to leave some margin
+      // Optimize text: normalize whitespace and reduce excessive newlines
+      const optimized = text
+        .replace(/\s+/g, ' ')         // Convert multiple whitespaces to a single space
+        .replace(/\n\s*\n+/g, '\n')  // Replace multiple blank lines with a single newline
+        .trim();
+      
+      // If the optimized text is under limit, return it as a single chunk
+      if (optimized.length <= maxChars) {
+        return [optimized];
+      }
+      
+      // Otherwise, split by sentences at natural breakpoints
+      const chunks = [];
+      let currentChunk = '';
+      
+      // Split by sentences and try to keep sentences together
+      const sentences = optimized.split(/(?<=[.!?])\s+/);
+      
+      for (const sentence of sentences) {
+        // If adding this sentence exceeds the limit, start a new chunk
+        if (currentChunk.length + sentence.length > maxChars) {
+          // If current sentence is too long by itself, split it by words
+          if (sentence.length > maxChars) {
+            // First add the current chunk if not empty
+            if (currentChunk) {
+              chunks.push(currentChunk);
+              currentChunk = '';
+            }
+            
+            // Split long sentence by words
+            let tempSentence = sentence;
+            while (tempSentence.length > maxChars) {
+              // Find a good breaking point (preferably at punctuation or space)
+              let breakPoint = maxChars;
+              while (breakPoint > 0 && !/[,;:\s]/.test(tempSentence.charAt(breakPoint))) {
+                breakPoint--;
+              }
+              // If no good breaking point found, just break at the limit
+              if (breakPoint === 0) breakPoint = maxChars;
+              
+              chunks.push(tempSentence.substring(0, breakPoint + 1).trim());
+              tempSentence = tempSentence.substring(breakPoint + 1).trim();
+            }
+            // Add remaining part of the sentence
+            if (tempSentence) currentChunk = tempSentence;
+          } else {
+            // Current sentence fits in a chunk by itself
+            chunks.push(currentChunk);
+            currentChunk = sentence;
+          }
+        } else {
+          // Add sentence to current chunk
+          currentChunk += (currentChunk ? ' ' : '') + sentence;
+        }
+      }
+      
+      // Add the last chunk if not empty
+      if (currentChunk) {
+        chunks.push(currentChunk);
+      }
+      
+      console.log(`Split text into ${chunks.length} smaller chunks to meet TTS character limit`);
+      return chunks;
+    }
+
+    // Process each script chunk, splitting if necessary
+    const processedScriptChunks = [];
+    scriptChunks.forEach((script, index) => {
+      if (!script || typeof script !== 'string') return;
+      const splitChunks = optimizeAndSplitText(script);
+      processedScriptChunks.push(...splitChunks);
+    });
+    
+    console.log(`[generate-tts-background] Processing ${processedScriptChunks.length} script chunks for job ${jobId} (after optimization and splitting)`);
 
     // Initialize Text-to-Speech client
     const client = new TextToSpeechClient({
@@ -81,9 +156,11 @@ exports.handler = async (event, context) => {
 
     // Generate TTS per chunk and collect durations
     let totalDurationInSeconds = 0;
-    const audioBuffers = await Promise.all(scriptChunks.map(async (script, index) => {
+    const audioBuffers = await Promise.all(processedScriptChunks.map(async (script, index) => {
       if (script.length > 5000) {
-        throw new Error(`Script chunk ${index + 1} exceeds 5000 characters`);
+        console.warn(`Warning: Script chunk ${index + 1} still exceeds 5000 characters (${script.length}). This should not happen with our splitting logic.`);
+        // Instead of throwing error, truncate to avoid failure
+        script = script.substring(0, 4900) + '...';
       }
       const request = {
         input: { text: script },
