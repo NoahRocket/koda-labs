@@ -232,7 +232,11 @@ exports.handler = async (event, context) => {
 
     const filename = `${podcastName}_${Date.now()}.mp3`;
     const base64Audio = finalAudioBuffer.toString('base64');
-
+    
+    // Log sizes to debug payload issues
+    console.log(`[generate-tts-background] Audio buffer size: ${finalAudioBuffer.length} bytes`);
+    console.log(`[generate-tts-background] Base64 encoded size: ${base64Audio.length} characters`);
+    
     const host = event.headers.host;
     const proto = host.includes('localhost') ? 'http' : 'https';
     const directUploadUrl = `${proto}://${host}/.netlify/functions/direct-upload`;
