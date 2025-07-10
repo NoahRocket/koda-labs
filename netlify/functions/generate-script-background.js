@@ -153,15 +153,10 @@ exports.handler = async (event) => {
     
     const scriptChunks = await Promise.all(scriptPromises);
     
-    // Concatenate for backward compat (with transitions)
-    const transition = chunks.length > 1 ? '\n\nMoving on to the next part...\n\n' : '';
-    const fullScript = scriptChunks.join(transition);
-    
-    console.log(`[generate-script-background] Scripts generated successfully for job ${jobId}. Total length: ${fullScript.length}`);
+    console.log(`[generate-script-background] Scripts generated successfully for job ${jobId}.`);
 
     await updateJob(jobId, { 
       status: 'script_generated', 
-      generated_script: fullScript,  // Concatenated for compat
       script_chunks: scriptChunks  // Array for chunked processing
     });
 

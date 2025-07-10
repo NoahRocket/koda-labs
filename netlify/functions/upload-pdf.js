@@ -217,7 +217,7 @@ exports.handler = async (event) => {
     }
     
     // Extract text from the PDF
-    const extractedText = pdfExtractData.text || 'No text found in PDF.';
+    const extractedText = pdfExtractData.text.replace(/\u0000/g, '') || 'No text found in PDF.';
     const textLength = extractedText.length;
     const needsChunking = textLength > 20000;  // Threshold for chunking; adjust as needed for optimal learning tool performance
     console.log(`[upload-pdf] Extracted text length: ${textLength} characters. Needs chunking: ${needsChunking}`);
