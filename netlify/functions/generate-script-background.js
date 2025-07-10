@@ -18,79 +18,77 @@ const updateJob = async (jobId, data) => {
   return { error: null };
 };
 
-// This function now lives here, as chatgpt.js is a generic handler
-async function generatePodcastScript(concepts, extractedText) {
-    console.log('[generatePodcastScript] Starting script generation');
-    try {
-        const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-        if (!OPENAI_API_KEY) {
-            throw new Error('OpenAI API key is not configured.');
-        }
-        
-        console.log('[generatePodcastScript] Formatting concepts and extracting text');
-        // Format concepts from the array of objects
-        const conceptsText = Array.isArray(concepts) ? 
-            concepts.map(c => `- ${c.concept}: ${c.explanation}`).join('\n') :
-            JSON.stringify(concepts); // Fallback if concepts is not an array
-        
-        // Truncate the source text to avoid hitting token limits
-        const MAX_TEXT_LENGTH = 10000; // Reduced to ensure we stay under limits
-        const truncatedText = extractedText ? extractedText.substring(0, MAX_TEXT_LENGTH) : '';
-        if (!truncatedText) {
-            throw new Error('Extracted text is empty or undefined');
-        }
-        
-        console.log(`[generatePodcastScript] Prepared ${conceptsText.length} bytes of concepts and ${truncatedText.length} bytes of text`);
+// Updated to generate script per chunk
+async function generatePodcastScriptChunk(concepts, chunk, index, totalChunks) {
+  console.log(`[generatePodcastScriptChunk] Starting script generation for chunk ${index + 1}/${totalChunks}`);
+  try {
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    if (!OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured.');
+    }
+    
+    console.log('[generatePodcastScriptChunk] Formatting concepts and chunk text');
+    // Format concepts from the array of objects
+    const conceptsText = Array.isArray(concepts) ? 
+      concepts.map(c => `- ${c.concept}: ${c.explanation}`).join('\n') :
+      JSON.stringify(concepts); // Fallback if concepts is not array
+    
+    // No truncation needed per chunk (already sized appropriately)
+    if (!chunk) {
+      throw new Error('Chunk text is empty or undefined');
+    }
+    
+    console.log(`[generatePodcastScriptChunk] Prepared ${conceptsText.length} bytes of concepts and ${chunk.length} bytes of text`);
 
-        const prompt = `You are a professional podcast script writer. Your task is to create an engaging, educational podcast script based on the following key concepts and the provided source text. The script should be conversational, clear, and approximately 3-5 minutes when read aloud.
+    const partLabel = totalChunks > 1 ? `Part ${index + 1} of ${totalChunks}` : '';
+    const prompt = `You are a professional podcast script writer. Create a concise, engaging educational podcast script segment (${partLabel}) based on the key concepts and this source text chunk. Keep it to 3-4 minutes when read aloud (~3000-4000 characters).
 
 Key Concepts to Cover:
 ${conceptsText}
 
 Source Text for Context:
-${truncatedText}
+${chunk}
 
-Please generate the podcast script. The tone should be informative yet accessible. Structure it with a brief introduction, a main body that discusses each concept, and a short outro. Do not include placeholders like "intro music" or "outro music" or any other stage directions. Return ONLY the script content as plain text, focusing solely on the spoken content.`;
+The script should be conversational and accessible. Structure: brief intro (link to previous if not first), main body discussing relevant concepts, short outro (tease next if not last). Focus on spoken content only—no stage directions. Return ONLY the script as plain text.`;
 
-        console.log('[generatePodcastScript] Making OpenAI API call');
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4.1-mini', // Use more reliable model instead of gpt-4.1-mini
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.7,
-                max_tokens: 5000, // Reduced for better reliability
-            })
-        });
+    console.log('[generatePodcastScriptChunk] Making OpenAI API call');
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1000,  // Enforce brevity
+      })
+    });
 
-        console.log(`[generatePodcastScript] OpenAI API response status: ${response.status}`);
-        if (!response.ok) {
-            const errorBody = await response.text();
-            console.error(`[generatePodcastScript] OpenAI API error: ${response.status}`, errorBody);
-            throw new Error(`OpenAI API error: ${response.status} - ${errorBody}`);
-        }
-
-        console.log('[generatePodcastScript] Parsing OpenAI response');
-        const data = await response.json();
-        const script = data.choices?.[0]?.message?.content;
-
-        if (!script) {
-            console.error('[generatePodcastScript] Invalid response structure from OpenAI:', data);
-            throw new Error('Invalid response structure from OpenAI API or empty script.');
-        }
-        
-        console.log(`[generatePodcastScript] Successfully generated script of length ${script.length}`);
-        return script.trim();
-    } catch (error) {
-        console.error('[generatePodcastScript] Error generating script:', error);
-        throw error; // Re-throw to be handled by the caller
+    console.log(`[generatePodcastScriptChunk] OpenAI API response status: ${response.status}`);
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(`[generatePodcastScriptChunk] OpenAI API error: ${response.status}`, errorBody);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorBody}`);
     }
-}
 
+    console.log('[generatePodcastScriptChunk] Parsing OpenAI response');
+    const data = await response.json();
+    const script = data.choices?.[0]?.message?.content;
+
+    if (!script) {
+      console.error('[generatePodcastScriptChunk] Invalid response structure from OpenAI:', data);
+      throw new Error('Invalid response structure from OpenAI API or empty script.');
+    }
+    
+    console.log(`[generatePodcastScriptChunk] Successfully generated script of length ${script.length} for chunk ${index + 1}`);
+    return script.trim();
+  } catch (error) {
+    console.error('[generatePodcastScriptChunk] Error generating script:', error);
+    throw error; // Re-throw to be handled by the caller
+  }
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -111,25 +109,18 @@ exports.handler = async (event) => {
 
   console.log(`[generate-script-background] Starting processing for job ${jobId}`);
 
-  // Set a handler timeout to prevent the function from stalling indefinitely
-  const timeoutId = setTimeout(() => {
-    console.error(`[generate-script-background] Operation timed out after 50 seconds for job ${jobId}`);
-    // We can't update the job status here because the function might have already exited
-  }, 50000);
-  
   try {
     await updateJob(jobId, { status: 'generating_script' });
 
     const supabaseAdmin = getSupabaseAdmin();
 
-    // Add a timeout to the database query
+    // Fetch with timeout
     const fetchPromise = supabaseAdmin
       .from('podcast_jobs')
-      .select('concepts, generated_script, user_id')
+      .select('concepts, text_chunks, extracted_text, user_id')
       .eq('job_id', jobId)
       .single();
     
-    // Use Promise.race to ensure the query doesn't hang indefinitely
     const { data: job, error: fetchError } = await Promise.race([
       fetchPromise,
       new Promise((_, reject) => 
@@ -141,23 +132,38 @@ exports.handler = async (event) => {
       throw new Error(`Failed to fetch job ${jobId}: ${fetchError ? fetchError.message : 'Not found'}`);
     }
 
-    const { concepts, generated_script: extractedText, user_id: userId } = job;
+    const { concepts, text_chunks: textChunks, extracted_text: extractedText, user_id: userId } = job;
     
-    // More robust input validation
-    if (!extractedText || typeof extractedText !== 'string' || extractedText.trim().length === 0) {
-      throw new Error(`Job ${jobId} is missing valid extracted text`);
-    }
-    
+    // Validate inputs
     if (!concepts) {
       console.warn(`Job ${jobId} is missing concepts, using fallback empty array`);
       concepts = [];
     }
 
-    console.log(`[generate-script-background] Generating script for job ${jobId}...`);
-    const scriptText = await generatePodcastScript(concepts, extractedText);
-    console.log(`[generate-script-background] Script generated successfully for job ${jobId}.`);
+    let chunks = textChunks || [extractedText];
+    if (!chunks || chunks.length === 0 || chunks.every(c => !c || typeof c !== 'string' || c.trim().length === 0)) {
+      throw new Error(`Job ${jobId} is missing valid text chunks or extracted text`);
+    }
 
-    await updateJob(jobId, { status: 'script_generated', generated_script: scriptText });
+    console.log(`[generate-script-background] Generating scripts for ${chunks.length} chunks in job ${jobId}...`);
+    
+    const scriptPromises = chunks.map((chunk, index) => 
+      generatePodcastScriptChunk(concepts, chunk, index, chunks.length)
+    );
+    
+    const scriptChunks = await Promise.all(scriptPromises);
+    
+    // Concatenate for backward compat (with transitions)
+    const transition = chunks.length > 1 ? '\n\nMoving on to the next part...\n\n' : '';
+    const fullScript = scriptChunks.join(transition);
+    
+    console.log(`[generate-script-background] Scripts generated successfully for job ${jobId}. Total length: ${fullScript.length}`);
+
+    await updateJob(jobId, { 
+      status: 'script_generated', 
+      generated_script: fullScript,  // Concatenated for compat
+      script_chunks: scriptChunks  // Array for chunked processing
+    });
 
     console.log(`[generate-script-background] Triggering TTS generation for job ${jobId}...`);
     const ttsFunctionUrl = `${process.env.URL || 'http://localhost:8888'}/.netlify/functions/generate-tts-background`;
@@ -168,7 +174,7 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
       },
-      body: JSON.stringify({ jobId, userId, scriptText })
+      body: JSON.stringify({ jobId, userId })  // No scriptText; TTS will fetch from DB
     });
 
     if (!response.ok) {
