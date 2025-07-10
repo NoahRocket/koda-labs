@@ -218,6 +218,9 @@ exports.handler = async (event) => {
     
     // Extract text from the PDF
     const extractedText = pdfExtractData.text || 'No text found in PDF.';
+    const textLength = extractedText.length;
+    const needsChunking = textLength > 20000;  // Threshold for chunking; adjust as needed for optimal learning tool performance
+    console.log(`[upload-pdf] Extracted text length: ${textLength} characters. Needs chunking: ${needsChunking}`);
 
     // We don't store the PDF file in Supabase Storage
     // The PDF is only used for text extraction and then discarded
@@ -271,7 +274,8 @@ exports.handler = async (event) => {
           .from('podcast_jobs')
           .update({
             status: 'pending_analysis',
-            generated_script: extractedText,
+            extracted_text: extractedText,  // Updated field name for clarity
+            needs_chunking: needsChunking,
             updated_at: new Date().toISOString(),
             error_message: null // Clear any previous error messages
           })
@@ -295,7 +299,8 @@ exports.handler = async (event) => {
               user_id: userId,
               status: 'pending_analysis',
               filename: fileData.originalFilename,
-              generated_script: extractedText,  // Store extracted text directly
+              extracted_text: extractedText,  // Updated field name for clarity
+              needs_chunking: needsChunking,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }
