@@ -15,6 +15,10 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 
 const { GOOGLE_CLOUD_CREDENTIALS, SUPABASE_URL, SUPABASE_KEY } = process.env;
 
+// Define limits for podcast generation
+const MAX_DURATION_SECONDS = 930; // 15.5 minutes, safely under 16 minutes
+const MAX_PAYLOAD_SIZE_BYTES = 4.4 * 1024 * 1024; // 4.4MB, safely under Netlify's 4.5MB limit
+
 async function updateJobStatus(supabase, jobId, status, { error = null, podcastUrl = null, duration = null } = {}) {
   const updateData = { status, updated_at: new Date().toISOString() };
   if (error) updateData.error_message = error;
@@ -156,28 +160,36 @@ exports.handler = async (event, context) => {
 
     // Generate TTS per chunk and collect durations
     let totalDurationInSeconds = 0;
-    const audioBuffers = await Promise.all(processedScriptChunks.map(async (script, index) => {
-      if (script.length > 5000) {
-        console.warn(`Warning: Script chunk ${index + 1} still exceeds 5000 characters (${script.length}). This should not happen with our splitting logic.`);
-        // Instead of throwing error, truncate to avoid failure
-        script = script.substring(0, 4900) + '...';
+    const audioBuffers = [];
+
+    console.log(`Starting TTS generation with a max duration of ${MAX_DURATION_SECONDS} seconds.`);
+
+    for (const [index, chunk] of processedScriptChunks.entries()) {
+      if (totalDurationInSeconds >= MAX_DURATION_SECONDS) {
+        console.log(`Max duration of ${MAX_DURATION_SECONDS}s reached. Stopping TTS generation at chunk ${index + 1}.`);
+        break;
       }
+
       const request = {
-        input: { text: script },
+        input: { text: chunk },
         voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Iapetus' },
         audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.2 },
       };
 
       const [response] = await client.synthesizeSpeech(request);
       const audioBuffer = response.audioContent;
-      console.log(`TTS audio for chunk ${index + 1} received. bytes= ${audioBuffer.length}`);
-
-      // Accumulate duration per chunk
       const chunkDurationMs = getMp3Duration(audioBuffer);
-      totalDurationInSeconds += Math.round(chunkDurationMs / 1000);
+      const chunkDurationSec = Math.round(chunkDurationMs / 1000);
 
-      return audioBuffer;
-    }));
+      console.log(`TTS for chunk ${index + 1}/${processedScriptChunks.length}: duration=${chunkDurationSec}s, size=${audioBuffer.length} bytes. Total duration so far: ${totalDurationInSeconds + chunkDurationSec}s`);
+
+      totalDurationInSeconds += chunkDurationSec;
+      audioBuffers.push(audioBuffer);
+    }
+
+    if (audioBuffers.length === 0) {
+      throw new Error('No audio was generated. The script might be empty or too short.');
+    }
 
     // Use ffmpeg to concatenate audio buffers
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'podcast-audio-'));
@@ -221,6 +233,13 @@ exports.handler = async (event, context) => {
 
     await updateJobStatus(supabase, jobId, 'uploading');
 
+    // Final safety check for payload size before triggering upload
+    if (finalAudioBuffer.length > MAX_PAYLOAD_SIZE_BYTES) {
+      const errorMsg = `Generated audio file (${(finalAudioBuffer.length / 1024 / 1024).toFixed(2)}MB) exceeds the size limit of ${(MAX_PAYLOAD_SIZE_BYTES / 1024 / 1024).toFixed(2)}MB.`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+
     // Create a human-readable name from the PDF filename
     let podcastName = 'podcast';
     if (jobData.filename) {
@@ -231,21 +250,33 @@ exports.handler = async (event, context) => {
     }
 
     const filename = `${podcastName}_${Date.now()}.mp3`;
-    const base64Audio = finalAudioBuffer.toString('base64');
     
-    // Log sizes to debug payload issues
-    console.log(`[generate-tts-background] Audio buffer size: ${finalAudioBuffer.length} bytes`);
-    console.log(`[generate-tts-background] Base64 encoded size: ${base64Audio.length} characters`);
+    // Calculate file sizes for logging and validation
+    const fileSizeInBytes = finalAudioBuffer.length;
+    const fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+    
+    // Log detailed information about the audio file
+    console.log(`[generate-tts-background] Audio duration: ${totalDurationInSeconds} seconds (${(totalDurationInSeconds/60).toFixed(2)} minutes)`);
+    console.log(`[generate-tts-background] Audio file size: ${fileSizeInBytes} bytes (${fileSizeInMB.toFixed(2)} MB)`);
+    
+    // We already have a MAX_PAYLOAD_SIZE_BYTES check above, but let's add more detailed logging
+    console.log(`[generate-tts-background] Upload limit: ${(MAX_PAYLOAD_SIZE_BYTES/1024/1024).toFixed(2)} MB, Current file: ${fileSizeInMB.toFixed(2)} MB`);
+    
+    const base64Audio = finalAudioBuffer.toString('base64');
+    const base64SizeInMB = base64Audio.length / (1024 * 1024);
+    console.log(`[generate-tts-background] Base64 encoded size: ${base64Audio.length} characters (${base64SizeInMB.toFixed(2)} MB)`);
     
     const host = event.headers.host;
     const proto = host.includes('localhost') ? 'http' : 'https';
     const directUploadUrl = `${proto}://${host}/.netlify/functions/direct-upload`;
+    
     const uploadPayload = {
       jobId: jobId,
       userId: userId,
       filename: filename,
       audioData: base64Audio,
     };
+    
     const uploadRes = await fetch(directUploadUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
