@@ -59,7 +59,7 @@
     }
   </style>
 </head>
-<body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900" style="background: linear-gradient(180deg, #F7F7F7 0%, #FFFFFF 100%);">
+<body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900">
   <!-- Mobile Hamburger - Using the same approach as dashboard -->
   <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
     <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
@@ -139,7 +139,7 @@
       </div>
       
       <!-- Upload Form -->
-      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6">
+      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
         <h2 class="text-xl font-semibold mb-2">Upload Your PDF</h2>
         <p class="text-gray-600 mb-4">Upload a PDF document and our AI will convert it into an engaging podcast episode</p>
         <div class="mb-4">
@@ -234,7 +234,7 @@
     </div>
     
     <!-- Podcasts List Section -->
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-xl font-bold">Your Podcasts</h2>
         <div class="flex items-center">
@@ -756,7 +756,7 @@
           const iconColor = 'bg-blue-500';
           
           podcastsHTML += `
-            <div class="border-b border-gray-100 pb-4 mb-4 last:border-b-0 last:mb-0 last:pb-0">
+            <div class="border-b border-gray-200 pb-4 mb-4 last:border-b-0 last:mb-0 last:pb-0">
               <div class="flex">
                 <div class="${iconColor} rounded-lg p-3 mr-4 h-12 w-12 flex items-center justify-center">
                   <i class="fas fa-${podcastIcon} text-white text-xl"></i>
@@ -1195,7 +1195,7 @@
         `;
         
         // Insert the progress container before the podcast list section
-        const podcastListContainer = document.querySelector('#podcastList').closest('.bg-white');
+        const podcastListContainer = document.querySelector('#podcastList').closest('.bg-white.p-6');
         if (podcastListContainer) {
           podcastListContainer.parentNode.insertBefore(progressContainer, podcastListContainer);
         }
@@ -1321,7 +1321,7 @@
             console.log('Found podcastProgressContainer:', podcastProgressContainer);
             
             // Force removal of the progress container
-            const allPossibleContainers = document.querySelectorAll('.bg-white.p-6.rounded-lg.shadow-sm.mt-8');
+            const allPossibleContainers = document.querySelectorAll('div[id="podcastProgressContainer"]');
             console.log(`Found ${allPossibleContainers.length} potential containers`);
             
             let containerFound = false;

@@ -15,6 +15,47 @@
   <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
 
   <style>
+    /* Dark Mode Overrides */
+    .dark-mode .bg-blue-50 {
+      background-color: rgba(30, 58, 138, 0.2); /* dark blue background */
+    }
+    
+    .dark-mode .bg-green-50 {
+      background-color: rgba(6, 78, 59, 0.2); /* dark green background */
+    }
+    
+    .dark-mode .bg-blue-100 {
+      background-color: rgba(30, 58, 138, 0.3); /* slightly darker blue for the icon background */
+    }
+    
+    .dark-mode .bg-green-100 {
+      background-color: rgba(6, 78, 59, 0.3); /* slightly darker green for the icon background */
+    }
+    
+    .dark-mode .text-gray-600,
+    .dark-mode .text-gray-700,
+    .dark-mode .text-gray-800 {
+      color: rgba(229, 231, 235, 0.9) !important; /* light text in dark mode */
+    }
+    
+    /* Fix topic cards in dark mode */
+    .dark-mode .topic-menu-btn:hover {
+      background-color: rgba(55, 65, 81, 0.5) !important;
+    }
+    
+    .dark-mode .dropdown-menu {
+      background-color: var(--bg-secondary);
+      border-color: var(--border-color);
+    }
+    
+    .dark-mode .dropdown-menu button {
+      color: var(--text-primary);
+    }
+    
+    .dark-mode .dropdown-menu button:hover {
+      background-color: var(--bg-tertiary);
+    }
+    
     /* Animations */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
@@ -176,7 +217,7 @@
   </style>
 </head>
 
-<body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900" style="background: linear-gradient(180deg, #F7F7F7 0%, #FFFFFF 100%);">
+<body class="bg-gray-50 font-eb-garamond min-h-screen flex text-gray-900">
   <!-- Mobile Hamburger -->
   <div class="md:hidden fixed top-4 left-4 z-50 cursor-pointer p-2 mobile-touch-target" id="hamburger">
     <div class="w-6 h-0.5 bg-gray-800 mb-1"></div>
