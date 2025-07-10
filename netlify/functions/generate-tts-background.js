@@ -5,12 +5,6 @@
 const { TextToSpeechClient } = require('@google-cloud/text-to-speech');
 const { getSupabaseAdmin } = require('./supabaseClient');
 const getMp3Duration = require('get-mp3-duration');
-const ffmpeg = require('fluent-ffmpeg');
-const ffmpegStatic = require('ffmpeg-static');
-const fs = require('fs');
-const path = require('path');
-
-ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const { GOOGLE_CLOUD_CREDENTIALS, SUPABASE_URL, SUPABASE_KEY } = process.env;
 
@@ -78,7 +72,8 @@ exports.handler = async (event, context) => {
       credentials: JSON.parse(GOOGLE_CLOUD_CREDENTIALS),
     });
 
-    // Generate TTS per chunk
+    // Generate TTS per chunk and collect durations
+    let totalDurationInSeconds = 0;
     const audioBuffers = await Promise.all(scriptChunks.map(async (script, index) => {
       if (script.length > 5000) {
         throw new Error(`Script chunk ${index + 1} exceeds 5000 characters`);
@@ -92,46 +87,17 @@ exports.handler = async (event, context) => {
       const [response] = await client.synthesizeSpeech(request);
       const audioBuffer = response.audioContent;
       console.log(`TTS audio for chunk ${index + 1} received. bytes= ${audioBuffer.length}`);
+
+      // Accumulate duration per chunk
+      const chunkDurationMs = getMp3Duration(audioBuffer);
+      totalDurationInSeconds += Math.round(chunkDurationMs / 1000);
+
       return audioBuffer;
     }));
 
-    // Concatenate audio buffers if multiple
-    let finalAudioBuffer;
-    if (audioBuffers.length === 1) {
-      finalAudioBuffer = audioBuffers[0];
-    } else {
-      console.log(`[generate-tts-background] Concatenating ${audioBuffers.length} audio chunks`);
-      finalAudioBuffer = await new Promise((resolve, reject) => {
-        const tempFiles = audioBuffers.map((buf, i) => {
-          const tempPath = path.join('/tmp', `audio_chunk_${i}.mp3`);
-          fs.writeFileSync(tempPath, buf);
-          return tempPath;
-        });
-
-        let command = ffmpeg();
-        tempFiles.forEach(file => command.input(file));
-
-        command
-          .on('error', (err) => {
-            console.error('[generate-tts-background] FFmpeg error:', err);
-            reject(err);
-          })
-          .on('end', () => {
-            const outputPath = path.join('/tmp', 'concatenated.mp3');
-            const buffer = fs.readFileSync(outputPath);
-            // Clean up temp files
-            tempFiles.forEach(fs.unlinkSync);
-            fs.unlinkSync(outputPath);
-            resolve(buffer);
-          })
-          .mergeToFile(path.join('/tmp', 'concatenated.mp3'));
-      });
-    }
-
-    // Calculate duration
-    const durationInMs = getMp3Duration(finalAudioBuffer);
-    const durationInSeconds = Math.round(durationInMs / 1000);
-    console.log(`Calculated podcast duration: ${durationInSeconds}s`);
+    // Concatenate audio buffers directly (works for identical MP3 encodings)
+    const finalAudioBuffer = Buffer.concat(audioBuffers);
+    console.log(`[generate-tts-background] Concatenated audio. Total bytes: ${finalAudioBuffer.length}, duration: ${totalDurationInSeconds}s`);
 
     await updateJobStatus(supabase, jobId, 'uploading');
 
@@ -176,7 +142,7 @@ exports.handler = async (event, context) => {
     }
 
     console.log(`Podcast uploaded successfully. URL: ${podcastUrl}`);
-    await updateJobStatus(supabase, jobId, 'completed', { podcastUrl, duration: durationInSeconds });
+    await updateJobStatus(supabase, jobId, 'completed', { podcastUrl, duration: totalDurationInSeconds });
 
     return {
       statusCode: 200,
