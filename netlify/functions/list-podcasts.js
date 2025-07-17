@@ -68,6 +68,8 @@ exports.handler = async (event) => {
       throw new Error('Failed to fetch podcast jobs from the database.');
     }
 
+    console.log(`[DEBUG] Raw jobs from database:`, jobs.map(job => ({ job_id: job.job_id, filename: job.filename })));
+
     const podcastList = jobs.map(job => ({
       job_id: job.job_id,
       title: createCleanTitle(job.filename),
@@ -80,6 +82,7 @@ exports.handler = async (event) => {
       duration_seconds: job.duration_seconds || 0,
     }));
 
+    console.log(`[DEBUG] Processed podcast list:`, podcastList.map(p => ({ job_id: p.job_id, title: p.title })));
     console.log(`[list-podcasts] Found and returning ${podcastList.length} podcasts for user ${userId}.`);
 
     return {
