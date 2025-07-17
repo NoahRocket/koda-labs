@@ -47,6 +47,17 @@ exports.handler = async (event, context) => {
     try {
         // 1. Get the current filename from the database
         console.log(`[DEBUG] Querying database for job_id: ${jobId} and user_id: ${userId}`);
+        
+        // First, check if the job exists at all
+        const { data: allJobs, error: allJobsError } = await supabase
+            .from('podcast_jobs')
+            .select('filename, user_id')
+            .eq('job_id', jobId);
+            
+        console.log(`[DEBUG] All jobs with this job_id:`, allJobs);
+        console.log(`[DEBUG] All jobs error:`, allJobsError);
+        
+        // Now filter for the specific user
         const { data: jobs, error: fetchError } = await supabase
             .from('podcast_jobs')
             .select('filename')
