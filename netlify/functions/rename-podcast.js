@@ -42,8 +42,6 @@ exports.handler = async (event, context) => {
     const token = authHeader.split(' ')[1];
     let decodedToken;
     try {
-        // We are just decoding, not verifying, as Netlify's Identity service or another gateway should handle verification.
-        // This is a common pattern in serverless functions to extract user info without the secret.
         decodedToken = jwt.decode(token);
         if (!decodedToken || !decodedToken.sub) {
             throw new Error('Invalid token payload');
@@ -81,27 +79,51 @@ exports.handler = async (event, context) => {
     }
 
     try {
-        // Update the podcast title in the database
-        // I am assuming the column to update is 'filename'. If you have a 'title' column, this should be changed.
-        const { data, error, count } = await supabase
+        // 1. Get the current filename from the database
+        const { data: jobData, error: fetchError } = await supabase
             .from('podcast_jobs')
-            .update({ filename: newTitle })
+            .select('filename')
             .eq('job_id', jobId)
             .eq('user_id', userId)
-            .select(); // .select() is used to get the count of updated rows
+            .single();
 
-        if (error) {
-            throw error;
-        }
+        if (fetchError) throw fetchError;
 
-        // Check if any row was updated
-        if (count === 0) {
+        if (!jobData) {
             return {
                 statusCode: 404,
                 headers: { 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ message: 'Podcast not found or you do not have permission to rename it.' })
+                body: JSON.stringify({ message: 'Podcast not found or you do not have permission to access it.' })
             };
         }
+
+        const oldTitle = jobData.filename;
+        const fileExtension = oldTitle.split('.').pop();
+        const newTitleWithExtension = `${newTitle}.${fileExtension}`;
+
+        // 2. Rename the file in Supabase Storage
+        const oldPath = `${userId}/${oldTitle}`;
+        const newPath = `${userId}/${newTitleWithExtension}`;
+
+        const { error: moveError } = await supabase.storage
+            .from('podcasts')
+            .move(oldPath, newPath);
+
+        if (moveError) {
+            // If the file doesn't exist in storage, we might still want to update the DB
+            // This depends on how you want to handle inconsistencies.
+            // For now, we'll throw an error.
+            throw new Error(`Failed to rename file in storage: ${moveError.message}`);
+        }
+
+        // 3. Update the podcast title in the database
+        const { error: updateError } = await supabase
+            .from('podcast_jobs')
+            .update({ filename: newTitleWithExtension })
+            .eq('job_id', jobId)
+            .eq('user_id', userId);
+
+        if (updateError) throw updateError;
 
         return {
             statusCode: 200,
