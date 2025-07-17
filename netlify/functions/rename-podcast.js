@@ -1,10 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseAdmin } = require('./supabaseClient');
 const jwt = require('jsonwebtoken');
-
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 exports.handler = async (event, context) => {
     // Standard OPTIONS and POST checks
@@ -45,6 +40,9 @@ exports.handler = async (event, context) => {
     console.log(`[DEBUG] Received rename request - jobId: ${jobId}, newTitle: ${newTitle}, userId: ${userId}`);
 
     try {
+        // Get admin client
+        const supabase = getSupabaseAdmin();
+        
         // 1. Get the current filename from the database
         console.log(`[DEBUG] Querying database for job_id: ${jobId} and user_id: ${userId}`);
         
