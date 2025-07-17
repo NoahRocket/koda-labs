@@ -42,17 +42,32 @@ exports.handler = async (event, context) => {
         return { statusCode: 400, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ message: 'jobId and newTitle are required.' }) };
     }
 
+    console.log(`[DEBUG] Received rename request - jobId: ${jobId}, newTitle: ${newTitle}, userId: ${userId}`);
+
     try {
         // 1. Get the current filename from the database
+        console.log(`[DEBUG] Querying database for job_id: ${jobId} and user_id: ${userId}`);
         const { data: jobs, error: fetchError } = await supabase
             .from('podcast_jobs')
             .select('filename')
             .eq('job_id', jobId)
             .eq('user_id', userId);
 
-        if (fetchError) throw new Error(`Database fetch error: ${fetchError.message}`);
+        console.log(`[DEBUG] Database query result - jobs:`, jobs);
+        console.log(`[DEBUG] Database query error:`, fetchError);
+
+        if (fetchError) {
+            console.error('Database fetch error:', fetchError);
+            return { statusCode: 500, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ message: 'Database error during fetch.' }) };
+        }
+
         if (!jobs || jobs.length === 0) {
-            return { statusCode: 404, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ message: `Podcast with job ID ${jobId} not found.` }) };
+            console.log(`[DEBUG] No jobs found for job_id: ${jobId} and user_id: ${userId}`);
+            return { 
+                statusCode: 404, 
+                headers: { 'Access-Control-Allow-Origin': '*' }, 
+                body: JSON.stringify({ message: `Podcast with job ID ${jobId} not found.` }) 
+            };
         }
 
         const oldFilename = jobs[0].filename;
