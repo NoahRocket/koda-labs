@@ -249,7 +249,7 @@ exports.handler = async (event, context) => {
         .trim();
     }
 
-    const filename = `${podcastName}_${Date.now()}.mp3`;
+    const filename = `${podcastName}.mp3`;
     
     // Calculate file sizes for logging and validation
     const fileSizeInBytes = finalAudioBuffer.length;

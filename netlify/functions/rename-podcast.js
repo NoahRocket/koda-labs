@@ -81,12 +81,8 @@ exports.handler = async (event, context) => {
 
         const oldFilename = jobs[0].filename;
         
-        // 2. Preserve the timestamp and extension
-        const timestampMatch = oldFilename.match(/_(\d{13})\./);
-        const timestamp = timestampMatch ? timestampMatch[1] : Date.now();
-        const extension = oldFilename.split('.').pop() || 'mp3';
-
-        const newFilename = `${newTitle}_${timestamp}.${extension}`;
+        // 2. Create new filename with mp3 extension
+        const newFilename = `${newTitle}.mp3`;
 
         if (oldFilename === newFilename) {
             return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ message: 'No change in title, operation skipped.' }) };
@@ -98,14 +94,6 @@ exports.handler = async (event, context) => {
         
         console.log(`[DEBUG] Attempting to move file from: ${oldPath} to: ${newPath}`);
         
-        // Check what files exist in the user's folder
-        const { data: fileList, error: listError } = await supabase.storage
-            .from('podcasts')
-            .list(userId);
-            
-        console.log(`[DEBUG] Files in user folder:`, fileList);
-        console.log(`[DEBUG] List error:`, listError);
-
         const { error: moveError } = await supabase.storage
             .from('podcasts')
             .move(oldPath, newPath);
