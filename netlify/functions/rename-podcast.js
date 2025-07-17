@@ -95,6 +95,16 @@ exports.handler = async (event, context) => {
         // 3. Rename the file in Supabase Storage
         const oldPath = `${userId}/${oldFilename}`;
         const newPath = `${userId}/${newFilename}`;
+        
+        console.log(`[DEBUG] Attempting to move file from: ${oldPath} to: ${newPath}`);
+        
+        // Check what files exist in the user's folder
+        const { data: fileList, error: listError } = await supabase.storage
+            .from('podcasts')
+            .list(userId);
+            
+        console.log(`[DEBUG] Files in user folder:`, fileList);
+        console.log(`[DEBUG] List error:`, listError);
 
         const { error: moveError } = await supabase.storage
             .from('podcasts')
