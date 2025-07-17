@@ -80,26 +80,39 @@ exports.handler = async (event, context) => {
 
     try {
         // 1. Get the current filename from the database
-        const { data: jobData, error: fetchError } = await supabase
+        const { data: jobs, error: fetchError } = await supabase
             .from('podcast_jobs')
             .select('filename')
             .eq('job_id', jobId)
-            .eq('user_id', userId)
-            .single();
+            .eq('user_id', userId);
 
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+            console.error('Error fetching job:', fetchError);
+            throw new Error(`Database fetch error: ${fetchError.message}`);
+        }
 
-        if (!jobData) {
+        if (!jobs || jobs.length === 0) {
             return {
                 statusCode: 404,
                 headers: { 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ message: 'Podcast not found or you do not have permission to access it.' })
+                body: JSON.stringify({ message: `Podcast with job ID ${jobId} not found.` })
             };
         }
 
-        const oldTitle = jobData.filename;
+        const oldTitle = jobs[0].filename;
         const fileExtension = oldTitle.split('.').pop();
-        const newTitleWithExtension = `${newTitle}.${fileExtension}`;
+        // Ensure the new title doesn't already have an extension
+        const newTitleBase = newTitle.includes('.') ? newTitle.split('.').slice(0, -1).join('.') : newTitle;
+        const newTitleWithExtension = `${newTitleBase}.${fileExtension}`;
+
+        // If the name is not changing, no need to do anything
+        if (oldTitle === newTitleWithExtension) {
+            return {
+                statusCode: 200,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ message: 'No change in title, operation skipped.' })
+            };
+        }
 
         // 2. Rename the file in Supabase Storage
         const oldPath = `${userId}/${oldTitle}`;
@@ -110,10 +123,12 @@ exports.handler = async (event, context) => {
             .move(oldPath, newPath);
 
         if (moveError) {
-            // If the file doesn't exist in storage, we might still want to update the DB
-            // This depends on how you want to handle inconsistencies.
-            // For now, we'll throw an error.
-            throw new Error(`Failed to rename file in storage: ${moveError.message}`);
+            console.error(`Storage move error for job ${jobId}:`, moveError);
+            // If the file is not found, it might have been renamed already. 
+            // We'll proceed to update the database just in case.
+            if (moveError.message !== 'The resource was not found') {
+                 throw new Error(`Failed to rename file in storage: ${moveError.message}`);
+            }
         }
 
         // 3. Update the podcast title in the database
@@ -123,7 +138,10 @@ exports.handler = async (event, context) => {
             .eq('job_id', jobId)
             .eq('user_id', userId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+            console.error(`DB update error for job ${jobId}:`, updateError);
+            throw new Error(`Failed to update database: ${updateError.message}`);
+        }
 
         return {
             statusCode: 200,
@@ -132,7 +150,7 @@ exports.handler = async (event, context) => {
         };
 
     } catch (error) {
-        console.error('Error renaming podcast:', error);
+        console.error(`Error renaming podcast for job ${jobId}:`, error);
         return {
             statusCode: 500,
             headers: { 'Access-Control-Allow-Origin': '*' },
