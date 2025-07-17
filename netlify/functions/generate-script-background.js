@@ -19,39 +19,36 @@ const updateJob = async (jobId, data) => {
 };
 
 // Updated to generate script per chunk
-async function generatePodcastScriptChunk(concepts, chunk, index, totalChunks) {
-  console.log(`[generatePodcastScriptChunk] Starting script generation for chunk ${index + 1}/${totalChunks}`);
+async function generatePodcastScript(concepts, chunk, previousScript, partLabel, isLastChunk) {
+  console.log(`[generatePodcastScript] Starting script generation for ${partLabel}`);
   try {
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
     if (!OPENAI_API_KEY) {
       throw new Error('OpenAI API key is not configured.');
     }
-    
-    console.log('[generatePodcastScriptChunk] Formatting concepts and chunk text');
-    // Format concepts from the array of objects
-    const conceptsText = Array.isArray(concepts) ? 
-      concepts.map(c => `- ${c.concept}: ${c.explanation}`).join('\n') :
-      JSON.stringify(concepts); // Fallback if concepts is not array
-    
-    // No truncation needed per chunk (already sized appropriately)
+
+    const conceptsText = Array.isArray(concepts)
+      ? concepts.map(c => `- ${c.concept}: ${c.explanation}`).join('\n')
+      : JSON.stringify(concepts);
+
     if (!chunk) {
       throw new Error('Chunk text is empty or undefined');
     }
-    
-    console.log(`[generatePodcastScriptChunk] Prepared ${conceptsText.length} bytes of concepts and ${chunk.length} bytes of text`);
 
-    const partLabel = totalChunks > 1 ? `Part ${index + 1} of ${totalChunks}` : '';
-    const prompt = `You are a professional podcast script writer. Create a concise, engaging educational podcast script segment (${partLabel}) based on the key concepts and this source text chunk. Keep it to 3-4 minutes when read aloud (~3000-4000 characters).
+    // Dynamically create the prompt based on position in the script
+    let prompt;
+    if (!previousScript) {
+      // First chunk: Create a welcoming intro
+      prompt = `You are a professional podcast script writer. Create the first segment of an engaging educational podcast (${partLabel}) based on the key concepts and source text. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nStructure: Start with a brief, welcoming intro for the podcast. Then, discuss the relevant concepts. End this segment by smoothly transitioning to the main content. Return ONLY the script as plain text.`;
+    } else if (isLastChunk) {
+      // Last chunk: Create a concluding outro
+      prompt = `You are a professional podcast script writer finishing a script. Here is the end of the previous part:\n"...${previousScript.slice(-500)}"\n\nCreate the final segment using the new source text below. Ensure a seamless transition to a concluding summary. Wrap up the key concepts and provide a strong, memorable outro for the entire podcast. This is the final part: ${partLabel}.\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nReturn ONLY the final script segment as plain text.`;
+    } else {
+      // Middle chunks: Continue the narrative
+      prompt = `You are a professional podcast script writer continuing a script. Here is the end of the previous part:\n"...${previousScript.slice(-500)}"\n\nContinue the script using the new source text below. Ensure a seamless transition. Do not create a new intro or outro. Focus on the key concepts and smoothly connect to the next part. This is ${partLabel}.\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nReturn ONLY the new script segment as plain text.`;
+    }
 
-Key Concepts to Cover:
-${conceptsText}
-
-Source Text for Context:
-${chunk}
-
-The script should be conversational and accessible. Structure: brief intro (link to previous if not first), main body discussing relevant concepts, short outro (tease next if not last). Focus on spoken content only—no stage directions. Return ONLY the script as plain text.`;
-
-    console.log('[generatePodcastScriptChunk] Making OpenAI API call');
+    console.log('[generatePodcastScript] Making OpenAI API call');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -62,31 +59,30 @@ The script should be conversational and accessible. Structure: brief intro (link
         model: 'gpt-4.1-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 1000,  // Enforce brevity
+        max_tokens: 1500, // Increased slightly for more context flexibility
       })
     });
 
-    console.log(`[generatePodcastScriptChunk] OpenAI API response status: ${response.status}`);
+    console.log(`[generatePodcastScript] OpenAI API response status: ${response.status}`);
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`[generatePodcastScriptChunk] OpenAI API error: ${response.status}`, errorBody);
+      console.error(`[generatePodcastScript] OpenAI API error: ${response.status}`, errorBody);
       throw new Error(`OpenAI API error: ${response.status} - ${errorBody}`);
     }
 
-    console.log('[generatePodcastScriptChunk] Parsing OpenAI response');
     const data = await response.json();
     const script = data.choices?.[0]?.message?.content;
 
     if (!script) {
-      console.error('[generatePodcastScriptChunk] Invalid response structure from OpenAI:', data);
+      console.error('[generatePodcastScript] Invalid response structure from OpenAI:', data);
       throw new Error('Invalid response structure from OpenAI API or empty script.');
     }
-    
-    console.log(`[generatePodcastScriptChunk] Successfully generated script of length ${script.length} for chunk ${index + 1}`);
+
+    console.log(`[generatePodcastScript] Successfully generated script of length ${script.length} for ${partLabel}`);
     return script.trim();
   } catch (error) {
-    console.error('[generatePodcastScriptChunk] Error generating script:', error);
-    throw error; // Re-throw to be handled by the caller
+    console.error('[generatePodcastScript] Error generating script:', error);
+    throw error;
   }
 }
 
@@ -114,27 +110,18 @@ exports.handler = async (event) => {
 
     const supabaseAdmin = getSupabaseAdmin();
 
-    // Fetch with timeout
-    const fetchPromise = supabaseAdmin
+    const { data: job, error: fetchError } = await supabaseAdmin
       .from('podcast_jobs')
       .select('concepts, text_chunks, extracted_text, user_id')
       .eq('job_id', jobId)
       .single();
-    
-    const { data: job, error: fetchError } = await Promise.race([
-      fetchPromise,
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database query timed out after 10s')), 10000)
-      )
-    ]);
 
     if (fetchError || !job) {
       throw new Error(`Failed to fetch job ${jobId}: ${fetchError ? fetchError.message : 'Not found'}`);
     }
 
-    const { concepts, text_chunks: textChunks, extracted_text: extractedText, user_id: userId } = job;
+    let { concepts, text_chunks: textChunks, extracted_text: extractedText, user_id: userId } = job;
     
-    // Validate inputs
     if (!concepts) {
       console.warn(`Job ${jobId} is missing concepts, using fallback empty array`);
       concepts = [];
@@ -145,19 +132,30 @@ exports.handler = async (event) => {
       throw new Error(`Job ${jobId} is missing valid text chunks or extracted text`);
     }
 
-    console.log(`[generate-script-background] Generating scripts for ${chunks.length} chunks in job ${jobId}...`);
+    console.log(`[generate-script-background] Generating a coherent script from ${chunks.length} chunks for job ${jobId}...`);
     
-    const scriptPromises = chunks.map((chunk, index) => 
-      generatePodcastScriptChunk(concepts, chunk, index, chunks.length)
-    );
+    let fullScript = '';
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const partLabel = `Part ${i + 1} of ${chunks.length}`;
+      const isLastChunk = i === chunks.length - 1;
+      
+      // Pass the previous script content as context
+      const scriptSegment = await generatePodcastScript(concepts, chunk, fullScript, partLabel, isLastChunk);
+      
+      fullScript += (fullScript ? '\n\n' : '') + scriptSegment;
+      
+      // Optional: Update progress in the database if needed
+      // await updateJob(jobId, { progress: `${i + 1}/${chunks.length}` });
+    }
     
-    const scriptChunks = await Promise.all(scriptPromises);
-    
-    console.log(`[generate-script-background] Scripts generated successfully for job ${jobId}.`);
+    console.log(`[generate-script-background] Coherent script generated successfully for job ${jobId}.`);
 
+    // Now we save the single, unified script
     await updateJob(jobId, { 
       status: 'script_generated', 
-      script_chunks: scriptChunks  // Array for chunked processing
+      generated_script: fullScript, // Store the final script
+      script_chunks: null // Clear the old chunked data
     });
 
     console.log(`[generate-script-background] Triggering TTS generation for job ${jobId}...`);
@@ -169,7 +167,7 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
       },
-      body: JSON.stringify({ jobId, userId })  // No scriptText; TTS will fetch from DB
+      body: JSON.stringify({ jobId, userId })
     });
 
     if (!response.ok) {
