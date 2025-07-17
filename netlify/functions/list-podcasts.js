@@ -1,5 +1,15 @@
 const { getSupabaseAdmin } = require('./supabaseClient');
 
+// Helper function to create a clean title from a filename
+const createCleanTitle = (filename) => {
+  if (!filename) return 'Untitled Podcast';
+  // Remove file extension
+  let title = filename.split('.').slice(0, -1).join('.');
+  // Remove timestamp (assuming format _1234567890123)
+  title = title.replace(/_\d{13}$/, '');
+  return title;
+};
+
 exports.handler = async (event) => {
   // Only allow GET requests
   if (event.httpMethod !== 'GET') {
@@ -30,7 +40,6 @@ exports.handler = async (event) => {
       console.log(`[list-podcasts] Authenticated as user: ${userId}`);
     } catch (err) {
       console.error('[list-podcasts] Auth error:', err.message);
-      // Do not proceed without a valid user ID
       return {
         statusCode: 401,
         body: JSON.stringify({ error: 'Unauthorized: Invalid token' })
@@ -47,8 +56,6 @@ exports.handler = async (event) => {
   try {
     const supabase = getSupabaseAdmin();
     
-    // Fetch completed podcast jobs for the user from the database.
-    // This is the single source of truth for the user's podcasts.
     const { data: jobs, error: dbError } = await supabase
       .from('podcast_jobs')
       .select('*')
@@ -61,17 +68,16 @@ exports.handler = async (event) => {
       throw new Error('Failed to fetch podcast jobs from the database.');
     }
 
-    // Map the database records to the response format.
     const podcastList = jobs.map(job => ({
-      id: job.job_id, // Use job_id for consistency
-      title: job.filename ? job.filename.replace(/\.pdf$/i, '') : 'Untitled Podcast',
+      job_id: job.job_id,
+      title: createCleanTitle(job.filename),
+      filename: job.filename, // Keep the full filename for internal use
       created_at: job.created_at,
       audio_url: job.podcast_url,
       source: 'database',
       status: job.status,
       concepts: job.concepts || [],
-      duration_seconds: job.duration_seconds || 0, // Default to 0 if not present
-      job_id: job.job_id
+      duration_seconds: job.duration_seconds || 0,
     }));
 
     console.log(`[list-podcasts] Found and returning ${podcastList.length} podcasts for user ${userId}.`);
