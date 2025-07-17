@@ -81,16 +81,28 @@ exports.handler = async (event, context) => {
 
         const oldFilename = jobs[0].filename;
         
-        // 2. Create new filename with mp3 extension
-        const newFilename = `${newTitle}.mp3`;
+        // 2. Determine the actual storage filenames (MP3 files)
+        // The database might store PDF filenames, but storage contains MP3 files
+        let actualOldFilename = oldFilename;
+        let actualNewFilename = `${newTitle}.mp3`;
+        
+        // If database has PDF filename, convert to MP3 for storage operations
+        if (oldFilename && oldFilename.toLowerCase().endsWith('.pdf')) {
+            actualOldFilename = oldFilename.replace(/\.pdf$/i, '.mp3');
+        }
+        
+        // Ensure we're working with MP3 files
+        if (!actualOldFilename.toLowerCase().endsWith('.mp3')) {
+            actualOldFilename = `${actualOldFilename}.mp3`;
+        }
 
-        if (oldFilename === newFilename) {
+        if (actualOldFilename === actualNewFilename) {
             return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ message: 'No change in title, operation skipped.' }) };
         }
 
-        // 3. Rename the file in Supabase Storage
-        const oldPath = `${userId}/${oldFilename}`;
-        const newPath = `${userId}/${newFilename}`;
+        // 3. Rename the file in Supabase Storage (using actual MP3 filenames)
+        const oldPath = `${userId}/${actualOldFilename}`;
+        const newPath = `${userId}/${actualNewFilename}`;
         
         console.log(`[DEBUG] Attempting to move file from: ${oldPath} to: ${newPath}`);
         
@@ -103,10 +115,10 @@ exports.handler = async (event, context) => {
             throw new Error(`Failed to rename file in storage: ${moveError.message}`);
         }
 
-        // 4. Update the podcast filename in the database
+        // 4. Update the podcast filename in the database (store the MP3 filename)
         const { error: updateError } = await supabase
             .from('podcast_jobs')
-            .update({ filename: newFilename })
+            .update({ filename: actualNewFilename })
             .eq('job_id', jobId)
             .eq('user_id', userId);
 

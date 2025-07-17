@@ -19,11 +19,12 @@ const { GOOGLE_CLOUD_CREDENTIALS, SUPABASE_URL, SUPABASE_KEY } = process.env;
 const MAX_DURATION_SECONDS = 930; // 15.5 minutes, safely under 16 minutes
 const MAX_PAYLOAD_SIZE_BYTES = 4.4 * 1024 * 1024; // 4.4MB, safely under Netlify's 4.5MB limit
 
-async function updateJobStatus(supabase, jobId, status, { error = null, podcastUrl = null, duration = null } = {}) {
+async function updateJobStatus(supabase, jobId, status, { error = null, podcastUrl = null, duration = null, filename = null } = {}) {
   const updateData = { status, updated_at: new Date().toISOString() };
   if (error) updateData.error_message = error;
   if (podcastUrl) updateData.podcast_url = podcastUrl;
   if (duration) updateData.duration_seconds = duration;
+  if (filename) updateData.filename = filename;
   const { data, error: updateError } = await supabase
     .from('podcast_jobs')
     .update(updateData)
@@ -297,7 +298,7 @@ exports.handler = async (event, context) => {
     }
 
     console.log(`Podcast uploaded successfully. URL: ${podcastUrl}`);
-    await updateJobStatus(supabase, jobId, 'completed', { podcastUrl, duration: totalDurationInSeconds });
+    await updateJobStatus(supabase, jobId, 'completed', { podcastUrl, duration: totalDurationInSeconds, filename });
 
     return {
       statusCode: 200,
