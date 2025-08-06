@@ -18,6 +18,29 @@ const updateJob = async (jobId, data) => {
   return { error: null };
 };
 
+// Helper to check if job has been cancelled
+const checkJobCancelled = async (jobId) => {
+  const supabaseAdmin = getSupabaseAdmin();
+  
+  const { data: job, error } = await supabaseAdmin
+    .from('podcast_jobs')
+    .select('status')
+    .eq('job_id', jobId)
+    .single();
+
+  if (error) {
+    console.error(`[checkJobCancelled] Error checking job status:`, error);
+    return false;
+  }
+
+  const isCancelled = job.status === 'cancelled';
+  if (isCancelled) {
+    console.log(`[checkJobCancelled] Job ${jobId} has been cancelled, stopping processing`);
+  }
+  
+  return isCancelled;
+};
+
 // Updated to generate script per chunk
 async function generatePodcastScript(concepts, chunk, previousScript, partLabel, isLastChunk) {
   console.log(`[generatePodcastScript] Starting script generation for ${partLabel}`);
@@ -39,13 +62,13 @@ async function generatePodcastScript(concepts, chunk, previousScript, partLabel,
     let prompt;
     if (!previousScript) {
       // First chunk: Create a welcoming intro
-      prompt = `You are a professional podcast script writer. Create the first segment of an engaging educational podcast (${partLabel}) based on the key concepts and source text that is understandable to a high school student. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nStructure: Start the script with the exact phrase "Welcome to another episode of ResearchPod!...". Then, discuss the relevant concepts and end this segment by smoothly transitioning to the main content. Return ONLY the spoken script as plain text, with no stage directions or sound effect placeholders like [Intro Music].`;
+      prompt = `You are a professional podcast script writer. Create the first segment of an engaging educational podcast (${partLabel}) based on the key concepts and source text. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nStructure: Start the script with the exact phrase "Welcome to another episode of ResearchPod!...". Then, discuss the relevant concepts and end this segment by smoothly transitioning to the main content. Return ONLY the spoken script as plain text, with no stage directions or sound effect placeholders like [Intro Music].`;
     } else if (isLastChunk) {
       // Last chunk: Create a concluding outro
-      prompt = `You are a professional podcast script writer finishing a script. Here is the end of the previous part:\n"...${previousScript.slice(-1500)}"\n\nCreate the final segment using the new source text below. Ensure a seamless transition to a concluding summary. Wrap up the key concepts and provide a strong, memorable spoken outro for the entire podcast. This is the final part: ${partLabel}.\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nReturn ONLY the final spoken script as plain text, with no stage directions or sound effect placeholders.`;
+      prompt = `You are a professional podcast script writer finishing a script. Here is the end of the previous part:\n"...${previousScript.slice(-500)}"\n\nCreate the final segment using the new source text below. Ensure a seamless transition to a concluding summary. Wrap up the key concepts and provide a strong, memorable spoken outro for the entire podcast. This is the final part: ${partLabel}.\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nReturn ONLY the final spoken script as plain text, with no stage directions or sound effect placeholders.`;
     } else {
       // Middle chunks: Continue the narrative
-      prompt = `You are a professional podcast script writer continuing a script. Here is the end of the previous part:\n"...${previousScript.slice(-1500)}"\n\nContinue the script using the new source text below. Ensure a seamless transition. Do not create a new intro or outro. Focus on the key concepts and smoothly connect to the next part. This is ${partLabel}.\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nReturn ONLY the new script segment as plain text, with no stage directions or sound effect placeholders.`;
+      prompt = `You are a professional podcast script writer continuing a script. Here is the end of the previous part:\n"...${previousScript.slice(-500)}"\n\nContinue the script using the new source text below. Ensure a seamless transition. Do not create a new intro or outro. Focus on the key concepts and smoothly connect to the next part. This is ${partLabel}.\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nReturn ONLY the new script segment as plain text, with no stage directions or sound effect placeholders.`;
     }
 
     console.log('[generatePodcastScript] Making OpenAI API call');
@@ -136,6 +159,15 @@ exports.handler = async (event) => {
     
     let fullScript = '';
     for (let i = 0; i < chunks.length; i++) {
+      // Check if job has been cancelled before processing each chunk
+      if (await checkJobCancelled(jobId)) {
+        console.log(`[generate-script-background] Job ${jobId} was cancelled, stopping script generation`);
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ message: 'Job cancelled by user', cancelled: true })
+        };
+      }
+      
       const chunk = chunks[i];
       const partLabel = `Part ${i + 1} of ${chunks.length}`;
       const isLastChunk = i === chunks.length - 1;
@@ -145,8 +177,8 @@ exports.handler = async (event) => {
       
       fullScript += (fullScript ? '\n\n' : '') + scriptSegment;
       
-      // Optional: Update progress in the database if needed
-      // await updateJob(jobId, { progress: `${i + 1}/${chunks.length}` });
+      // Update progress in the database
+      await updateJob(jobId, { progress: `script_${i + 1}/${chunks.length}` });
     }
     
     console.log(`[generate-script-background] Coherent script generated successfully for job ${jobId}.`);
