@@ -38,6 +38,27 @@ async function updateJobStatus(supabase, jobId, status, { error = null, podcastU
   }
 }
 
+// Helper to check if job has been cancelled
+async function checkJobCancelled(supabase, jobId) {
+  const { data: job, error } = await supabase
+    .from('podcast_jobs')
+    .select('status')
+    .eq('job_id', jobId)
+    .single();
+
+  if (error) {
+    console.error(`[checkJobCancelled] Error checking job status:`, error);
+    return false;
+  }
+
+  const isCancelled = job.status === 'cancelled';
+  if (isCancelled) {
+    console.log(`[checkJobCancelled] Job ${jobId} has been cancelled, stopping processing`);
+  }
+  
+  return isCancelled;
+}
+
 exports.handler = async (event, context) => {
   console.log('generate-tts-background invoked');
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
@@ -154,22 +175,38 @@ exports.handler = async (event, context) => {
     
     console.log(`[generate-tts-background] Processing ${processedScriptChunks.length} script chunks for job ${jobId} (after optimization and splitting)`);
 
+    // Check if job has been cancelled before starting TTS processing
+    if (await checkJobCancelled(supabase, jobId)) {
+      console.log(`[generate-tts-background] Job ${jobId} was cancelled, stopping TTS generation`);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Job cancelled by user', cancelled: true })
+      };
+    }
+
     // Initialize Text-to-Speech client
     const client = new TextToSpeechClient({
       credentials: JSON.parse(GOOGLE_CLOUD_CREDENTIALS),
     });
 
-    // Generate TTS per chunk and collect durations
-    let totalDurationInSeconds = 0;
     const audioBuffers = [];
+    let totalDurationInSeconds = 0;
 
     console.log(`Starting TTS generation with a max duration of ${MAX_DURATION_SECONDS} seconds.`);
 
-    for (const [index, chunk] of processedScriptChunks.entries()) {
-      if (totalDurationInSeconds >= MAX_DURATION_SECONDS) {
-        console.log(`Max duration of ${MAX_DURATION_SECONDS}s reached. Stopping TTS generation at chunk ${index + 1}.`);
-        break;
+    // Process each chunk
+    for (let i = 0; i < processedScriptChunks.length; i++) {
+      // Check for cancellation before processing each chunk
+      if (await checkJobCancelled(supabase, jobId)) {
+        console.log(`[generate-tts-background] Job ${jobId} was cancelled during TTS processing`);
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ message: 'Job cancelled by user', cancelled: true })
+        };
       }
+
+      const chunk = processedScriptChunks[i];
+      console.log(`[generate-tts-background] Processing chunk ${i + 1}/${processedScriptChunks.length} for job ${jobId}`);
 
       const request = {
         input: { text: chunk },
@@ -182,10 +219,21 @@ exports.handler = async (event, context) => {
       const chunkDurationMs = getMp3Duration(audioBuffer);
       const chunkDurationSec = Math.round(chunkDurationMs / 1000);
 
-      console.log(`TTS for chunk ${index + 1}/${processedScriptChunks.length}: duration=${chunkDurationSec}s, size=${audioBuffer.length} bytes. Total duration so far: ${totalDurationInSeconds + chunkDurationSec}s`);
+      console.log(`TTS for chunk ${i + 1}/${processedScriptChunks.length}: duration=${chunkDurationSec}s, size=${audioBuffer.length} bytes. Total duration so far: ${totalDurationInSeconds + chunkDurationSec}s`);
 
       totalDurationInSeconds += chunkDurationSec;
       audioBuffers.push(audioBuffer);
+
+      // Check duration limit
+      if (totalDurationInSeconds > MAX_DURATION_SECONDS) {
+        console.warn(`[generate-tts-background] Total duration ${totalDurationInSeconds}s exceeds limit ${MAX_DURATION_SECONDS}s`);
+        break;
+      }
+
+      // Update progress
+      await updateJobStatus(supabase, jobId, 'generating_audio', { 
+        progress: `tts_${i + 1}/${processedScriptChunks.length}` 
+      });
     }
 
     if (audioBuffers.length === 0) {
