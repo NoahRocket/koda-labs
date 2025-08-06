@@ -297,7 +297,7 @@ exports.handler = async (event) => {
           .insert([
             {
               user_id: userId,
-              status: 'pending_analysis',
+              status: 'pending',
               filename: fileData.originalFilename,
               extracted_text: extractedText,  // Updated field name for clarity
               needs_chunking: needsChunking,
