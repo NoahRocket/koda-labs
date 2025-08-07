@@ -208,6 +208,15 @@ exports.handler = async (event, context) => {
       const chunk = processedScriptChunks[i];
       console.log(`[generate-tts-background] Processing chunk ${i + 1}/${processedScriptChunks.length} for job ${jobId}`);
 
+      // Check for immediate cancellation before expensive TTS API call
+      if (await checkJobCancelled(supabase, jobId)) {
+        console.log(`[generate-tts-background] Job ${jobId} was cancelled before TTS call, stopping immediately`);
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ message: 'Job cancelled by user', cancelled: true })
+        };
+      }
+
       const request = {
         input: { text: chunk },
         voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Iapetus' },
