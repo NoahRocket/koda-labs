@@ -124,13 +124,13 @@ exports.handler = async (event) => {
       return { statusCode: 403, body: JSON.stringify({ error: 'Forbidden: Job does not belong to this user.' }) };
     }
 
-    // Check if job is already completed or failed (can't cancel)
+    // Allow cancellation regardless of job status - users should be able to cancel at any time
     const currentStatus = jobData.status?.toLowerCase();
-    if (currentStatus === 'completed' || currentStatus === 'failed' || currentStatus === 'cancelled') {
+    if (currentStatus === 'cancelled') {
       return { 
-        statusCode: 400, 
+        statusCode: 200, 
         body: JSON.stringify({ 
-          error: `Cannot cancel job with status: ${currentStatus}`,
+          message: 'Job already cancelled',
           status: currentStatus
         }) 
       };
