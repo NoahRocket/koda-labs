@@ -18,7 +18,7 @@ const updateJob = async (jobId, data) => {
   return { error: null };
 };
 
-// Helper to check if job has been cancelled
+// Helper to check if job has been cancelled - enhanced for immediate response
 const checkJobCancelled = async (jobId) => {
   const supabaseAdmin = getSupabaseAdmin();
   
@@ -71,6 +71,12 @@ async function generatePodcastScript(concepts, chunk, previousScript, partLabel,
       prompt = `You are a professional podcast script writer continuing a script. Here is the end of the previous part:\n"...${previousScript.slice(-500)}"\n\nContinue the script using the new source text below. Ensure a seamless transition. Do not create a new intro or outro. Focus on the key concepts and smoothly connect to the next part. This is ${partLabel}.\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nReturn ONLY the new script segment as plain text, with no stage directions or sound effect placeholders.`;
     }
 
+    // Check for immediate cancellation before expensive API call
+    if (await checkJobCancelled(jobId)) {
+      console.log(`[generatePodcastScript] Job ${jobId} was cancelled before OpenAI call, stopping immediately`);
+      return null; // Signal cancellation
+    }
+    
     console.log('[generatePodcastScript] Making OpenAI API call');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -159,7 +165,7 @@ exports.handler = async (event) => {
     
     let fullScript = '';
     for (let i = 0; i < chunks.length; i++) {
-      // Check if job has been cancelled before processing each chunk
+      // Check for immediate cancellation before each chunk
       if (await checkJobCancelled(jobId)) {
         console.log(`[generate-script-background] Job ${jobId} was cancelled, stopping script generation`);
         return {
@@ -174,6 +180,15 @@ exports.handler = async (event) => {
       
       // Pass the previous script content as context
       const scriptSegment = await generatePodcastScript(concepts, chunk, fullScript, partLabel, isLastChunk);
+      
+      // Handle immediate cancellation from script generation
+      if (scriptSegment === null) {
+        console.log(`[generate-script-background] Script generation cancelled for job ${jobId}`);
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ message: 'Job cancelled by user during script generation', cancelled: true })
+        };
+      }
       
       fullScript += (fullScript ? '\n\n' : '') + scriptSegment;
       
