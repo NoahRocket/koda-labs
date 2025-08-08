@@ -62,19 +62,61 @@ async function generatePodcastScript(jobId, concepts, chunk, previousScript, par
     let prompt;
     if (!previousScript) {
       // First chunk: Create a welcoming intro
-      prompt = `You are a professional podcast script writer. Create the first segment of an engaging educational podcast (${partLabel}) based on the key concepts and source text. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nStructure: Start the script with the exact phrase "Welcome to another episode of ResearchPod!...". Then, discuss the relevant concepts and end this segment by smoothly transitioning to the main content. Return ONLY the spoken script as plain text, with no stage directions or sound effect placeholders like [Intro Music].`;
+    prompt = `You are a professional podcast script writer specializing in making complex research accessible. **Target audience: high school-educated listeners who are curious but not experts—explain basic concepts clearly without assuming prior knowledge, while maintaining sophistication by discussing nuances and implications without oversimplifying or using pop-science hype.** Create the first segment of an engaging educational podcast (${partLabel}) based on the key concepts and source text. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).
+
+    **Key Guidelines:**
+    - **Explain Terminology and Concepts**: Identify key terms from the source (e.g., technical jargon, acronyms) and explain them step-by-step: start with a simple definition, then the underlying idea, and why it matters. Use relatable analogies only if they add depth without dumbing down (e.g., compare a blockchain to a shared ledger where changes require group consensus, but tie back to the technical mechanism).
+    - **Build from Basics**: Assume listeners know everyday concepts but not field-specific ones—break down ideas progressively to ensure understanding.
+    - **Engagement**: Make it conversational: pose rhetorical questions, use real-world examples tied to the research, and build excitement through clear storytelling.
+    - **Avoid Repetition**: Focus on fresh insights; don't recap unless transitioning.
+    
+    Key Concepts to Cover:
+    ${conceptsText}
+    
+    Source Text for Context:
+    ${chunk}
+    
+    Structure: Start the script with the exact phrase "Welcome to another episode of ResearchPod!...". Then, discuss the relevant concepts and end this segment by smoothly transitioning to the main content. Return ONLY the spoken script as plain text, with no stage directions or sound effect placeholders like [Intro Music].`;
     } else if (isLastChunk) {
       // Last chunk: Create a concluding outro
-      prompt = `You are a professional podcast script writer finishing a script. Here is the end of the previous part:\n"...${previousScript.slice(-500)}"\n\nCreate the final segment using the new source text below. Ensure a seamless transition to a concluding summary. Wrap up the key concepts and provide a strong, memorable spoken outro for the entire podcast. This is the final part: ${partLabel}.\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nReturn ONLY the final spoken script as plain text, with no stage directions or sound effect placeholders.`;
+      prompt = `You are a professional podcast script writer specializing in making complex research accessible. **Target audience: high school-educated listeners who are curious but not experts—explain basic concepts clearly without assuming prior knowledge, while maintaining sophistication by discussing nuances and implications without oversimplifying or using pop-science hype.** Here is the end of the previous part:
+    "...${previousScript.slice(-500)}"
+    
+    Create the final segment using the new source text below. Ensure a seamless transition to a concluding summary. **Wrap up the key concepts without repetition, emphasizing takeaways, real-world implications, and open questions for sophistication.** This is the final part: ${partLabel}. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).
+    
+    **Key Guidelines:**
+    - **Explain Terminology and Concepts**: Identify key terms from the source (e.g., technical jargon, acronyms) and explain them step-by-step: start with a simple definition, then the underlying idea, and why it matters. Use relatable analogies only if they add depth without dumbing down.
+    - **Build from Basics**: Assume listeners know everyday concepts but not field-specific ones—break down ideas progressively to ensure understanding.
+    - **Engagement**: Make it conversational: pose rhetorical questions, use real-world examples tied to the research, and build excitement through clear storytelling.
+    - **Avoid Repetition**: Focus on fresh insights; reference prior segments subtly if needed.
+    
+    Key Concepts to Cover:
+    ${conceptsText}
+    
+    Source Text for Context:
+    ${chunk}
+    
+    Return ONLY the final spoken script as plain text, with no stage directions or sound effect placeholders.`;
     } else {
       // Middle chunks: Continue the narrative
-      prompt = `You are a professional podcast script writer continuing a script. Here is the end of the previous part:\n"...${previousScript.slice(-500)}"\n\nContinue the script using the new source text below. Ensure a seamless transition. Do not create a new intro or outro. Focus on the key concepts and smoothly connect to the next part. This is ${partLabel}.\n\nKey Concepts to Cover:\n${conceptsText}\n\nSource Text for Context:\n${chunk}\n\nReturn ONLY the new script segment as plain text, with no stage directions or sound effect placeholders.`;
-    }
-
-    // Check for immediate cancellation before expensive API call
-    if (await checkJobCancelled(jobId)) {
-      console.log(`[generatePodcastScript] Job ${jobId} was cancelled before OpenAI call, stopping immediately`);
-      return null; // Signal cancellation
+      prompt = `You are a professional podcast script writer specializing in making complex research accessible. **Target audience: high school-educated listeners who are curious but not experts—explain basic concepts clearly without assuming prior knowledge, while maintaining sophistication by discussing nuances and implications without oversimplifying or using pop-science hype.** Here is the end of the previous part:
+    "...${previousScript.slice(-500)}"
+    
+    Continue the script using the new source text below. Ensure a seamless transition. Do not create a new intro or outro. Focus on the key concepts and smoothly connect to the next part. This is ${partLabel}. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).
+    
+    **Key Guidelines:**
+    - **Explain Terminology and Concepts**: Identify key terms from the source (e.g., technical jargon, acronyms) and explain them step-by-step: start with a simple definition, then the underlying idea, and why it matters. Use relatable analogies only if they add depth without dumbing down.
+    - **Build from Basics**: Assume listeners know everyday concepts but not field-specific ones—break down ideas progressively to ensure understanding.
+    - **Engagement**: Make it conversational: pose rhetorical questions, use real-world examples tied to the research, and build excitement through clear storytelling.
+    - **Avoid Repetition**: Focus on fresh insights; don't re-explain concepts already covered in prior segments.
+    
+    Key Concepts to Cover:
+    ${conceptsText}
+    
+    Source Text for Context:
+    ${chunk}
+    
+    Return ONLY the new script segment as plain text, with no stage directions or sound effect placeholders.`;
     }
     
     console.log('[generatePodcastScript] Making OpenAI API call');
