@@ -146,9 +146,12 @@ exports.handler = async (event, context) => {
             // Add remaining part of the sentence
             if (tempSentence) currentChunk = tempSentence;
           } else {
-            // Current sentence fits in a chunk by itself
-            chunks.push(currentChunk);
-            currentChunk = sentence;
+            // Current sentence fits - add it to current chunk
+            if (currentChunk) {
+              currentChunk += ' ' + sentence;
+            } else {
+              currentChunk = sentence;
+            }
           }
         } else {
           // Add sentence to current chunk
@@ -161,8 +164,15 @@ exports.handler = async (event, context) => {
         chunks.push(currentChunk);
       }
       
-      console.log(`Split text into ${chunks.length} smaller chunks to meet TTS character limit`);
-      return chunks;
+      // Filter out any empty chunks
+      const validChunks = chunks.filter(chunk => chunk && chunk.trim().length > 0);
+      
+      if (validChunks.length === 0) {
+        throw new Error('No valid text chunks generated for TTS processing');
+      }
+      
+      console.log(`Split text into ${validChunks.length} valid chunks to meet TTS character limit`);
+      return validChunks;
     }
 
     // Process each script chunk, splitting if necessary
