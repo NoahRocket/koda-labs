@@ -192,8 +192,7 @@ exports.handler = async (event) => {
       
       fullScript += (fullScript ? '\n\n' : '') + scriptSegment;
       
-      // Update progress in the database
-      await updateJob(jobId, { progress: `script_${i + 1}/${chunks.length}` });
+      // Note: Progress tracking removed - progress column doesn't exist in schema
     }
     
     console.log(`[generate-script-background] Coherent script generated successfully for job ${jobId}.`);
