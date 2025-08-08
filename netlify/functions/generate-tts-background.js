@@ -80,7 +80,7 @@ exports.handler = async (event, context) => {
 
   const supabase = getSupabaseAdmin();
   try {
-    await updateJobStatus(supabase, jobId, 'processing');
+    await updateJobStatus(supabase, jobId, 'generating_tts');
 
     // Fetch script_chunks (fallback to generated_script)
     const { data: jobData, error: fetchError } = await supabase
@@ -93,13 +93,19 @@ exports.handler = async (event, context) => {
       throw new Error(`Failed to fetch job ${jobId}: ${fetchError?.message || 'No job data'}`);
     }
 
-    let scriptChunks = jobData.script_chunks || [jobData.generated_script];
+    // Prefer unified generated_script when available to reduce total TTS calls
+    let scriptChunks;
+    if (jobData.generated_script && typeof jobData.generated_script === 'string' && jobData.generated_script.trim().length > 0) {
+      scriptChunks = [jobData.generated_script];
+    } else {
+      scriptChunks = jobData.script_chunks;
+    }
     if (!scriptChunks || scriptChunks.length === 0 || scriptChunks.every(s => !s || typeof s !== 'string' || s.trim().length === 0)) {
       throw new Error(`Job ${jobId} is missing valid script chunks or generated script`);
     }
 
     // Function to optimize text and split into chunks under 5000 bytes (UTF-8)
-    function optimizeAndSplitText(text, maxBytes = 4900) { // Using 4900 to leave margin for UTF-8
+    function optimizeAndSplitText(text, maxBytes = 4600) { // Conservative margin to avoid 5000-byte limit
       // Optimize text: normalize whitespace and reduce excessive newlines
       const optimized = text
         .replace(/\s+/g, ' ')         // Convert multiple whitespaces to a single space
@@ -113,6 +119,8 @@ exports.handler = async (event, context) => {
       if (encoder.encode(optimized).length <= maxBytes) {
         return [optimized];
       }
+
+      // Note: This function is pure/synchronous. Do not place async control flow here.
       
       // Otherwise, split by sentences at natural breakpoints using byte limits
       const chunks = [];
@@ -235,8 +243,8 @@ exports.handler = async (event, context) => {
         'grpc.http2.min_time_between_pings_ms': 10000,
         'grpc.http2.min_ping_interval_without_data_ms': 300000
       },
-      // Reduce API timeout to 60 seconds instead of 300
-      timeout: 60000
+      // Increase API timeout to 120 seconds for long texts
+      timeout: 120000
     });
 
     const audioBuffers = [];
@@ -255,7 +263,7 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const chunk = processedScriptChunks[i];
+      let chunk = processedScriptChunks[i];
       console.log(`[generate-tts-background] Processing chunk ${i + 1}/${processedScriptChunks.length} for job ${jobId}`);
 
       // Check for immediate cancellation before expensive TTS API call
@@ -267,10 +275,14 @@ exports.handler = async (event, context) => {
         };
       }
 
+      // Log chunk size in bytes for visibility
+      const chunkBytes = Buffer.byteLength(chunk, 'utf8');
+      console.log(`[generate-tts-background] Chunk ${i + 1}/${processedScriptChunks.length} size: ${chunkBytes} bytes`);
+
       const request = {
         input: { text: chunk },
         voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Iapetus' },
-        audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.2 },
+        audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.1 },
       };
 
       // Retry logic for handling 502/timeout errors
@@ -278,11 +290,12 @@ exports.handler = async (event, context) => {
       let retryCount = 0;
       const maxRetries = 3;
       const baseDelay = 2000; // 2 seconds
+      let splitAndRequeue = false;
 
       while (retryCount <= maxRetries) {
         try {
           console.log(`[TTS] Attempting synthesis for chunk ${i + 1}/${processedScriptChunks.length} (attempt ${retryCount + 1}/${maxRetries + 1})`);
-          [response] = await client.synthesizeSpeech(request);
+          [response] = await client.synthesizeSpeech(request, { timeout: 120000 });
           break; // Success, exit retry loop
         } catch (error) {
           retryCount++;
@@ -295,6 +308,23 @@ exports.handler = async (event, context) => {
                              error.message?.includes('timeout');
           
           if (!isRetryable || retryCount > maxRetries) {
+            // Before giving up entirely, try to split this chunk into smaller subchunks and requeue them
+            if (retryCount > maxRetries) {
+              try {
+                const targetBytes = Math.max(2000, Math.floor(chunkBytes / 2));
+                const subChunks = optimizeAndSplitText(chunk, targetBytes);
+                if (subChunks && subChunks.length > 1) {
+                  console.warn(`[TTS] Max retries exceeded for chunk ${i + 1}. Splitting into ${subChunks.length} smaller subchunks (targetBytes=${targetBytes}).`);
+                  // Replace current chunk with subchunks and reprocess from the first subchunk
+                  processedScriptChunks.splice(i, 1, ...subChunks);
+                  // Reset state to retry with the first subchunk on next loop iteration
+                  splitAndRequeue = true;
+                  break;
+                }
+              } catch (splitErr) {
+                console.error('[TTS] Failed to split chunk after retries:', splitErr);
+              }
+            }
             console.error(`[TTS] Non-retryable error or max retries exceeded for chunk ${i + 1}:`, error);
             throw error;
           }
@@ -315,6 +345,15 @@ exports.handler = async (event, context) => {
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
+
+      // If the chunk was split into subchunks and requeued, process the new subchunks next
+      if (!response && splitAndRequeue) {
+        // Step back index so next loop processes the first newly inserted subchunk
+        i--;
+        // Small delay to avoid hot-looping
+        await new Promise(resolve => setTimeout(resolve, 150));
+        continue;
+      }
       const audioBuffer = response.audioContent;
       const chunkDurationMs = getMp3Duration(audioBuffer);
       const chunkDurationSec = Math.round(chunkDurationMs / 1000);
@@ -329,6 +368,9 @@ exports.handler = async (event, context) => {
         console.warn(`[generate-tts-background] Total duration ${totalDurationInSeconds}s exceeds limit ${MAX_DURATION_SECONDS}s`);
         break;
       }
+
+      // Small pacing delay to avoid hammering the TTS API
+      await new Promise(resolve => setTimeout(resolve, 400));
 
       // Update progress
       await updateJobStatus(supabase, jobId, 'processing', { 
