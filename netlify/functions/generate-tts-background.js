@@ -19,12 +19,16 @@ const { GOOGLE_CLOUD_CREDENTIALS, SUPABASE_URL, SUPABASE_KEY } = process.env;
 const MAX_DURATION_SECONDS = 930; // 15.5 minutes, safely under 16 minutes
 const MAX_PAYLOAD_SIZE_BYTES = 4.4 * 1024 * 1024; // 4.4MB, safely under Netlify's 4.5MB limit
 
-async function updateJobStatus(supabase, jobId, status, { error = null, podcastUrl = null, duration = null, filename = null } = {}) {
-  const updateData = { status, updated_at: new Date().toISOString() };
+async function updateJobStatus(supabase, jobId, status, options = {}) {
+  const { error = null, podcastUrl = null, duration = null, filename = null, ...rest } = options;
+  const updateData = { updated_at: new Date().toISOString() };
+  if (status) updateData.status = status; // Only set status if provided to avoid check constraint issues
   if (error) updateData.error_message = error;
   if (podcastUrl) updateData.podcast_url = podcastUrl;
   if (duration) updateData.duration_seconds = duration;
   if (filename) updateData.filename = filename;
+  // include any additional fields like progress
+  Object.assign(updateData, rest);
   const { data, error: updateError } = await supabase
     .from('podcast_jobs')
     .update(updateData)
@@ -80,7 +84,8 @@ exports.handler = async (event, context) => {
 
   const supabase = getSupabaseAdmin();
   try {
-    await updateJobStatus(supabase, jobId, 'generating_tts');
+    // Avoid setting status to values that may violate DB check constraints; just bump updated_at
+    await updateJobStatus(supabase, jobId, null);
 
     // Fetch script_chunks (fallback to generated_script)
     const { data: jobData, error: fetchError } = await supabase
@@ -105,7 +110,7 @@ exports.handler = async (event, context) => {
     }
 
     // Function to optimize text and split into chunks under 5000 bytes (UTF-8)
-    function optimizeAndSplitText(text, maxBytes = 4600) { // Conservative margin to avoid 5000-byte limit
+    function optimizeAndSplitText(text, maxBytes = 4200) { // More conservative to reduce 502/timeouts
       // Optimize text: normalize whitespace and reduce excessive newlines
       const optimized = text
         .replace(/\s+/g, ' ')         // Convert multiple whitespaces to a single space
@@ -207,7 +212,7 @@ exports.handler = async (event, context) => {
         throw new Error('No valid text chunks generated for TTS processing');
       }
       
-      console.log(`Split text into ${validChunks.length} valid chunks to meet TTS character limit`);
+      console.log(`Split text into ${validChunks.length} valid chunks to meet TTS byte limit`);
       return validChunks;
     }
 
@@ -243,8 +248,8 @@ exports.handler = async (event, context) => {
         'grpc.http2.min_time_between_pings_ms': 10000,
         'grpc.http2.min_ping_interval_without_data_ms': 300000
       },
-      // Increase API timeout to 120 seconds for long texts
-      timeout: 120000
+      // Increase API timeout to 180 seconds for long texts
+      timeout: 180000
     });
 
     const audioBuffers = [];
@@ -295,7 +300,7 @@ exports.handler = async (event, context) => {
       while (retryCount <= maxRetries) {
         try {
           console.log(`[TTS] Attempting synthesis for chunk ${i + 1}/${processedScriptChunks.length} (attempt ${retryCount + 1}/${maxRetries + 1})`);
-          [response] = await client.synthesizeSpeech(request, { timeout: 120000 });
+          [response] = await client.synthesizeSpeech(request, { timeout: 180000 });
           break; // Success, exit retry loop
         } catch (error) {
           retryCount++;
@@ -370,10 +375,10 @@ exports.handler = async (event, context) => {
       }
 
       // Small pacing delay to avoid hammering the TTS API
-      await new Promise(resolve => setTimeout(resolve, 400));
+      await new Promise(resolve => setTimeout(resolve, 600));
 
       // Update progress
-      await updateJobStatus(supabase, jobId, 'processing', { 
+      await updateJobStatus(supabase, jobId, null, { 
         progress: `tts_${i + 1}/${processedScriptChunks.length}` 
       });
     }
@@ -422,7 +427,7 @@ exports.handler = async (event, context) => {
       console.log(`Cleaned up temporary directory: ${tempDir}`);
     }
 
-    await updateJobStatus(supabase, jobId, 'processing');
+    await updateJobStatus(supabase, jobId, 'uploading');
 
     // Final safety check for payload size before triggering upload
     if (finalAudioBuffer.length > MAX_PAYLOAD_SIZE_BYTES) {
