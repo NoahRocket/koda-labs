@@ -222,9 +222,21 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Initialize Text-to-Speech client
+    // Initialize Text-to-Speech client with timeout and retry configuration
     const client = new TextToSpeechClient({
       credentials: JSON.parse(GOOGLE_CLOUD_CREDENTIALS),
+      // Configure timeouts and retries to handle 502 errors
+      clientConfig: {
+        // Reduce timeout to fail faster and retry
+        'grpc.keepalive_time_ms': 30000,
+        'grpc.keepalive_timeout_ms': 5000,
+        'grpc.keepalive_permit_without_calls': true,
+        'grpc.http2.max_pings_without_data': 0,
+        'grpc.http2.min_time_between_pings_ms': 10000,
+        'grpc.http2.min_ping_interval_without_data_ms': 300000
+      },
+      // Reduce API timeout to 60 seconds instead of 300
+      timeout: 60000
     });
 
     const audioBuffers = [];
@@ -261,7 +273,48 @@ exports.handler = async (event, context) => {
         audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.2 },
       };
 
-      const [response] = await client.synthesizeSpeech(request);
+      // Retry logic for handling 502/timeout errors
+      let response;
+      let retryCount = 0;
+      const maxRetries = 3;
+      const baseDelay = 2000; // 2 seconds
+
+      while (retryCount <= maxRetries) {
+        try {
+          console.log(`[TTS] Attempting synthesis for chunk ${i + 1}/${processedScriptChunks.length} (attempt ${retryCount + 1}/${maxRetries + 1})`);
+          [response] = await client.synthesizeSpeech(request);
+          break; // Success, exit retry loop
+        } catch (error) {
+          retryCount++;
+          
+          // Check if it's a retryable error (502, timeout, unavailable)
+          const isRetryable = error.code === 14 || // UNAVAILABLE
+                             error.code === 4 ||  // DEADLINE_EXCEEDED
+                             error.message?.includes('502') ||
+                             error.message?.includes('Bad Gateway') ||
+                             error.message?.includes('timeout');
+          
+          if (!isRetryable || retryCount > maxRetries) {
+            console.error(`[TTS] Non-retryable error or max retries exceeded for chunk ${i + 1}:`, error);
+            throw error;
+          }
+          
+          // Exponential backoff with jitter
+          const delay = baseDelay * Math.pow(2, retryCount - 1) + Math.random() * 1000;
+          console.warn(`[TTS] Retryable error for chunk ${i + 1} (attempt ${retryCount}/${maxRetries + 1}). Retrying in ${Math.round(delay)}ms...`, error.message);
+          
+          // Check for cancellation during retry delay
+          if (await checkJobCancelled(supabase, jobId)) {
+            console.log(`[generate-tts-background] Job ${jobId} was cancelled during retry delay`);
+            return {
+              statusCode: 200,
+              body: JSON.stringify({ message: 'Job cancelled by user', cancelled: true })
+            };
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
       const audioBuffer = response.audioContent;
       const chunkDurationMs = getMp3Duration(audioBuffer);
       const chunkDurationSec = Math.round(chunkDurationMs / 1000);
