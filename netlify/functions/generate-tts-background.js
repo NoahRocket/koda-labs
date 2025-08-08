@@ -80,7 +80,7 @@ exports.handler = async (event, context) => {
 
   const supabase = getSupabaseAdmin();
   try {
-    await updateJobStatus(supabase, jobId, 'generating_tts');
+    await updateJobStatus(supabase, jobId, 'processing');
 
     // Fetch script_chunks (fallback to generated_script)
     const { data: jobData, error: fetchError } = await supabase
@@ -240,7 +240,7 @@ exports.handler = async (event, context) => {
       }
 
       // Update progress
-      await updateJobStatus(supabase, jobId, 'generating_audio', { 
+      await updateJobStatus(supabase, jobId, 'processing', { 
         progress: `tts_${i + 1}/${processedScriptChunks.length}` 
       });
     }
@@ -289,7 +289,7 @@ exports.handler = async (event, context) => {
       console.log(`Cleaned up temporary directory: ${tempDir}`);
     }
 
-    await updateJobStatus(supabase, jobId, 'uploading');
+    await updateJobStatus(supabase, jobId, 'processing');
 
     // Final safety check for payload size before triggering upload
     if (finalAudioBuffer.length > MAX_PAYLOAD_SIZE_BYTES) {
