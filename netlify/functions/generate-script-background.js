@@ -42,7 +42,7 @@ const checkJobCancelled = async (jobId) => {
 };
 
 // Updated to generate script per chunk
-async function generatePodcastScript(concepts, chunk, previousScript, partLabel, isLastChunk) {
+async function generatePodcastScript(jobId, concepts, chunk, previousScript, partLabel, isLastChunk) {
   console.log(`[generatePodcastScript] Starting script generation for ${partLabel}`);
   try {
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -179,7 +179,7 @@ exports.handler = async (event) => {
       const isLastChunk = i === chunks.length - 1;
       
       // Pass the previous script content as context
-      const scriptSegment = await generatePodcastScript(concepts, chunk, fullScript, partLabel, isLastChunk);
+      const scriptSegment = await generatePodcastScript(jobId, concepts, chunk, fullScript, partLabel, isLastChunk);
       
       // Handle immediate cancellation from script generation
       if (scriptSegment === null) {
