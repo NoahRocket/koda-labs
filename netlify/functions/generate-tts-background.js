@@ -98,20 +98,23 @@ exports.handler = async (event, context) => {
       throw new Error(`Job ${jobId} is missing valid script chunks or generated script`);
     }
 
-    // Function to optimize text and split into chunks under 5000 characters
-    function optimizeAndSplitText(text, maxChars = 4800) { // Using 4800 to leave some margin
+    // Function to optimize text and split into chunks under 5000 bytes (UTF-8)
+    function optimizeAndSplitText(text, maxBytes = 4900) { // Using 4900 to leave margin for UTF-8
       // Optimize text: normalize whitespace and reduce excessive newlines
       const optimized = text
         .replace(/\s+/g, ' ')         // Convert multiple whitespaces to a single space
         .replace(/\n\s*\n+/g, '\n')  // Replace multiple blank lines with a single newline
         .trim();
+
+      // Use TextEncoder for accurate UTF-8 byte counting
+      const encoder = new TextEncoder();
       
-      // If the optimized text is under limit, return it as a single chunk
-      if (optimized.length <= maxChars) {
+      // If the optimized text is under byte limit, return it as a single chunk
+      if (encoder.encode(optimized).length <= maxBytes) {
         return [optimized];
       }
       
-      // Otherwise, split by sentences at natural breakpoints
+      // Otherwise, split by sentences at natural breakpoints using byte limits
       const chunks = [];
       let currentChunk = '';
       
@@ -119,43 +122,68 @@ exports.handler = async (event, context) => {
       const sentences = optimized.split(/(?<=[.!?])\s+/);
       
       for (const sentence of sentences) {
-        // If adding this sentence exceeds the limit, start a new chunk
-        if (currentChunk.length + sentence.length > maxChars) {
+        const potentialChunk = currentChunk ? currentChunk + ' ' + sentence : sentence;
+        const potentialBytes = encoder.encode(potentialChunk).length;
+        
+        // If adding this sentence exceeds the byte limit, start a new chunk
+        if (potentialBytes > maxBytes) {
           // If current sentence is too long by itself, split it by words
-          if (sentence.length > maxChars) {
+          const sentenceBytes = encoder.encode(sentence).length;
+          if (sentenceBytes > maxBytes) {
             // First add the current chunk if not empty
             if (currentChunk) {
               chunks.push(currentChunk);
               currentChunk = '';
             }
             
-            // Split long sentence by words
+            // Split long sentence by characters to stay under byte limit
             let tempSentence = sentence;
-            while (tempSentence.length > maxChars) {
+            while (encoder.encode(tempSentence).length > maxBytes) {
               // Find a good breaking point (preferably at punctuation or space)
-              let breakPoint = maxChars;
-              while (breakPoint > 0 && !/[,;:\s]/.test(tempSentence.charAt(breakPoint))) {
-                breakPoint--;
-              }
-              // If no good breaking point found, just break at the limit
-              if (breakPoint === 0) breakPoint = maxChars;
+              let breakPoint = Math.floor(maxBytes / 4); // Conservative estimate for UTF-8
+              let found = false;
               
-              chunks.push(tempSentence.substring(0, breakPoint + 1).trim());
-              tempSentence = tempSentence.substring(breakPoint + 1).trim();
+              // Try to find a good breaking point
+              for (let i = breakPoint; i > 0; i--) {
+                const testChunk = tempSentence.substring(0, i);
+                if (encoder.encode(testChunk).length <= maxBytes && /[,;:\s]/.test(tempSentence.charAt(i-1))) {
+                  breakPoint = i;
+                  found = true;
+                  break;
+                }
+              }
+              
+              // If no good breaking point, just break at byte limit
+              if (!found) {
+                let low = 1, high = tempSentence.length;
+                while (low < high) {
+                  const mid = Math.floor((low + high) / 2);
+                  if (encoder.encode(tempSentence.substring(0, mid)).length <= maxBytes) {
+                    low = mid + 1;
+                  } else {
+                    high = mid;
+                  }
+                }
+                breakPoint = low - 1;
+              }
+              
+              if (breakPoint <= 0) breakPoint = 1; // Ensure we make progress
+              
+              chunks.push(tempSentence.substring(0, breakPoint).trim());
+              tempSentence = tempSentence.substring(breakPoint).trim();
             }
             // Add remaining part of the sentence
             if (tempSentence) currentChunk = tempSentence;
           } else {
-            // Current sentence fits - add it to current chunk
+            // Current sentence fits in a chunk by itself, start new chunk
             if (currentChunk) {
-              currentChunk += ' ' + sentence;
-            } else {
-              currentChunk = sentence;
+              chunks.push(currentChunk);
             }
+            currentChunk = sentence;
           }
         } else {
           // Add sentence to current chunk
-          currentChunk += (currentChunk ? ' ' : '') + sentence;
+          currentChunk = potentialChunk;
         }
       }
       
