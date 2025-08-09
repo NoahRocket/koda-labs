@@ -84,8 +84,8 @@ exports.handler = async (event, context) => {
 
   const supabase = getSupabaseAdmin();
   try {
-    // Avoid setting status to values that may violate DB check constraints; just bump updated_at
-    await updateJobStatus(supabase, jobId, null);
+    // Indicate TTS generation phase for client UX
+    await updateJobStatus(supabase, jobId, 'generating_tts', { status: 'generating_tts' });
 
     // Fetch script_chunks (fallback to generated_script)
     const { data: jobData, error: fetchError } = await supabase
@@ -427,7 +427,8 @@ exports.handler = async (event, context) => {
       console.log(`Cleaned up temporary directory: ${tempDir}`);
     }
 
-    await updateJobStatus(supabase, jobId, 'uploading');
+    // Indicate upload phase for client UX
+    await updateJobStatus(supabase, jobId, 'upload');
 
     // Final safety check for payload size before triggering upload
     if (finalAudioBuffer.length > MAX_PAYLOAD_SIZE_BYTES) {
@@ -501,7 +502,7 @@ exports.handler = async (event, context) => {
     };
   } catch (error) {
     console.error('Error in TTS generation or upload trigger:', error);
-    await updateJobStatus(supabase, jobId, 'failed', error.message);
+    await updateJobStatus(supabase, jobId, 'failed', { error: error.message });
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message }),
