@@ -16,7 +16,7 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 const { GOOGLE_CLOUD_CREDENTIALS, SUPABASE_URL, SUPABASE_KEY } = process.env;
 
 // Define limits for podcast generation
-const MAX_DURATION_SECONDS = 930; // 15.5 minutes, safely under 16 minutes
+// const MAX_DURATION_SECONDS = 930; // 15.5 minutes, safely under 16 minutes
 const MAX_PAYLOAD_SIZE_BYTES = 4.4 * 1024 * 1024; // 4.4MB, safely under Netlify's 4.5MB limit
 
 async function updateJobStatus(supabase, jobId, status, options = {}) {
