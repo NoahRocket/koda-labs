@@ -137,7 +137,6 @@ async function generatePodcastScript(jobId, concepts, chunk, previousScript, cov
         model: 'gpt-5-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 1500,
       })
     });
     console.log(`[generatePodcastScript] OpenAI API response status: ${response.status}`);
