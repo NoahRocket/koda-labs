@@ -134,9 +134,10 @@ async function generatePodcastScript(jobId, concepts, chunk, previousScript, cov
         'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: 'gpt-4.1-mini',
         messages: [{ role: 'user', content: prompt }],
-        max_completion_tokens: 1500,
+        temperature: 0.7,
+        max_tokens: 1500,
       })
     });
     console.log(`[generatePodcastScript] OpenAI API response status: ${response.status}`);
