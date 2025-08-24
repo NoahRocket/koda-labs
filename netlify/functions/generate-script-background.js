@@ -60,7 +60,7 @@ async function generatePodcastScript(jobId, concepts, chunk, previousScript, cov
     let prompt;
     if (!previousScript) {
       // First chunk: Create a welcoming intro
-      prompt = `You are a professional podcast script writer specializing in making complex research accessible. Target audience: high school-educated listeners who are curious but not experts. Explain basic concepts clearly without assuming prior knowledge, while maintaining sophistication by discussing nuances and implications without oversimplifying or using pop-science hype. Create the first segment of an engaging educational podcast (${partLabel}) based on the key concepts and source text. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).
+      prompt = `You are a professional podcast script writer specializing in making complex research accessible. **Target audience: high school-educated listeners who are curious but not experts—explain basic concepts clearly without assuming prior knowledge, while maintaining sophistication by discussing nuances and implications without oversimplifying or using pop-science hype.** Create the first segment of an engaging educational podcast (${partLabel}) based on the key concepts and source text. The segment should be about 3 minutes when read aloud (~2500-3000 characters).
 
     Key Guidelines:
     - Explain Terminology and Concepts: Identify key terms from the source (e.g., technical jargon, acronyms) and explain them step-by-step: start with a simple definition, then the underlying idea, and why it matters. Use relatable analogies only if they add depth without oversimplifying.
