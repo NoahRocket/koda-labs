@@ -16,7 +16,7 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 const { GOOGLE_CLOUD_CREDENTIALS, SUPABASE_URL, SUPABASE_KEY } = process.env;
 
 // Define limits for podcast generation
-const MAX_DURATION_SECONDS = 1530; // 25.5 minutes
+const MAX_DURATION_SECONDS = 1000; // 16.6 minutes
 const MAX_PAYLOAD_SIZE_BYTES = 4.4 * 1024 * 1024; // 4.4MB, safely under Netlify's 4.5MB limit
 
 async function updateJobStatus(supabase, jobId, status, options = {}) {
@@ -287,7 +287,7 @@ exports.handler = async (event, context) => {
       const request = {
         input: { text: chunk },
         voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Iapetus' },
-        audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.1 },
+        audioConfig: { audioEncoding: 'MP3', pitch: 0, speakingRate: 1.2 },
       };
 
       // Retry logic for handling 502/timeout errors
