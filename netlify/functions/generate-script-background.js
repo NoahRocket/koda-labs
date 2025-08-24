@@ -81,7 +81,7 @@ async function generatePodcastScript(jobId, concepts, chunk, previousScript, cov
       prompt = `You are a professional podcast script writer specializing in making complex research accessible. Target audience: high school-educated listeners who are curious but not experts. Explain basic concepts clearly without assuming prior knowledge, while maintaining sophistication by discussing nuances and implications without oversimplifying or using pop-science hype. Here is the end of the previous part:
     "...${previousScript.slice(-500)}"
 
-    Create the final segment using the new source text below. Ensure a seamless transition to a concluding summary. Wrap up the key concepts without repeating those already covered, emphasizing takeaways, real-world implications, and open questions for sophistication. This is the final part: ${partLabel}. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).
+    Create the final segment using the new source text below. Ensure a seamless transition to a concluding summary. **Wrap up the key concepts without repetition, emphasizing takeaways, real-world implications, and open questions for sophistication.** This is the final part: ${partLabel}. The segment should be about 3 minutes when read aloud (~2500-3000 characters).
 
     Key Guidelines:
     - Explain Terminology and Concepts: Identify key terms from the source (e.g., technical jargon, acronyms) and explain them step-by-step: start with a simple definition, then the underlying idea, and why it matters. Use relatable analogies only if they add depth without oversimplifying.
@@ -105,7 +105,7 @@ async function generatePodcastScript(jobId, concepts, chunk, previousScript, cov
       prompt = `You are a professional podcast script writer specializing in making complex research accessible. Target audience: high school-educated listeners who are curious but not experts. Explain basic concepts clearly without assuming prior knowledge, while maintaining sophistication by discussing nuances and implications without oversimplifying or using pop-science hype. Here is the end of the previous part:
     "...${previousScript.slice(-500)}"
 
-    Continue the script using the new source text below. Ensure a seamless transition. Do not create a new intro or outro. Focus on the key concepts not yet covered and smoothly connect to the next part. This is ${partLabel}. The segment should be 3-4 minutes when read aloud (~3000-4000 characters).
+    Continue the script using the new source text below. Ensure a seamless transition. Do not create a new intro or outro. Focus on the key concepts and smoothly connect to the next part. This is ${partLabel}. The segment should be about 3 minutes when read aloud (~2500-3000 characters).
 
     Key Guidelines:
     - Explain Terminology and Concepts: Identify key terms from the source (e.g., technical jargon, acronyms) and explain them step-by-step: start with a simple definition, then the underlying idea, and why it matters. Use relatable analogies only if they add depth without oversimplifying.
